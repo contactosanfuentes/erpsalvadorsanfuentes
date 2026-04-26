@@ -1,0 +1,1786 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>Tesorería - Sistema de Gestión Financiera</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- SheetJS (Excel) -->
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js"></script>
+    <!-- SortableJS (drag & drop) -->
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
+    <!-- EmailJS -->
+    <!-- Supabase JS -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        body { font-family: system-ui, -apple-system, sans-serif; background-color: #f1f5f9; margin: 0; padding: 0; }
+        .active-tab { background-color: #6366f1; color: white; }
+        .custom-scrollbar::-webkit-scrollbar { width: 5px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+        .modal { transition: opacity 0.2s ease; }
+        .toast { position: fixed; bottom: 20px; right: 20px; z-index: 1000; animation: slideIn 0.3s; }
+        @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+        .file-input-label { cursor: pointer; background: #f1f5f9; padding: 0.5rem; border-radius: 0.5rem; border: 1px dashed #cbd5e1; }
+        .file-input-label:hover { background: #e2e8f0; }
+        .account-card {
+            transition: all 0.2s ease;
+            cursor: grab;
+            user-select: none;
+        }
+        .account-card:active { cursor: grabbing; }
+        .account-card:hover { transform: translateY(-2px); box-shadow: 0 10px 20px rgba(0,0,0,0.1); }
+        .account-card.active { border: 2px solid #6366f1; background: #eef2ff; }
+        .signature-canvas-container { position: relative; margin: 20px 0; }
+        .signature-canvas {
+            width: 100%;
+            height: 200px;
+            border: 3px dashed #cbd5e1;
+            border-radius: 10px;
+            background: white;
+            cursor: crosshair;
+            touch-action: none;
+        }
+        .signature-placeholder {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%,-50%);
+            color: #94a3b8;
+            text-align: center;
+            pointer-events: none;
+            font-style: italic;
+        }
+        .signature-btn {
+            padding: 12px 15px;
+            border: none;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        .signature-btn.clear { background: #EF4444; color: white; }
+        .signature-btn.save { background: #10B981; color: white; }
+        .signature-preview {
+            margin-top: 20px;
+            padding: 15px;
+            background: white;
+            border-radius: 8px;
+            border: 2px solid #10B981;
+            display: none;
+        }
+        .signature-preview.active { display: block; }
+        .signature-image { max-width: 100%; max-height: 150px; border: 1px solid #cbd5e1; }
+        .cuota-row { display: flex; gap: 10px; align-items: center; margin-bottom: 8px; }
+        .cuota-row input { flex: 1; }
+    </style>
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#0E2586">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="ERP Scout">
+</head>
+<body class="h-screen overflow-hidden bg-slate-100">
+
+    <!-- Topbar -->
+    <header class="h-16 bg-white border-b border-slate-200 px-6 flex items-center justify-between shrink-0 shadow-sm">
+        <div class="flex items-center gap-3">
+            <h2 class="text-lg font-bold text-slate-800">Tesorería General</h2>
+            <div id="syncBadge" class="flex items-center gap-1.5 text-[9px] font-bold px-2.5 py-1 rounded-full bg-slate-100 text-slate-400 uppercase tracking-wider">
+                <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> Online
+            </div>
+        </div>
+        <div class="flex items-center gap-2">
+            <button onclick="syncData()" class="flex items-center gap-1 px-3 py-1.5 bg-indigo-50 text-indigo-700 rounded-lg text-xs font-bold border border-indigo-100">
+                <i class="fas fa-sync fa-xs" id="syncIcon"></i> Sinc.
+            </button>
+            <button onclick="openAddAccountModal()" class="flex items-center gap-1 px-3 py-1.5 bg-indigo-600 text-white rounded-lg text-xs font-bold">+ Nueva Cuenta</button>
+        </div>
+    </header>
+
+    <!-- Pestañas -->
+    <div class="px-6 pt-4">
+        <div class="flex items-center gap-2 p-1 bg-slate-200/50 rounded-2xl w-fit overflow-x-auto no-scrollbar mb-4" id="tesoreriaTabs">
+            <button class="px-4 py-1.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all active-tab" onclick="switchTesoreriaTab('dashboard')">Dashboard</button>
+            <button class="px-4 py-1.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all text-slate-500 hover:bg-slate-300/50" onclick="switchTesoreriaTab('consolidado')">Consolidado</button>
+            <button class="px-4 py-1.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all text-slate-500 hover:bg-slate-300/50" onclick="switchTesoreriaTab('cuentas')">Cuentas</button>
+            <button class="px-4 py-1.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all text-slate-500 hover:bg-slate-300/50" onclick="switchTesoreriaTab('registro')">Registro Anual</button>
+            <button class="px-4 py-1.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all text-slate-500 hover:bg-slate-300/50" onclick="switchTesoreriaTab('transferencias')">Transferencias</button>
+            <button class="px-4 py-1.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all text-slate-500 hover:bg-slate-300/50" onclick="switchTesoreriaTab('config')">Config</button>
+            <button class="px-4 py-1.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all text-slate-500 hover:bg-slate-300/50" onclick="checkTesoreroAndSwitch()">Planes Pago</button>
+        </div>
+    </div>
+
+    <!-- Contenido principal -->
+    <div class="px-6 pb-6 h-[calc(100vh-8rem)] overflow-y-auto custom-scrollbar">
+        <div id="tesoreriaContent" class="space-y-6"></div>
+    </div>
+
+    <!-- Toast container -->
+    <div id="toastContainer" class="fixed bottom-5 right-5 space-y-2 z-50"></div>
+
+    <!-- ==================== MODALES ==================== -->
+    <!-- Modal Nueva Cuenta (con tipos de cuota para evento/proyecto) -->
+    <div id="modalAddAccount" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4 modal">
+        <div class="bg-white w-full max-w-2xl rounded-3xl p-8 shadow-2xl max-h-[90vh] overflow-y-auto">
+            <h3 class="text-2xl font-bold mb-6">Nueva Cuenta</h3>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div><label class="block text-sm font-bold mb-1">Nombre *</label><input type="text" id="newAccName" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl"></div>
+                <div><label class="block text-sm font-bold mb-1">Tipo *</label>
+                    <select id="newAccType" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl" onchange="toggleTiposCuotaEnCreacion()">
+                        <option value="general">General</option>
+                        <option value="unidad">Unidad</option>
+                        <option value="proyecto">Proyecto</option>
+                        <option value="evento">Evento</option>
+                    </select>
+                </div>
+            </div>
+            <!-- Sección para tipos de cuota (visible solo si tipo es evento o proyecto) -->
+            <div id="tiposCuotaContainerCreacion" class="mt-6 hidden">
+                <h4 class="font-bold mb-2">Tipos de cuota para esta cuenta</h4>
+                <div id="tiposCuotaListCreacion" class="space-y-2 mb-4"></div>
+                <div class="flex gap-2">
+                    <input type="text" id="nuevoTipoNombre" placeholder="Nombre (ej: Inscripción)" class="flex-1 px-3 py-2 border rounded-lg">
+                    <input type="number" id="nuevoTipoMonto" placeholder="Monto" class="w-32 px-3 py-2 border rounded-lg">
+                    <button type="button" onclick="agregarTipoCuotaTemporal()" class="px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm">Agregar</button>
+                </div>
+                <p class="text-xs text-slate-500 mt-2">Los tipos de cuota se guardarán junto con la cuenta.</p>
+            </div>
+            <div class="flex gap-3 mt-6">
+                <button onclick="closeModal('modalAddAccount')" class="flex-1 py-3 text-slate-400 font-bold">Cancelar</button>
+                <button onclick="guardarNuevaCuentaConTipos()" class="flex-1 py-3 bg-indigo-600 text-white font-bold rounded-xl">Crear</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Nueva Transacción (mejorado: opción Corriente/Cuota y tipos de cuota) -->
+    <div id="modalAddTx" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4 modal">
+        <div class="bg-white w-full max-w-md rounded-3xl p-8 shadow-2xl">
+            <h3 class="text-2xl font-bold mb-1">Nuevo Movimiento</h3>
+            <p id="txTarget" class="text-xs text-indigo-500 font-bold mb-6 uppercase"></p>
+            <div class="mb-3">
+                <label class="text-xs font-bold">Buscar persona por RUT (opcional)</label>
+                <input type="text" id="searchRut" placeholder="Ingrese RUT" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl">
+                <div id="searchResults" class="mt-2 text-sm max-h-32 overflow-y-auto"></div>
+                <input type="hidden" id="personaData">
+            </div>
+            <!-- Nuevo: selector tipo de movimiento -->
+            <div class="mb-3">
+                <label class="text-xs font-bold">Tipo de movimiento</label>
+                <select id="txTipoMovimiento" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl" onchange="toggleTipoCuota()">
+                    <option value="corriente">Corriente</option>
+                    <option value="cuota">Cuota (asociada a tipo de cuota)</option>
+                </select>
+            </div>
+            <!-- Selector de tipo de cuota (oculto por defecto) -->
+            <div id="txTipoCuotaContainer" class="mb-3 hidden">
+                <label class="text-xs font-bold">Tipo de cuota</label>
+                <select id="txTipoCuota" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl">
+                    <option value="">Seleccione un tipo</option>
+                </select>
+            </div>
+            <input type="text" id="txConcepto" placeholder="Concepto" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl mb-3">
+            <div class="flex gap-2 mb-3">
+                <input type="number" id="txMonto" placeholder="Monto" class="flex-1 px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl">
+                <select id="txTipo" class="px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl">
+                    <option value="ingreso">Ingreso</option>
+                    <option value="egreso">Egreso</option>
+                </select>
+            </div>
+            <div class="flex gap-2 mb-3">
+                <select id="txMoneda" class="px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl">
+                    <option value="CLP">CLP</option>
+                    <option value="USD">USD</option>
+                    <option value="Bs">Bs</option>
+                </select>
+                <input type="text" id="txRef" placeholder="Referencia" class="flex-1 px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl">
+            </div>
+            <div class="mb-4">
+                <label class="file-input-label flex items-center gap-2 w-full px-4 py-3 border border-slate-200 rounded-xl cursor-pointer">
+                    <i class="fas fa-paperclip text-slate-400"></i>
+                    <span id="fileLabel">Adjuntar comprobante (opcional)</span>
+                    <input type="file" id="txFile" class="hidden" accept=".pdf,.jpg,.jpeg,.png" onchange="handleFileSelect(this)">
+                </label>
+            </div>
+            <div class="flex gap-3">
+                <button onclick="closeModal('modalAddTx')" class="flex-1 py-3 text-slate-400 font-bold">Cancelar</button>
+                <button onclick="addTransaction()" class="flex-1 py-3 bg-indigo-600 text-white font-bold rounded-xl">Registrar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Configurar tipos de cuota para una cuenta existente -->
+    <div id="modalConfigTiposCuotaCuenta" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4 modal">
+        <div class="bg-white w-full max-w-2xl rounded-3xl p-8 shadow-2xl max-h-[90vh] overflow-y-auto">
+            <h3 class="text-2xl font-bold mb-6">Tipos de cuota para <span id="cuentaNombreConfig"></span></h3>
+            <input type="hidden" id="cuentaIdConfig">
+            <div id="tiposCuotaCuentaList" class="space-y-2 mb-4"></div>
+            <div class="flex gap-2">
+                <input type="text" id="nuevoTipoCuentaNombre" placeholder="Nombre" class="flex-1 px-3 py-2 border rounded-lg">
+                <input type="number" id="nuevoTipoCuentaMonto" placeholder="Monto" class="w-32 px-3 py-2 border rounded-lg">
+                <button type="button" onclick="agregarTipoCuotaCuenta()" class="px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm">Agregar</button>
+            </div>
+            <div class="flex gap-3 mt-6">
+                <button onclick="closeModal('modalConfigTiposCuotaCuenta')" class="flex-1 py-3 text-slate-400 font-bold">Cerrar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Transferencia -->
+    <div id="modalTransfer" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4 modal">
+        <div class="bg-white w-full max-w-md rounded-3xl p-8 shadow-2xl">
+            <h3 class="text-2xl font-bold mb-6">Transferir Fondos</h3>
+            <select id="transferFrom" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl mb-3"><option value="">Origen</option></select>
+            <select id="transferTo" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl mb-3"><option value="">Destino</option></select>
+            <input type="number" id="transferAmount" placeholder="Monto" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl mb-3">
+            <input type="text" id="transferConcept" placeholder="Concepto" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl mb-4">
+            <div class="flex gap-3">
+                <button onclick="closeModal('modalTransfer')" class="flex-1 py-3 text-slate-400 font-bold">Cancelar</button>
+                <button onclick="executeTransfer()" class="flex-1 py-3 bg-indigo-600 text-white font-bold rounded-xl">Transferir</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Editar Movimiento -->
+    <div id="modalEditTx" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4 modal">
+        <div class="bg-white w-full max-w-md rounded-3xl p-8 shadow-2xl">
+            <h3 class="text-2xl font-bold mb-6">Editar Movimiento</h3>
+            <input type="hidden" id="editTxId"><input type="hidden" id="editAccountId">
+            <input type="text" id="editConcepto" placeholder="Concepto" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl mb-3">
+            <input type="number" id="editMonto" placeholder="Monto" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl mb-3">
+            <select id="editMoneda" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl mb-3">
+                <option value="CLP">CLP</option><option value="USD">USD</option><option value="Bs">Bs</option>
+            </select>
+            <input type="text" id="editRef" placeholder="Referencia" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl mb-4">
+            <div class="flex gap-3">
+                <button onclick="closeModal('modalEditTx')" class="flex-1 py-3 text-slate-400 font-bold">Cancelar</button>
+                <button onclick="updateTransaction()" class="flex-1 py-3 bg-indigo-600 text-white font-bold rounded-xl">Guardar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Agregar Persona Manual -->
+    <div id="modalAgregarPersona" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4 modal">
+        <div class="bg-white w-full max-w-md rounded-3xl p-8 shadow-2xl">
+            <h3 class="text-2xl font-bold mb-6">Agregar Persona</h3>
+            <input type="text" id="manualRun" placeholder="RUN" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl mb-3">
+            <input type="text" id="manualNombre" placeholder="Nombre completo" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl mb-3">
+            <input type="text" id="manualUnidad" placeholder="Unidad" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl mb-3">
+            <select id="manualTipo" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl mb-3">
+                <option value="nuevo">Nuevo</option><option value="regular">Regular</option>
+            </select>
+            <input type="number" id="manualMonto" placeholder="Monto pagado (opcional)" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl mb-4">
+            <div class="flex gap-3">
+                <button onclick="cerrarModalPersona()" class="flex-1 py-3 text-slate-400 font-bold">Cancelar</button>
+                <button onclick="agregarPersonaManual()" class="flex-1 py-3 bg-indigo-600 text-white font-bold rounded-xl">Agregar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Config Cuotas por Cuenta (compatibilidad) -->
+    <div id="modalConfigCuotas" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4 modal">
+        <div class="bg-white w-full max-w-4xl rounded-3xl p-8 shadow-2xl max-h-[90vh] overflow-y-auto">
+            <h3 class="text-2xl font-bold mb-6">Tipos de cuota por cuenta</h3>
+            <div id="configCuotasContent"></div>
+            <div class="flex gap-3 mt-6">
+                <button onclick="cerrarModalConfigCuotas()" class="flex-1 py-3 text-slate-400 font-bold">Cerrar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Pago Registro Anual -->
+    <div id="modalPagoRegistro" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4 modal">
+        <div class="bg-white w-full max-w-md rounded-3xl p-8 shadow-2xl">
+            <h3 class="text-2xl font-bold mb-6">Registrar Pago</h3>
+            <p id="pagoRegistroNombre" class="text-sm text-indigo-600 font-bold mb-4"></p>
+            <input type="hidden" id="pagoRegistroId">
+            <input type="number" id="pagoRegistroMonto" placeholder="Monto" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl mb-4">
+            <label class="file-input-label flex items-center gap-2 w-full px-4 py-3 border border-slate-200 rounded-xl cursor-pointer mb-4">
+                <i class="fas fa-file-pdf text-red-500"></i>
+                <span id="pagoRegistroFileLabel">Comprobante (opcional)</span>
+                <input type="file" id="pagoRegistroFile" class="hidden" accept=".pdf,.jpg,.jpeg,.png" onchange="handlePagoRegistroFile(this)">
+            </label>
+            <div class="flex gap-3">
+                <button onclick="cerrarModalPagoRegistro()" class="flex-1 py-3 text-slate-400 font-bold">Cancelar</button>
+                <button onclick="guardarPagoRegistro()" class="flex-1 py-3 bg-indigo-600 text-white font-bold rounded-xl">Registrar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Plan de Pago -->
+    <div id="modalPlanPago" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4 modal">
+        <div class="bg-white w-full max-w-5xl rounded-3xl p-8 shadow-2xl max-h-[90vh] overflow-y-auto">
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="text-2xl font-bold">Crear Plan de Pago</h3>
+                <button onclick="cerrarModalPlanPago()" class="text-slate-400 hover:text-slate-600"><i class="fas fa-times text-2xl"></i></button>
+            </div>
+            <!-- Datos Personales -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                <div><label class="block text-sm font-bold mb-1">RUN Responsable *</label><input type="text" id="planRunResp" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl" oninput="buscarPersonaPlan(this.value)"><div id="planSearchResults" class="text-sm mt-1 max-h-32 overflow-y-auto"></div></div>
+                <div><label class="block text-sm font-bold mb-1">Nombre Responsable *</label><input type="text" id="planNombreResp" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl"></div>
+                <div><label class="block text-sm font-bold mb-1">Email Responsable *</label><input type="email" id="planEmailResp" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl"></div>
+                <div><label class="block text-sm font-bold mb-1">Teléfono Responsable</label><input type="text" id="planTelefonoResp" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl"></div>
+                <div><label class="block text-sm font-bold mb-1">Dirección Responsable</label><input type="text" id="planDireccionResp" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl"></div>
+                <div><label class="block text-sm font-bold mb-1">RUN Tesorero *</label><input type="text" id="planRunTes" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl"></div>
+                <div><label class="block text-sm font-bold mb-1">Nombre Tesorero *</label><input type="text" id="planNombreTes" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl"></div>
+                <div class="md:col-span-2"><label class="block text-sm font-bold mb-1">Observaciones</label><textarea id="planObservaciones" rows="2" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl"></textarea></div>
+            </div>
+            <!-- Configuración de Cuotas -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                <div><label class="block text-sm font-bold mb-1">Monto Total *</label><input type="number" id="planMontoTotal" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl" onchange="recalcularCuotasPorMontoTotal()"></div>
+                <div><label class="block text-sm font-bold mb-1">Número de Cuotas *</label><input type="number" id="planNumCuotas" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl" onchange="generarTablaCuotas()"></div>
+                <div><label class="block text-sm font-bold mb-1">Fecha Inicio *</label><input type="date" id="planFechaInicio" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl" onchange="generarTablaCuotas()"></div>
+                <div><label class="block text-sm font-bold mb-1">Fecha Fin *</label><input type="date" id="planFechaFin" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl"></div>
+                <div><label class="block text-sm font-bold mb-1">Tipo de Cuota</label><select id="planTipoCuota" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl" onchange="cambiarTipoCuota()"><option value="fija">Fija (todas iguales)</option><option value="variable">Variable (personalizar)</option></select></div>
+                <div><label class="block text-sm font-bold mb-1">Período entre cuotas</label><select id="planPeriodo" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl" onchange="generarTablaCuotas()"><option value="mensual">Mensual</option><option value="quincenal">Quincenal</option><option value="semanal">Semanal</option></select></div>
+            </div>
+            <!-- Tabla de cuotas -->
+            <div class="mt-6" id="cuotasContainer" style="display: none;">
+                <h4 class="font-bold mb-2">Detalle de cuotas</h4>
+                <div class="overflow-x-auto"><table class="w-full text-sm border"><thead class="bg-slate-100"> <th class="px-4 py-2">N°</th><th class="px-4 py-2">Monto</th><th class="px-4 py-2">Fecha Vencimiento</th><th class="px-4 py-2">Acciones</th> </thead><tbody id="cuotasList"></tbody>   </table></div>
+                <div class="mt-4 flex justify-between items-center text-sm font-bold"><span>Total: <span id="resumenTotal">$0</span></span><span>Promedio: <span id="resumenPromedio">$0</span></span></div>
+            </div>
+            <!-- Declaración de compromiso -->
+            <div class="mt-6 p-4 bg-blue-50 border-l-4 border-blue-500 text-sm"><i class="fas fa-handshake text-blue-600 mr-2"></i><strong>Declaración de compromiso:</strong> El responsable declara conocer y aceptar las condiciones del plan de pagos, comprometiéndose a cumplir con el pago de las cuotas en las fechas establecidas. El incumplimiento podrá derivar en la suspensión de beneficios o actividades, según lo estipulado en el reglamento interno del grupo.</div>
+            <!-- Firmas -->
+            <div class="mt-6"><label class="block text-sm font-bold mb-2">Firma del Tesorero *</label><div class="signature-canvas-container"><canvas class="signature-canvas" id="firmaTesoreroCanvas" width="800" height="200"></canvas><div class="signature-placeholder" id="firmaTesoreroPlaceholder">Firme aquí</div></div><div class="flex gap-2 mt-2"><button class="signature-btn clear" id="clearFirmaTesorero"><i class="fas fa-eraser"></i> Limpiar</button><button class="signature-btn save" id="saveFirmaTesorero"><i class="fas fa-save"></i> Guardar</button></div><div class="signature-preview" id="firmaTesoreroPreview"><img class="signature-image" id="firmaTesoreroImage"><p id="firmaTesoreroTimestamp"></p></div></div>
+            <div class="mt-6"><label class="block text-sm font-bold mb-2">Firma del Responsable *</label><div class="signature-canvas-container"><canvas class="signature-canvas" id="firmaResponsableCanvas" width="800" height="200"></canvas><div class="signature-placeholder" id="firmaResponsablePlaceholder">Firme aquí</div></div><div class="flex gap-2 mt-2"><button class="signature-btn clear" id="clearFirmaResponsable"><i class="fas fa-eraser"></i> Limpiar</button><button class="signature-btn save" id="saveFirmaResponsable"><i class="fas fa-save"></i> Guardar</button></div><div class="signature-preview" id="firmaResponsablePreview"><img class="signature-image" id="firmaResponsableImage"><p id="firmaResponsableTimestamp"></p></div></div>
+            <div class="flex gap-3 mt-8"><button onclick="cerrarModalPlanPago()" class="flex-1 py-3 text-slate-400 font-bold">Cancelar</button><button onclick="guardarPlanPago()" class="flex-1 py-3 bg-indigo-600 text-white font-bold rounded-xl">Guardar Plan y Enviar Correo</button></div>
+        </div>
+    </div>
+
+    <!-- Modal Ver Detalle del Plan -->
+    <div id="modalVerPlan" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4 modal">
+        <div class="bg-white w-full max-w-4xl rounded-3xl p-8 shadow-2xl max-h-[90vh] overflow-y-auto">
+            <div class="flex justify-between items-center mb-4"><h3 class="text-2xl font-bold">Detalle del Plan de Pago</h3><button onclick="cerrarModalVerPlan()" class="text-slate-400 hover:text-slate-600"><i class="fas fa-times text-2xl"></i></button></div>
+            <div id="detallePlanInfo" class="mb-4 p-4 bg-slate-50 rounded-xl"></div>
+            <h4 class="font-bold mb-2">Cuotas</h4>
+            <div id="detalleCuotas" class="space-y-2 max-h-96 overflow-y-auto"></div>
+            <div class="flex gap-3 mt-6"><button onclick="cerrarModalVerPlan()" class="flex-1 py-3 bg-indigo-600 text-white font-bold rounded-xl">Cerrar</button></div>
+        </div>
+    </div>
+
+    <!-- Modal Pago Cuota (para pagos parciales) -->
+    <div id="modalPagoCuota" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4 modal">
+        <div class="bg-white w-full max-w-md rounded-3xl p-8 shadow-2xl">
+            <h3 class="text-2xl font-bold mb-6">Registrar Pago de Cuota</h3>
+            <p id="pagoCuotaInfo" class="text-sm text-indigo-600 font-bold mb-4"></p>
+            <input type="hidden" id="pagoCuotaId">
+            <input type="number" id="pagoCuotaMonto" placeholder="Monto pagado" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl mb-4">
+            <label class="file-input-label flex items-center gap-2 w-full px-4 py-3 border border-slate-200 rounded-xl cursor-pointer mb-4"><i class="fas fa-file-pdf text-red-500"></i><span id="pagoCuotaFileLabel">Comprobante (opcional)</span><input type="file" id="pagoCuotaFile" class="hidden" accept=".pdf,.jpg,.jpeg,.png" onchange="handlePagoCuotaFile(this)"></label>
+            <div class="flex gap-3"><button onclick="cerrarModalPagoCuota()" class="flex-1 py-3 text-slate-400 font-bold">Cancelar</button><button onclick="guardarPagoCuota()" class="flex-1 py-3 bg-indigo-600 text-white font-bold rounded-xl">Registrar</button></div>
+        </div>
+    </div>
+
+    <script>
+        // ==================== CONFIGURACIÓN SUPABASE ====================
+        const SUPABASE_URL = 'https://hyixmaxhoxvamoecuars.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imh5aXhtYXhob3h2YW1vZWN1YXJzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI3OTg1NDMsImV4cCI6MjA4ODM3NDU0M30.ZLeJIWdip2f00h4TqkZH7eqMX4wpwphaqkJpAa0N0X4';
+
+        const urlParams = new URLSearchParams(window.location.search);
+        const accessToken = urlParams.get('token');
+
+        const { createClient } = supabase;
+        const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+            global: { headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : {} }
+        });
+
+        // Email
+        const CC_EMAILS = ['responsable@salvadorsanfuentes.org', 'asistente@salvadorsanfuentes.org', 'contacto@salvadorsanfuentes.org', 'GuiasyScouts@salvadorsanfuentes.org', 'tesoreria@salvadorsanfuentes.org'].join(',');
+
+        const PAYMENT_BUCKET = 'payment-receipts';
+
+        // ==================== VARIABLES GLOBALES ====================
+        let accounts = [];
+        let transferHistory = [];
+        let activeAccountId = null;
+        let currentTab = 'dashboard';
+        let chartInstance = null;
+        let evoChartInstance = null;
+        let pendingFileData = null;
+        let miembrosRegistro = [];
+        let firmaTesoreroData = { hasSignature: false };
+        let firmaResponsableData = { hasSignature: false };
+        let pagoRegistroFileData = null;
+        let pagoCuotaFileData = null;
+        let currentPlanId = null;
+        let currentCuotaId = null;
+        let tiposCuotaTemporales = [];
+        let tiposCuotaMap = new Map(); // para mostrar info de cuotas en movimientos
+
+        const currencyFormatter = new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP', minimumFractionDigits: 0 });
+
+        // ==================== TOAST ====================
+        function showToast(message, type = 'info') {
+            const container = document.getElementById('toastContainer');
+            const toast = document.createElement('div');
+            toast.className = `bg-white border-l-4 ${type === 'success' ? 'border-green-500' : type === 'warning' ? 'border-yellow-500' : type === 'error' ? 'border-red-500' : 'border-blue-500'} rounded-lg shadow-lg p-4 flex items-center gap-3 min-w-[300px] toast`;
+            toast.innerHTML = `<i class="fas ${type === 'success' ? 'fa-check-circle text-green-500' : type === 'warning' ? 'fa-exclamation-triangle text-yellow-500' : type === 'error' ? 'fa-times-circle text-red-500' : 'fa-info-circle text-blue-500'}"></i><span class="flex-1">${message}</span><button onclick="this.parentElement.remove()" class="text-slate-400 hover:text-slate-600"><i class="fas fa-times"></i></button>`;
+            container.appendChild(toast);
+            setTimeout(() => toast.remove(), 5000);
+        }
+
+        // ==================== CUENTAS BASE ====================
+        const cuentasBase = [
+            { nombre: 'DINEROS GRUPO', tipo: 'general' }, { nombre: 'REGISTRO', tipo: 'general' }, { nombre: 'PAXTÚ', tipo: 'general' }, { nombre: 'CAMVER', tipo: 'general' },
+            { nombre: 'MANADA', tipo: 'unidad' }, { nombre: 'BANDADA', tipo: 'unidad' }, { nombre: 'COMPAÑÍA', tipo: 'unidad' }, { nombre: 'TROPA', tipo: 'unidad' },
+            { nombre: 'LEFTRARU', tipo: 'unidad' }, { nombre: 'JANEKEW', tipo: 'unidad' }, { nombre: 'CLAN', tipo: 'unidad' }, { nombre: 'CAMPINV', tipo: 'general' },
+            { nombre: 'CAMPRI', tipo: 'general' }, { nombre: 'BINGO', tipo: 'general' }, { nombre: 'NAVIDAD', tipo: 'general' }, { nombre: 'SALVAFONDA', tipo: 'general' }
+        ];
+
+        async function crearCuentasBase() {
+            try {
+                const { data: existentes } = await supabaseClient.from('tesoreria_cuentas').select('nombre');
+                const nombresExistentes = new Set(existentes.map(c => c.nombre));
+                const cuentasNuevas = cuentasBase.filter(c => !nombresExistentes.has(c.nombre));
+                if (cuentasNuevas.length === 0) { showToast('Todas las cuentas base ya existen', 'info'); return; }
+                await supabaseClient.from('tesoreria_cuentas').insert(cuentasNuevas);
+                showToast(`Se crearon ${cuentasNuevas.length} cuentas base`, 'success');
+                await cargarDatos();
+            } catch (error) { showToast('Error al crear cuentas base: ' + error.message, 'error'); }
+        }
+
+        // ==================== NAVEGACIÓN ====================
+        function switchTesoreriaTab(tab) {
+            currentTab = tab;
+            document.querySelectorAll('#tesoreriaTabs button').forEach(btn => {
+                btn.classList.remove('active-tab', 'text-white');
+                btn.classList.add('text-slate-500', 'hover:bg-slate-300/50');
+            });
+            const activeBtn = Array.from(document.querySelectorAll('#tesoreriaTabs button')).find(btn => btn.textContent.trim().toLowerCase() === tab);
+            if (activeBtn) { activeBtn.classList.add('active-tab'); activeBtn.classList.remove('text-slate-500', 'hover:bg-slate-300/50'); }
+            renderCurrentTab();
+        }
+
+        function renderCurrentTab() {
+            if (currentTab === 'dashboard') renderDashboard();
+            else if (currentTab === 'consolidado') renderConsolidado();
+            else if (currentTab === 'cuentas') renderCuentas();
+            else if (currentTab === 'registro') renderRegistroAnual();
+            else if (currentTab === 'transferencias') renderTransferencias();
+            else if (currentTab === 'config') renderConfig();
+            else if (currentTab === 'planes') renderPlanesPago();
+        }
+
+        // ==================== CARGA DE DATOS ====================
+        async function cargarDatos() {
+            try {
+                const { data: cuentas } = await supabaseClient.from('tesoreria_cuentas').select('*').order('orden', { ascending: true, nullsFirst: false }).order('nombre');
+                accounts = cuentas || [];
+                if (accounts.length === 0) { await crearCuentasBase(); const { data: nuevas } = await supabaseClient.from('tesoreria_cuentas').select('*').order('orden'); accounts = nuevas || []; }
+                for (let acc of accounts) {
+                    const { data: movs } = await supabaseClient.from('tesoreria_movimientos').select('*').eq('cuenta_id', acc.id).order('fecha', { ascending: false });
+                    acc.movimientos = movs || [];
+                }
+                const { data: transfers } = await supabaseClient.from('tesoreria_transferencias').select('*').order('fecha', { ascending: false });
+                transferHistory = transfers || [];
+                renderCurrentTab();
+                showToast('Datos cargados', 'success');
+            } catch (error) { showToast('Error al cargar datos: ' + error.message, 'error'); }
+        }
+
+        // ==================== DASHBOARD ====================
+        function renderDashboard() {
+            const totalIngresos = accounts.reduce((sum, acc) => sum + (acc.movimientos?.filter(m => m.monto > 0).reduce((s, m) => s + m.monto, 0) || 0), 0);
+            const totalEgresos = accounts.reduce((sum, acc) => sum + (acc.movimientos?.filter(m => m.monto < 0).reduce((s, m) => s + Math.abs(m.monto), 0) || 0), 0);
+            const saldoTotal = accounts.reduce((sum, acc) => sum + (acc.movimientos?.reduce((s, m) => s + m.monto, 0) || 0), 0);
+            const cuentasNegativas = accounts.filter(acc => (acc.movimientos?.reduce((s, m) => s + m.monto, 0) || 0) < 0);
+            let html = `
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div class="bg-indigo-600 text-white p-8 rounded-3xl shadow-xl"><p class="text-indigo-100 text-xs font-black uppercase tracking-widest mb-1">Saldo Consolidado</p><h3 class="text-3xl font-black">${currencyFormatter.format(saldoTotal)}</h3><p class="mt-4 text-xs bg-white/10 w-fit px-2 py-1 rounded font-bold">${accounts.length} CUENTAS</p></div>
+                    <div class="bg-white p-8 rounded-3xl border border-slate-200 shadow-sm"><p class="text-emerald-500 text-xs font-black uppercase tracking-widest mb-1">Ingresos de Grupo</p><h3 class="text-3xl font-bold text-slate-800">${currencyFormatter.format(totalIngresos)}</h3></div>
+                    <div class="bg-white p-8 rounded-3xl border border-slate-200 shadow-sm"><p class="text-rose-500 text-xs font-black uppercase tracking-widest mb-1">Egresos de Grupo</p><h3 class="text-3xl font-bold text-slate-800">${currencyFormatter.format(totalEgresos)}</h3></div>
+                </div>
+                <div class="bg-white p-8 rounded-3xl border border-slate-200 shadow-sm mt-6"><h4 class="font-black text-xs text-slate-400 uppercase tracking-widest mb-6">Evolución de Saldos (últimos 12 meses)</h4><div class="h-64"><canvas id="evolutionChart"></canvas></div></div>
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
+                    <div class="bg-white p-8 rounded-3xl border border-slate-200 shadow-sm"><h4 class="font-black text-xs text-slate-400 uppercase tracking-widest mb-6">Saldos por Cuenta</h4><div class="h-64"><canvas id="dashboardChart"></canvas></div></div>
+                    <div class="bg-white p-8 rounded-3xl border border-slate-200 shadow-sm"><h4 class="font-black text-xs text-slate-400 uppercase tracking-widest mb-6">Alertas y Notificaciones</h4><div class="space-y-3 max-h-64 overflow-y-auto pr-2" id="alertasContainer">${cuentasNegativas.length === 0 ? '<p class="text-slate-400 text-center py-4">No hay alertas de cuentas</p>' : ''}${cuentasNegativas.map(acc => { const saldo = acc.movimientos?.reduce((s, m) => s + m.monto, 0) || 0; return `<div class="flex items-center gap-3 p-3 bg-rose-50 border border-rose-200 rounded-xl"><i class="fas fa-exclamation-triangle text-rose-500"></i><div class="flex-1"><p class="font-bold text-rose-800">Cuenta con saldo negativo</p><p class="text-sm">${acc.nombre}: ${currencyFormatter.format(saldo)}</p></div></div>`; }).join('')}</div></div>
+                </div>
+            `;
+            document.getElementById('tesoreriaContent').innerHTML = html;
+            const ctx = document.getElementById('dashboardChart')?.getContext('2d');
+            if (ctx) { if (chartInstance) chartInstance.destroy(); chartInstance = new Chart(ctx, { type: 'bar', data: { labels: accounts.map(a => a.nombre), datasets: [{ data: accounts.map(a => a.movimientos?.reduce((s, m) => s + m.monto, 0) || 0), backgroundColor: accounts.map(a => (a.movimientos?.reduce((s, m) => s + m.monto, 0) || 0) < 0 ? '#f43f5e' : '#6366f1'), borderRadius: 8 }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } } }); }
+            const evoCtx = document.getElementById('evolutionChart')?.getContext('2d');
+            if (evoCtx) { const meses = ['Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic','Ene','Feb','Mar']; const saldoMensual = [1200000,1250000,1300000,1280000,1350000,1400000,1450000,1500000,1550000,1600000,1650000,saldoTotal]; if (evoChartInstance) evoChartInstance.destroy(); evoChartInstance = new Chart(evoCtx, { type: 'line', data: { labels: meses, datasets: [{ label: 'Saldo total', data: saldoMensual, borderColor: '#6366f1', backgroundColor: 'rgba(99,102,241,0.1)', fill: true, tension: 0.4 }] }, options: { responsive: true, maintainAspectRatio: false } }); }
+        }
+
+        // ==================== CONSOLIDADO ====================
+        function renderConsolidado() {
+            let rows = '';
+            let totalIng = 0, totalEgr = 0, totalBal = 0;
+            accounts.forEach(acc => {
+                let ing = (acc.movimientos || []).filter(m => m.monto > 0).reduce((s, m) => s + m.monto, 0);
+                let egr = (acc.movimientos || []).filter(m => m.monto < 0).reduce((s, m) => s + Math.abs(m.monto), 0);
+                let bal = (acc.movimientos || []).reduce((s, m) => s + m.monto, 0);
+                totalIng += ing; totalEgr += egr; totalBal += bal;
+                rows += `<tr class="hover:bg-slate-50 cursor-pointer" onclick="selectAccount('${acc.id}')">
+                            <td class="px-6 py-4 font-bold">${acc.nombre}<\/td>
+                            <td class="px-6 py-4 capitalize">${acc.tipo}<\/td>
+                            <td class="px-6 py-4 text-right text-emerald-600">${currencyFormatter.format(ing)}<\/td>
+                            <td class="px-6 py-4 text-right text-rose-600">${currencyFormatter.format(egr)}<\/td>
+                            <td class="px-6 py-4 text-right font-black ${bal < 0 ? 'text-rose-600' : ''}">${currencyFormatter.format(bal)}<\/td>
+                           <\/tr>`;
+            });
+            let html = `
+                <div class="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
+                    <div class="p-6 bg-slate-50/50 border-b border-slate-100 flex justify-between items-center">
+                        <h3 class="font-bold text-slate-700">Resumen Consolidado<\/h3>
+                        <div class="flex gap-2">
+                            <button onclick="exportToPDF()" class="text-xs font-bold text-indigo-600 hover:underline px-3 py-1 border border-indigo-200 rounded-lg"><i class="fas fa-file-pdf mr-1"><\/i>PDF<\/button>
+                            <button onclick="exportToExcel()" class="text-xs font-bold text-green-600 hover:underline px-3 py-1 border border-green-200 rounded-lg"><i class="fas fa-file-excel mr-1"><\/i>Excel<\/button>
+                            <button onclick="window.print()" class="text-xs font-bold text-slate-600 hover:underline px-3 py-1 border border-slate-200 rounded-lg"><i class="fas fa-print mr-1"><\/i>Imprimir<\/button>
+                        <\/div>
+                    <\/div>
+                    <div class="overflow-x-auto">
+                        <table id="consolidadoTable" class="w-full text-left text-sm">
+                            <thead class="bg-slate-50 text-slate-400 font-bold text-xs uppercase">
+                                <th class="px-6 py-4">Cuenta<\/th><th>Tipo<\/th><th class="text-right">Ingresos<\/th><th class="text-right">Egresos<\/th><th class="text-right">Saldo<\/th>
+                            <\/thead>
+                            <tbody class="divide-y divide-slate-100">${rows}<\/tbody>
+                            <tfoot class="bg-indigo-50/50 font-bold border-t border-indigo-100">
+                                <td colspan="2" class="px-6 py-4">TOTAL GRUPO<\/td>
+                                <td class="px-6 py-4 text-right">${currencyFormatter.format(totalIng)}<\/td>
+                                <td class="px-6 py-4 text-right">${currencyFormatter.format(totalEgr)}<\/td>
+                                <td class="px-6 py-4 text-right text-indigo-700">${currencyFormatter.format(totalBal)}<\/td>
+                            <\/tfoot>
+                         <\/table>
+                    <\/div>
+                <\/div>
+            `;
+            document.getElementById('tesoreriaContent').innerHTML = html;
+        }
+
+        function exportToPDF() {
+            const table = document.getElementById('consolidadoTable');
+            if (!table) return;
+            const printWindow = window.open('', '_blank');
+            printWindow.document.write(`
+                <html><head><title>Consolidado Financiero<\/title>
+                <style>body{font-family:Arial;padding:20px;} table{border-collapse:collapse;width:100%;} th{background:#0e2586;color:white;padding:8px;} td{border:1px solid #ccc;padding:8px;}<\/style>
+                <\/head><body><h1 style="text-align:center;">Consolidado Financiero<\/h1>${table.outerHTML}<\/body><\/html>
+            `);
+            printWindow.document.close();
+            printWindow.print();
+        }
+
+        function exportToExcel() {
+            const table = document.getElementById('consolidadoTable');
+            if (!table) return;
+            const wb = XLSX.utils.table_to_book(table, { sheet: "Consolidado" });
+            XLSX.writeFile(wb, "consolidado_financiero.xlsx");
+        }
+
+        // ==================== CUENTAS ====================
+        function selectAccount(accId) {
+            activeAccountId = accId;
+            renderCuentas();
+        }
+
+        async function renderCuentas() {
+            if (!activeAccountId && accounts.length) activeAccountId = accounts[0].id;
+            const activeAcc = accounts.find(a => a.id === activeAccountId);
+            
+            if (activeAcc) {
+                const { data: tipos } = await supabaseClient.from('cuenta_tipos_cuota').select('*').eq('cuenta_id', activeAcc.id);
+                tiposCuotaMap.clear();
+                (tipos || []).forEach(t => tiposCuotaMap.set(t.id, t));
+            }
+
+            let cardsHtml = `<div id="cuentasGridContainer" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 mb-6">`;
+            accounts.forEach(acc => {
+                const saldo = (acc.movimientos || []).reduce((s, m) => s + m.monto, 0);
+                const isActive = activeAccountId === acc.id;
+                const esEventoProyecto = (acc.tipo === 'evento' || acc.tipo === 'proyecto');
+                cardsHtml += `
+                    <div class="account-card bg-white rounded-xl p-3 shadow-sm border ${isActive ? 'active border-indigo-500 bg-indigo-50' : 'border-slate-200'}" data-account-id="${acc.id}" onclick="selectAccount('${acc.id}')">
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="text-xs font-bold px-2 py-1 rounded-full ${acc.tipo === 'general' ? 'bg-purple-100 text-purple-700' : acc.tipo === 'unidad' ? 'bg-blue-100 text-blue-700' : acc.tipo === 'proyecto' ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700'}">${acc.tipo}</span>
+                            ${esEventoProyecto ? `<button onclick="event.stopPropagation(); abrirConfigTiposCuota('${acc.id}', '${acc.nombre}')" class="text-slate-400 hover:text-indigo-600 text-sm"><i class="fas fa-cog"></i></button>` : '<i class="fas fa-grip-lines text-slate-300 text-sm"></i>'}
+                        </div>
+                        <p class="font-bold text-sm truncate" title="${acc.nombre}">${acc.nombre}</p>
+                        <p class="text-lg font-black ${saldo < 0 ? 'text-rose-600' : 'text-emerald-600'}">${currencyFormatter.format(saldo)}</p>
+                    </div>
+                `;
+            });
+            cardsHtml += `</div>`;
+
+            let movimientosHtml = '';
+            if (activeAcc) {
+                for (let m of (activeAcc.movimientos || []).slice(0, 20)) {
+                    let infoCuotaHtml = '';
+                    if (m.tipo_cuota_id && tiposCuotaMap.has(m.tipo_cuota_id)) {
+                        const tipo = tiposCuotaMap.get(m.tipo_cuota_id);
+                        const montoEsperado = tipo.monto;
+                        const montoPagado = m.monto;
+                        const diferencia = montoEsperado - montoPagado;
+                        if (diferencia > 0) {
+                            infoCuotaHtml = `<span class="text-xs text-amber-600 block mt-1">Monto cuota: ${currencyFormatter.format(montoEsperado)} | Pagado: ${currencyFormatter.format(montoPagado)} | Pendiente: ${currencyFormatter.format(diferencia)}</span>
+                                             <button onclick="abrirComplemento('${activeAcc.id}', '${m.id}', ${diferencia})" class="text-xs text-indigo-600 hover:underline mt-1">Complementar</button>`;
+                        } else if (diferencia < 0) {
+                            infoCuotaHtml = `<span class="text-xs text-red-500 block mt-1">Sobrepago: ${currencyFormatter.format(Math.abs(diferencia))}</span>`;
+                        } else {
+                            infoCuotaHtml = `<span class="text-xs text-green-600 block mt-1">Cuota completa</span>`;
+                        }
+                    }
+                    
+                    let personaHtml = '';
+                    if (m.persona_nombre) {
+                        personaHtml = `<div class="text-xs text-slate-400 mt-1">${m.persona_nombre} (${m.persona_run || 'RUT no disponible'})</div>`;
+                    } else if (m.persona_run) {
+                        personaHtml = `<div class="text-xs text-slate-400 mt-1">RUT: ${m.persona_run}</div>`;
+                    }
+                    
+                    movimientosHtml += `
+                        <tr class="border-b border-slate-100 hover:bg-slate-50">
+                            <td class="px-4 py-3 text-xs text-slate-500">${new Date(m.fecha).toLocaleDateString('es-CL')}<\/td>
+                            <td class="px-4 py-3 font-medium">
+                                ${m.concepto}
+                                ${personaHtml}
+                                ${infoCuotaHtml}
+                              <\/td>
+                            <td class="px-4 py-3 text-right font-bold ${m.monto < 0 ? 'text-rose-600' : 'text-emerald-600'}">${currencyFormatter.format(m.monto)}<\/td>
+                            <td class="px-4 py-3 text-xs text-slate-400">${m.referencia || '-'}<\/td>
+                            <td class="px-4 py-3">${m.archivo_url ? `<a href="${m.archivo_url}" target="_blank" class="text-indigo-600"><i class="fas fa-paperclip"></i></a>` : ''}<\/td>
+                            <td class="px-4 py-3"><button onclick="openEditTxModal('${activeAcc.id}', '${m.id}')" class="text-blue-600 mr-2"><i class="fas fa-edit"></i></button><button onclick="deleteTransaction('${activeAcc.id}', '${m.id}')" class="text-rose-600"><i class="fas fa-trash"></i></button><\/td>
+                          <\/tr>
+                    `;
+                }
+                if (movimientosHtml === '') movimientosHtml = '}<tr><td colspan="6" class="py-20 text-center text-slate-300">Sin movimientos<\/td><\/tr>';
+            } else {
+                movimientosHtml = '<tr><td colspan="6" class="py-20 text-center text-slate-300">Selecciona una cuenta<\/td><\/tr>';
+            }
+
+            let html = `
+                ${cardsHtml}
+                <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+                    <div class="p-6 bg-gradient-to-r from-indigo-900 to-indigo-800 text-white flex justify-between items-center">
+                        <div><p class="text-indigo-200 text-xs font-bold uppercase tracking-wider">Saldo Disponible</p><h2 class="text-3xl font-black">${activeAcc ? currencyFormatter.format((activeAcc.movimientos || []).reduce((s, m) => s + m.monto, 0)) : '$0'}</h2></div>
+                        <div class="flex gap-2"><button onclick="openTxModal('${activeAccountId}')" class="px-4 py-2 bg-indigo-500 hover:bg-indigo-400 rounded-xl text-sm font-bold"><i class="fas fa-plus"></i> Movimiento</button><button onclick="deleteAccount('${activeAccountId}')" class="px-4 py-2 bg-rose-500 hover:bg-rose-400 rounded-xl text-sm font-bold"><i class="fas fa-trash"></i> Eliminar</button></div>
+                    </div>
+                    <div class="overflow-x-auto"><table class="w-full text-sm"><thead class="bg-slate-50 text-slate-500 font-bold text-xs uppercase border-b"><th class="px-4 py-3">Fecha</th><th>Concepto</th><th class="text-right">Monto</th><th>Ref.</th><th>Archivo</th><th>Acciones</th></thead><tbody>${movimientosHtml}</tbody><\/table><\/div>
+                    ${(activeAcc?.movimientos?.length || 0) > 20 ? `<div class="p-4 text-center text-sm text-slate-400 border-t">Mostrando últimos 20 movimientos de ${activeAcc.movimientos.length}</div>` : ''}
+                </div>
+            `;
+            document.getElementById('tesoreriaContent').innerHTML = html;
+            initDragAndDropCuentas();
+        }
+
+        function initDragAndDropCuentas() {
+            const container = document.getElementById('cuentasGridContainer');
+            if (!container) return;
+            new Sortable(container, {
+                animation: 150,
+                ghostClass: 'sortable-ghost',
+                dragClass: 'sortable-drag',
+                handle: '.account-card',
+                onEnd: async function() {
+                    const newOrder = [];
+                    const items = container.children;
+                    for (let i = 0; i < items.length; i++) {
+                        const accId = items[i].getAttribute('data-account-id');
+                        newOrder.push({ id: accId, orden: i });
+                    }
+                    try {
+                        for (let item of newOrder) {
+                            await supabaseClient.from('tesoreria_cuentas').update({ orden: item.orden }).eq('id', item.id);
+                        }
+                        await cargarDatos();
+                        if (activeAccountId && !accounts.find(a => a.id === activeAccountId)) {
+                            activeAccountId = accounts.length ? accounts[0].id : null;
+                        }
+                        renderCuentas();
+                        showToast('Orden de cuentas actualizado', 'success');
+                    } catch (error) {
+                        showToast('Error al guardar el orden: ' + error.message, 'error');
+                    }
+                }
+            });
+        }
+
+        function openAddAccountModal() {
+            document.getElementById('newAccName').value = '';
+            document.getElementById('newAccType').value = 'general';
+            tiposCuotaTemporales = [];
+            actualizarListaTiposTemporales();
+            toggleTiposCuotaEnCreacion();
+            document.getElementById('modalAddAccount').classList.remove('hidden');
+        }
+
+        function toggleTiposCuotaEnCreacion() {
+            const tipo = document.getElementById('newAccType').value;
+            const container = document.getElementById('tiposCuotaContainerCreacion');
+            if (tipo === 'evento' || tipo === 'proyecto') {
+                container.classList.remove('hidden');
+            } else {
+                container.classList.add('hidden');
+            }
+        }
+
+        function agregarTipoCuotaTemporal() {
+            const nombre = document.getElementById('nuevoTipoNombre').value.trim();
+            const monto = parseFloat(document.getElementById('nuevoTipoMonto').value);
+            if (!nombre || isNaN(monto)) { showToast('Complete nombre y monto', 'warning'); return; }
+            tiposCuotaTemporales.push({ nombre, monto });
+            document.getElementById('nuevoTipoNombre').value = '';
+            document.getElementById('nuevoTipoMonto').value = '';
+            actualizarListaTiposTemporales();
+        }
+
+        function actualizarListaTiposTemporales() {
+            const list = document.getElementById('tiposCuotaListCreacion');
+            if (!list) return;
+            list.innerHTML = tiposCuotaTemporales.map((t, idx) => `
+                <div class="flex items-center gap-2 p-2 bg-slate-50 rounded">
+                    <span class="flex-1">${t.nombre} - ${currencyFormatter.format(t.monto)}</span>
+                    <button onclick="eliminarTipoTemporal(${idx})" class="text-rose-600"><i class="fas fa-trash"></i></button>
+                </div>
+            `).join('');
+        }
+
+        function eliminarTipoTemporal(idx) {
+            tiposCuotaTemporales.splice(idx, 1);
+            actualizarListaTiposTemporales();
+        }
+
+        async function guardarNuevaCuentaConTipos() {
+            const name = document.getElementById('newAccName').value.trim();
+            const type = document.getElementById('newAccType').value;
+            if (!name) return;
+            try {
+                const { data, error } = await supabaseClient.from('tesoreria_cuentas').insert({ nombre: name, tipo: type }).select();
+                if (error) throw error;
+                const cuentaId = data[0].id;
+                for (let t of tiposCuotaTemporales) {
+                    await supabaseClient.from('cuenta_tipos_cuota').insert({ cuenta_id: cuentaId, nombre: t.nombre, monto: t.monto });
+                }
+                accounts.push({ ...data[0], movimientos: [] });
+                closeModal('modalAddAccount');
+                renderCurrentTab();
+                showToast('Cuenta creada', 'success');
+            } catch (error) { showToast('Error al crear cuenta: ' + error.message, 'error'); }
+        }
+
+        async function deleteAccount(accId) {
+            if (!confirm('¿Eliminar esta cuenta? También se borrarán todos sus movimientos.')) return;
+            try {
+                await supabaseClient.from('tesoreria_cuentas').delete().eq('id', accId);
+                accounts = accounts.filter(a => a.id !== accId);
+                if (activeAccountId === accId) activeAccountId = accounts.length ? accounts[0].id : null;
+                renderCurrentTab();
+                showToast('Cuenta eliminada', 'info');
+            } catch (error) { showToast('Error al eliminar cuenta: ' + error.message, 'error'); }
+        }
+
+        // Configurar tipos de cuota para una cuenta existente
+        function abrirConfigTiposCuota(cuentaId, cuentaNombre) {
+            document.getElementById('cuentaIdConfig').value = cuentaId;
+            document.getElementById('cuentaNombreConfig').innerText = cuentaNombre;
+            cargarTiposCuotaCuenta(cuentaId);
+            document.getElementById('modalConfigTiposCuotaCuenta').classList.remove('hidden');
+        }
+
+        async function cargarTiposCuotaCuenta(cuentaId) {
+            const { data: tipos } = await supabaseClient.from('cuenta_tipos_cuota').select('*').eq('cuenta_id', cuentaId);
+            const list = document.getElementById('tiposCuotaCuentaList');
+            list.innerHTML = (tipos || []).map(t => `
+                <div class="flex items-center gap-2 p-2 bg-slate-50 rounded">
+                    <span class="flex-1">${t.nombre} - ${currencyFormatter.format(t.monto)}</span>
+                    <button onclick="eliminarTipoCuotaCuenta('${t.id}')" class="text-rose-600"><i class="fas fa-trash"></i></button>
+                </div>
+            `).join('');
+        }
+
+        async function agregarTipoCuotaCuenta() {
+            const cuentaId = document.getElementById('cuentaIdConfig').value;
+            const nombre = document.getElementById('nuevoTipoCuentaNombre').value.trim();
+            const monto = parseFloat(document.getElementById('nuevoTipoCuentaMonto').value);
+            if (!nombre || isNaN(monto)) { showToast('Complete nombre y monto', 'warning'); return; }
+            try {
+                await supabaseClient.from('cuenta_tipos_cuota').insert({ cuenta_id: cuentaId, nombre, monto });
+                document.getElementById('nuevoTipoCuentaNombre').value = '';
+                document.getElementById('nuevoTipoCuentaMonto').value = '';
+                cargarTiposCuotaCuenta(cuentaId);
+                showToast('Tipo de cuota agregado', 'success');
+            } catch (error) { showToast('Error: ' + error.message, 'error'); }
+        }
+
+        async function eliminarTipoCuotaCuenta(id) {
+            if (!confirm('¿Eliminar este tipo de cuota?')) return;
+            try {
+                await supabaseClient.from('cuenta_tipos_cuota').delete().eq('id', id);
+                const cuentaId = document.getElementById('cuentaIdConfig').value;
+                cargarTiposCuotaCuenta(cuentaId);
+                showToast('Tipo eliminado', 'success');
+            } catch (error) { showToast('Error: ' + error.message, 'error'); }
+        }
+
+        // ==================== TRANSACCIONES ====================
+        function openTxModal(accId, prefill = null) {
+            activeAccountId = accId;
+            const acc = accounts.find(a => a.id === accId);
+            document.getElementById('txTarget').innerText = acc ? acc.nombre : '';
+            // Limpiar campos
+            document.getElementById('txConcepto').value = '';
+            document.getElementById('txMonto').value = '';
+            document.getElementById('txTipo').value = 'ingreso';
+            document.getElementById('txMoneda').value = 'CLP';
+            document.getElementById('txRef').value = '';
+            document.getElementById('fileLabel').innerHTML = 'Adjuntar comprobante (opcional)';
+            document.getElementById('txFile').value = '';
+            pendingFileData = null;
+            document.getElementById('searchRut').value = '';
+            document.getElementById('searchResults').innerHTML = '';
+            document.getElementById('personaData').value = '';
+            document.getElementById('txTipoMovimiento').value = 'corriente';
+            toggleTipoCuota();
+
+            if (prefill) {
+                if (prefill.tipoMovimiento) document.getElementById('txTipoMovimiento').value = prefill.tipoMovimiento;
+                if (prefill.concepto) document.getElementById('txConcepto').value = prefill.concepto;
+                if (prefill.monto) document.getElementById('txMonto').value = prefill.monto;
+                if (prefill.tipo) document.getElementById('txTipo').value = prefill.tipo;
+                if (prefill.moneda) document.getElementById('txMoneda').value = prefill.moneda;
+                if (prefill.referencia) document.getElementById('txRef').value = prefill.referencia;
+                if (prefill.personaData) {
+                    const pd = prefill.personaData;
+                    document.getElementById('searchRut').value = pd.run;
+                    document.getElementById('personaData').value = JSON.stringify(pd);
+                    showToast(`Persona: ${pd.nombre}`, 'success');
+                }
+                if (prefill.tipoMovimiento === 'cuota') {
+                    toggleTipoCuota();
+                    setTimeout(() => {
+                        if (prefill.tipoCuotaId) {
+                            const select = document.getElementById('txTipoCuota');
+                            const esperarCarga = setInterval(() => {
+                                if (select.options.length > 1) {
+                                    clearInterval(esperarCarga);
+                                    for (let i = 0; i < select.options.length; i++) {
+                                        if (select.options[i].value === prefill.tipoCuotaId) {
+                                            select.selectedIndex = i;
+                                            break;
+                                        }
+                                    }
+                                }
+                            }, 100);
+                        }
+                    }, 200);
+                }
+            }
+            document.getElementById('modalAddTx').classList.remove('hidden');
+        }
+
+        function toggleTipoCuota() {
+            const tipoMov = document.getElementById('txTipoMovimiento').value;
+            const container = document.getElementById('txTipoCuotaContainer');
+            if (tipoMov === 'cuota') {
+                container.classList.remove('hidden');
+                cargarTiposCuotaParaSelect();
+            } else {
+                container.classList.add('hidden');
+            }
+        }
+
+        async function cargarTiposCuotaParaSelect() {
+            const cuenta = accounts.find(a => a.id === activeAccountId);
+            if (!cuenta) return;
+            const { data: tipos } = await supabaseClient.from('cuenta_tipos_cuota').select('*').eq('cuenta_id', activeAccountId);
+            const select = document.getElementById('txTipoCuota');
+            select.innerHTML = '<option value="">Seleccione un tipo</option>';
+            (tipos || []).forEach(t => {
+                select.innerHTML += `<option value="${t.id}" data-monto="${t.monto}" data-nombre="${t.nombre}">${t.nombre} (${currencyFormatter.format(t.monto)})</option>`;
+            });
+        }
+
+        function debounce(func, wait) {
+            let timeout;
+            return function(...args) {
+                clearTimeout(timeout);
+                timeout = setTimeout(() => func(...args), wait);
+            };
+        }
+
+        document.getElementById('searchRut')?.addEventListener('input', debounce(async (e) => {
+            const rut = e.target.value.trim();
+            if (rut.length < 3) return;
+            const resultsDiv = document.getElementById('searchResults');
+            resultsDiv.innerHTML = '<i class="fas fa-spinner fa-pulse"></i> Buscando...';
+            try {
+                const [mmbb, adultos] = await Promise.all([
+                    supabaseClient.from('mmbb_registrations').select('run, nombres, apellidos, email, telefono, domicilio').ilike('run', `%${rut}%`),
+                    supabaseClient.from('adultos_registros').select('run, nombres, apellidos, email, telefono, domicilio').ilike('run', `%${rut}%`)
+                ]);
+                let html = '';
+                mmbb.data?.forEach(p => {
+                    html += `<div class="p-2 hover:bg-indigo-50 cursor-pointer" onclick="selectPersona('mmbb', '${p.run}', '${p.nombres} ${p.apellidos}', '${p.email || ''}', '${p.telefono || ''}', '${p.domicilio || ''}')">${p.nombres} ${p.apellidos} (${p.run}) - MMBB</div>`;
+                });
+                adultos.data?.forEach(p => {
+                    html += `<div class="p-2 hover:bg-indigo-50 cursor-pointer" onclick="selectPersona('adulto', '${p.run}', '${p.nombres} ${p.apellidos}', '${p.email || ''}', '${p.telefono || ''}', '${p.domicilio || ''}')">${p.nombres} ${p.apellidos} (${p.run}) - Adulto</div>`;
+                });
+                resultsDiv.innerHTML = html || 'No se encontraron resultados.';
+            } catch (err) { resultsDiv.innerHTML = 'Error en búsqueda.'; }
+        }, 300));
+
+        window.selectPersona = function(tipo, run, nombre, email, telefono, direccion) {
+            document.getElementById('searchRut').value = run;
+            document.getElementById('searchResults').innerHTML = '';
+            document.getElementById('personaData').value = JSON.stringify({ tipo, run, nombre, email, telefono, direccion });
+            showToast(`Persona seleccionada: ${nombre}`, 'success');
+        };
+
+        async function handleFileSelect(input) {
+            const file = input.files[0];
+            if (!file) {
+                document.getElementById('fileLabel').innerHTML = 'Adjuntar comprobante (opcional)';
+                pendingFileData = null;
+                return;
+            }
+            try {
+                const fileName = `comprobante_${Date.now()}_${file.name.replace(/[^a-zA-Z0-9.]/g, '_')}`;
+                const { error } = await supabaseClient.storage.from(PAYMENT_BUCKET).upload(fileName, file);
+                if (error) throw error;
+                const { data: urlData } = supabaseClient.storage.from(PAYMENT_BUCKET).getPublicUrl(fileName);
+                pendingFileData = { name: file.name, url: urlData.publicUrl };
+                document.getElementById('fileLabel').innerHTML = file.name;
+            } catch (err) { showToast('Error al subir archivo: ' + err.message, 'error'); }
+        }
+
+        async function addTransaction() {
+            const concepto = document.getElementById('txConcepto').value.trim();
+            let monto = parseFloat(document.getElementById('txMonto').value);
+            const tipo = document.getElementById('txTipo').value;
+            const moneda = document.getElementById('txMoneda').value;
+            const ref = document.getElementById('txRef').value.trim();
+            const personaData = document.getElementById('personaData').value;
+            const tipoMovimiento = document.getElementById('txTipoMovimiento').value;
+            const tipoCuotaId = document.getElementById('txTipoCuota').value;
+            if (!concepto || isNaN(monto)) return;
+            
+            if (tipoMovimiento === 'cuota' && !tipoCuotaId) {
+                showToast('Debe seleccionar un tipo de cuota', 'warning');
+                return;
+            }
+
+            if (tipo === 'egreso') monto = -Math.abs(monto);
+            const account = accounts.find(a => a.id === activeAccountId);
+            if (!account) return;
+
+            let finalConcepto = concepto;
+            if (tipoMovimiento === 'cuota' && tipoCuotaId) {
+                const tipoSelect = document.getElementById('txTipoCuota');
+                const selectedOption = tipoSelect.options[tipoSelect.selectedIndex];
+                if (selectedOption && selectedOption.getAttribute('data-nombre')) {
+                    finalConcepto = `${selectedOption.getAttribute('data-nombre')} - ${concepto}`;
+                }
+            }
+
+            const insertData = {
+                cuenta_id: activeAccountId,
+                concepto: finalConcepto,
+                monto,
+                moneda,
+                referencia: ref,
+                fecha: new Date().toISOString().split('T')[0],
+                archivo_url: pendingFileData ? pendingFileData.url : null
+            };
+            if (personaData) {
+                const { tipo, run, nombre, email, telefono, direccion } = JSON.parse(personaData);
+                insertData.persona_run = run;
+                insertData.persona_tipo = tipo;
+                insertData.persona_nombre = nombre;
+                insertData.persona_email = email;
+                insertData.persona_telefono = telefono;
+                insertData.persona_direccion = direccion;
+            }
+            if (tipoMovimiento === 'cuota' && tipoCuotaId) {
+                insertData.tipo_cuota_id = tipoCuotaId;
+            }
+
+            try {
+                const { data, error } = await supabaseClient.from('tesoreria_movimientos').insert(insertData).select();
+                if (error) throw error;
+                if (data) {
+                    if (!account.movimientos) account.movimientos = [];
+                    account.movimientos.push(data[0]);
+                    closeModal('modalAddTx');
+                    renderCurrentTab();
+                    showToast('Movimiento registrado', 'success');
+                }
+            } catch (error) { showToast('Error al registrar movimiento: ' + error.message, 'error'); }
+        }
+
+        function openEditTxModal(accId, movId) {
+            const account = accounts.find(a => a.id === accId);
+            if (!account) return;
+            const mov = account.movimientos.find(m => m.id === movId);
+            if (!mov) return;
+            document.getElementById('editAccountId').value = accId;
+            document.getElementById('editTxId').value = movId;
+            document.getElementById('editConcepto').value = mov.concepto || '';
+            document.getElementById('editMonto').value = Math.abs(mov.monto);
+            document.getElementById('editMoneda').value = mov.moneda || 'CLP';
+            document.getElementById('editRef').value = mov.referencia || '';
+            document.getElementById('modalEditTx').classList.remove('hidden');
+        }
+
+        async function updateTransaction() {
+            const accId = document.getElementById('editAccountId').value;
+            const movId = document.getElementById('editTxId').value;
+            const concepto = document.getElementById('editConcepto').value.trim();
+            let monto = parseFloat(document.getElementById('editMonto').value);
+            const moneda = document.getElementById('editMoneda').value;
+            const ref = document.getElementById('editRef').value.trim();
+            if (!concepto || isNaN(monto)) return;
+            const account = accounts.find(a => a.id === accId);
+            if (!account) return;
+            const mov = account.movimientos.find(m => m.id === movId);
+            if (!mov) return;
+            const signo = mov.monto > 0 ? 1 : -1;
+            const nuevoMonto = signo * Math.abs(monto);
+            try {
+                const { error } = await supabaseClient.from('tesoreria_movimientos').update({ concepto, monto: nuevoMonto, moneda, referencia: ref }).eq('id', movId);
+                if (error) throw error;
+                mov.concepto = concepto;
+                mov.monto = nuevoMonto;
+                mov.moneda = moneda;
+                mov.referencia = ref;
+                closeModal('modalEditTx');
+                renderCurrentTab();
+                showToast('Movimiento actualizado', 'success');
+            } catch (error) { showToast('Error al actualizar: ' + error.message, 'error'); }
+        }
+
+        async function deleteTransaction(accId, movId) {
+            if (!confirm('¿Eliminar este movimiento?')) return;
+            try {
+                await supabaseClient.from('tesoreria_movimientos').delete().eq('id', movId);
+                const account = accounts.find(a => a.id === accId);
+                if (account) {
+                    account.movimientos = account.movimientos.filter(m => m.id !== movId);
+                }
+                renderCurrentTab();
+                showToast('Movimiento eliminado', 'info');
+            } catch (error) { showToast('Error al eliminar: ' + error.message, 'error'); }
+        }
+
+        // ==================== REGISTRO ANUAL ====================
+        async function renderRegistroAnual() {
+            const container = document.getElementById('tesoreriaContent');
+            try {
+                const añoActual = new Date().getFullYear();
+                const fechaInicio = new Date(añoActual, 0, 1).toISOString();
+                const { data: miembros } = await supabaseClient
+                    .from('mmbb_registrations')
+                    .select('id, nombres, apellidos, run, unidad, tipo_miembro, registro_pagado, monto_pagado, foto_url, comprobante_url')
+                    .gte('created_at', fechaInicio)
+                    .order('apellidos');
+                miembrosRegistro = miembros || [];
+                const { data: config } = await supabaseClient.from('configuracion_cuotas').select('*');
+                const configMap = {};
+                config?.forEach(c => configMap[c.tipo_miembro] = c.monto);
+                let rows = '';
+                if (miembros && miembros.length > 0) {
+                    miembros.forEach(m => {
+                        const nombreCompleto = `${m.nombres || ''} ${m.apellidos || ''}`.trim();
+                        const tipo = m.tipo_miembro || 'regular';
+                        const montoEsperado = configMap[tipo] || 0;
+                        const pagado = m.registro_pagado ? (m.monto_pagado || montoEsperado) : 0;
+                        const deuda = montoEsperado - pagado;
+                        rows += `<tr>
+                                    <td class="px-4 py-3">${m.foto_url ? `<img src="${m.foto_url}" class="h-8 w-8 rounded-full object-cover">` : '-'}<\/td>
+                                    <td class="px-4 py-3 font-bold">${nombreCompleto}<\/td>
+                                    <td class="px-4 py-3">${m.run || ''}<\/td>
+                                    <td class="px-4 py-3">${m.unidad || ''}<\/td>
+                                    <td class="px-4 py-3 capitalize">${tipo}<\/td>
+                                    <td class="px-4 py-3 text-right">${currencyFormatter.format(montoEsperado)}<\/td>
+                                    <td class="px-4 py-3 text-right">${currencyFormatter.format(pagado)}<\/td>
+                                    <td class="px-4 py-3 text-right font-black ${deuda > 0 ? 'text-rose-600' : 'text-emerald-600'}">${currencyFormatter.format(deuda)}<\/td>
+                                    <td class="px-4 py-3">${m.comprobante_url ? `<a href="${m.comprobante_url}" target="_blank" class="text-indigo-600"><i class="fas fa-file-pdf"></i></a>` : '-'}<\/td>
+                                    <td class="px-4 py-3"><button onclick="abrirModalPagoRegistro('${m.id}')" class="text-indigo-600 hover:underline"><i class="fas fa-dollar-sign"></i> Pagar</button><\/td>
+                                   <\/tr>`;
+                    });
+                } else { rows = '<tr><td colspan="10" class="py-20 text-center text-slate-300">No hay registros para el año actual<\/td><\/tr>'; }
+                let html = `<div class="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden"><div class="p-6 bg-slate-50/50 border-b border-slate-100 flex justify-between items-center"><h3 class="font-bold text-slate-700">Registro Anual ${añoActual}<\/h3><div class="flex gap-2"><button onclick="abrirModalAgregarPersona()" class="px-4 py-2 bg-indigo-600 text-white rounded-xl text-xs font-bold"><i class="fas fa-user-plus"></i> Agregar Manual</button><button onclick="abrirModalConfigCuotas()" class="px-4 py-2 bg-indigo-600 text-white rounded-xl text-xs font-bold"><i class="fas fa-cog"></i> Configurar Cuotas</button><\/div><\/div><div class="overflow-x-auto"><table class="w-full text-left text-sm"><thead class="bg-slate-50 text-slate-400 font-bold text-xs uppercase"><th class="px-4 py-4">Foto<\/th><th>Nombre<\/th><th>RUN<\/th><th>Unidad<\/th><th>Tipo<\/th><th class="text-right">Cuota<\/th><th class="text-right">Pagado<\/th><th class="text-right">Deuda<\/th><th>Comprobante<\/th><th>Acciones<\/th><\/thead><tbody class="divide-y divide-slate-100">${rows}<\/tbody><\/table><\/div><\/div>`;
+                container.innerHTML = html;
+            } catch (error) { container.innerHTML = `<div class="bg-white p-8 text-center">Error al cargar registro anual: ${error.message}<\/div>`; }
+        }
+
+        function abrirModalAgregarPersona() { document.getElementById('modalAgregarPersona').classList.remove('hidden'); }
+        function cerrarModalPersona() { document.getElementById('modalAgregarPersona').classList.add('hidden'); }
+        async function agregarPersonaManual() {
+            const run = document.getElementById('manualRun').value.trim();
+            const nombre = document.getElementById('manualNombre').value.trim();
+            const unidad = document.getElementById('manualUnidad').value.trim();
+            const tipo = document.getElementById('manualTipo').value;
+            let monto = parseFloat(document.getElementById('manualMonto').value);
+            if (!run || !nombre || !unidad) { showToast('RUN, Nombre y Unidad son obligatorios', 'warning'); return; }
+            const partes = nombre.split(' ');
+            const primerNombre = partes[0] || '';
+            const apellidos = partes.slice(1).join(' ') || '';
+            try {
+                const { error } = await supabaseClient.from('mmbb_registrations').insert({ run, nombres: primerNombre, apellidos: apellidos, unidad, tipo_miembro: tipo, registro_pagado: !isNaN(monto) && monto > 0, monto_pagado: isNaN(monto) ? null : monto, created_at: new Date().toISOString() });
+                if (error) throw error;
+                showToast('Persona agregada correctamente', 'success');
+                cerrarModalPersona();
+                renderRegistroAnual();
+            } catch (error) { showToast('Error al agregar persona: ' + error.message, 'error'); }
+        }
+
+        function abrirModalConfigCuotas() {
+            const montoNuevo = parseFloat(prompt('Monto para nuevos ingresos:'));
+            if (isNaN(montoNuevo)) return;
+            const montoRegular = parseFloat(prompt('Monto para miembros regulares:'));
+            if (isNaN(montoRegular)) return;
+            guardarConfigCuotas(montoNuevo, montoRegular);
+        }
+        async function guardarConfigCuotas(montoNuevo, montoRegular) {
+            try {
+                await supabaseClient.from('configuracion_cuotas').upsert([{ tipo_miembro: 'nuevo', monto: montoNuevo }, { tipo_miembro: 'regular', monto: montoRegular }]);
+                showToast('Configuración guardada.', 'success');
+                renderRegistroAnual();
+            } catch (error) { showToast('Error al guardar configuración: ' + error.message, 'error'); }
+        }
+
+        function handlePagoRegistroFile(input) {
+            const file = input.files[0];
+            if (!file) { document.getElementById('pagoRegistroFileLabel').innerHTML = 'Seleccionar archivo'; pagoRegistroFileData = null; return; }
+            document.getElementById('pagoRegistroFileLabel').innerHTML = file.name;
+            pagoRegistroFileData = file;
+        }
+
+        function abrirModalPagoRegistro(miembroId) {
+            const miembro = miembrosRegistro.find(m => m.id === miembroId);
+            if (!miembro) return;
+            document.getElementById('pagoRegistroId').value = miembroId;
+            document.getElementById('pagoRegistroNombre').innerText = `Pagando para: ${miembro.nombres} ${miembro.apellidos}`;
+            document.getElementById('pagoRegistroMonto').value = miembro.monto_pagado || '';
+            document.getElementById('pagoRegistroFileLabel').innerHTML = 'Seleccionar archivo';
+            document.getElementById('pagoRegistroFile').value = '';
+            pagoRegistroFileData = null;
+            document.getElementById('modalPagoRegistro').classList.remove('hidden');
+        }
+        function cerrarModalPagoRegistro() { document.getElementById('modalPagoRegistro').classList.add('hidden'); }
+        async function guardarPagoRegistro() {
+            const miembroId = document.getElementById('pagoRegistroId').value;
+            const monto = parseFloat(document.getElementById('pagoRegistroMonto').value);
+            if (isNaN(monto) || monto <= 0) { alert('Ingrese un monto válido'); return; }
+            let comprobanteUrl = null;
+            if (pagoRegistroFileData) {
+                try {
+                    const fileName = `comprobante_registro_${miembroId}_${Date.now()}.${pagoRegistroFileData.name.split('.').pop()}`;
+                    const { error } = await supabaseClient.storage.from(PAYMENT_BUCKET).upload(fileName, pagoRegistroFileData);
+                    if (error) throw error;
+                    const { data: urlData } = supabaseClient.storage.from(PAYMENT_BUCKET).getPublicUrl(fileName);
+                    comprobanteUrl = urlData.publicUrl;
+                } catch (err) { showToast('Error al subir comprobante: ' + err.message, 'error'); return; }
+            }
+            try {
+                const { error } = await supabaseClient.from('mmbb_registrations').update({ registro_pagado: true, monto_pagado: monto, comprobante_url: comprobanteUrl }).eq('id', miembroId);
+                if (error) throw error;
+                const cuentaRegistro = accounts.find(a => a.nombre === 'REGISTRO');
+                if (cuentaRegistro) {
+                    const movimiento = {
+                        cuenta_id: cuentaRegistro.id,
+                        concepto: `Pago de registro anual - ${miembroId}`,
+                        monto: monto,
+                        moneda: 'CLP',
+                        referencia: comprobanteUrl ? `Comprobante: ${comprobanteUrl}` : '',
+                        fecha: new Date().toISOString().split('T')[0],
+                        archivo_url: comprobanteUrl
+                    };
+                    await supabaseClient.from('tesoreria_movimientos').insert(movimiento);
+                }
+                showToast('Pago registrado correctamente', 'success');
+                cerrarModalPagoRegistro();
+                renderRegistroAnual();
+                await cargarDatos();
+            } catch (error) { showToast('Error al guardar pago: ' + error.message, 'error'); }
+        }
+
+        // ==================== TRANSFERENCIAS ====================
+        function renderTransferencias() {
+            let historialHtml = transferHistory.map(t => `<tr><td class="px-4 py-3">${t.fecha}<\/td><td class="px-4 py-3">${t.origen}<\/td><td class="px-4 py-3">${t.destino}<\/td><td class="px-4 py-3 text-right font-bold">${currencyFormatter.format(t.monto)}<\/td><td class="px-4 py-3">${t.concepto}<\/td><\/tr>`).join('');
+            let html = `<div class="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden"><div class="p-6 bg-slate-50/50 border-b border-slate-100 flex justify-between items-center"><h3 class="font-bold text-slate-700">Historial de Transferencias</h3><button onclick="openTransferModal()" class="px-4 py-2 bg-indigo-600 text-white rounded-xl text-xs font-bold"><i class="fas fa-exchange-alt"></i> Nueva Transferencia</button></div><div class="overflow-x-auto"><table class="w-full text-left text-sm"><thead class="bg-slate-50 text-slate-400 font-bold text-xs uppercase"><th class="px-4 py-4">Fecha</th><th>Origen</th><th>Destino</th><th class="text-right">Monto</th><th>Concepto</th></thead><tbody class="divide-y divide-slate-100">${historialHtml || '<tr><td colspan="5" class="py-20 text-center text-slate-300">No hay transferencias registradas<\/td><\/tr>'}</tbody><\/table><\/div><\/div>`;
+            document.getElementById('tesoreriaContent').innerHTML = html;
+        }
+        function openTransferModal() {
+            populateTransferSelects();
+            document.getElementById('transferAmount').value = '';
+            document.getElementById('transferConcept').value = '';
+            document.getElementById('modalTransfer').classList.remove('hidden');
+        }
+        function populateTransferSelects() {
+            const fromSelect = document.getElementById('transferFrom');
+            const toSelect = document.getElementById('transferTo');
+            fromSelect.innerHTML = '<option value="">Seleccionar cuenta origen</option>';
+            toSelect.innerHTML = '<option value="">Seleccionar cuenta destino</option>';
+            accounts.forEach(acc => {
+                fromSelect.innerHTML += `<option value="${acc.id}">${acc.nombre}</option>`;
+                toSelect.innerHTML += `<option value="${acc.id}">${acc.nombre}</option>`;
+            });
+        }
+        async function executeTransfer() {
+            const fromId = document.getElementById('transferFrom').value;
+            const toId = document.getElementById('transferTo').value;
+            const amount = parseFloat(document.getElementById('transferAmount').value);
+            const concept = document.getElementById('transferConcept').value.trim() || 'Transferencia';
+            if (!fromId || !toId || isNaN(amount) || amount <= 0) { alert('Complete todos los campos correctamente.'); return; }
+            if (fromId === toId) { alert('Las cuentas origen y destino deben ser diferentes.'); return; }
+            const fromAcc = accounts.find(a => a.id === fromId);
+            const toAcc = accounts.find(a => a.id === toId);
+            if (!fromAcc || !toAcc) return;
+            const fecha = new Date().toISOString().split('T')[0];
+            try {
+                const { data: movFrom, error: errFrom } = await supabaseClient.from('tesoreria_movimientos').insert({ cuenta_id: fromId, concepto: `Transferencia a ${toAcc.nombre}: ${concept}`, monto: -amount, moneda: 'CLP', fecha }).select();
+                if (errFrom) throw errFrom;
+                const { data: movTo, error: errTo } = await supabaseClient.from('tesoreria_movimientos').insert({ cuenta_id: toId, concepto: `Transferencia desde ${fromAcc.nombre}: ${concept}`, monto: amount, moneda: 'CLP', fecha }).select();
+                if (errTo) throw errTo;
+                const { error: errHist } = await supabaseClient.from('tesoreria_transferencias').insert({ fecha, origen: fromAcc.nombre, destino: toAcc.nombre, monto: amount, concepto: concept });
+                if (errHist) throw errHist;
+                if (!fromAcc.movimientos) fromAcc.movimientos = [];
+                if (!toAcc.movimientos) toAcc.movimientos = [];
+                fromAcc.movimientos.push(movFrom[0]);
+                toAcc.movimientos.push(movTo[0]);
+                transferHistory.push({ fecha, origen: fromAcc.nombre, destino: toAcc.nombre, monto: amount, concepto: concept });
+                closeModal('modalTransfer');
+                renderCurrentTab();
+                showToast('Transferencia realizada', 'success');
+            } catch (error) { showToast('Error al realizar transferencia: ' + error.message, 'error'); }
+        }
+
+        // ==================== PLANES DE PAGO ====================
+        function checkTesoreroAndSwitch() { const CLAVE = 'tesorero2026'; const clave = prompt('Ingrese clave de tesorero para acceder a Planes de Pago:'); if (clave === CLAVE) switchTesoreriaTab('planes'); else alert('Clave incorrecta'); }
+        function renderPlanesPago() { let html = `<div class="bg-white rounded-3xl border border-slate-200 shadow-sm p-6"><h3 class="text-xl font-bold mb-6">Planes de Pago</h3><button onclick="abrirModalPlanPago()" class="px-4 py-2 bg-indigo-600 text-white rounded-xl text-sm font-bold mb-4">+ Nuevo Plan</button><div id="listaPlanes"></div></div>`; document.getElementById('tesoreriaContent').innerHTML = html; cargarListaPlanes(); }
+        async function cargarListaPlanes() { 
+            const { data: planes, error } = await supabaseClient.from('planes_pago').select('*').order('created_at', { ascending: false });
+            if (error) { showToast('Error cargando planes: ' + error.message, 'error'); return; }
+            let html = '<table class="w-full text-left"><thead><th>Responsable</th><th>Monto</th><th>Cuotas</th><th>Estado</th><th>Acciones</th></thead><tbody>';
+            (planes || []).forEach(p => { html += `<tr><td>${p.nombre_responsable}<\/td><td>${currencyFormatter.format(p.monto_total)}<\/td><td>${p.numero_cuotas}<\/td><td>${p.estado}<\/td><td><button onclick="verPlan('${p.id}')" class="text-indigo-600">Ver</button><\/td><\/tr>`; });
+            html += '</tbody><\/table>';
+            document.getElementById('listaPlanes').innerHTML = html || '<p class="text-slate-400">No hay planes.</p>';
+        }
+
+        async function buscarPersonaPlan(rut) {
+            if (rut.length < 3) return;
+            const resultsDiv = document.getElementById('planSearchResults');
+            resultsDiv.innerHTML = '<i class="fas fa-spinner fa-pulse"></i> Buscando...';
+            try {
+                const [mmbb, adultos] = await Promise.all([
+                    supabaseClient.from('mmbb_registrations').select('run, nombres, apellidos, email, telefono, domicilio').ilike('run', `%${rut}%`),
+                    supabaseClient.from('adultos_registros').select('run, nombres, apellidos, email, telefono, domicilio').ilike('run', `%${rut}%`)
+                ]);
+                let html = '';
+                mmbb.data?.forEach(p => { html += `<div class="p-1 hover:bg-indigo-50 cursor-pointer" onclick="seleccionarPersonaPlan('${p.run}', '${p.nombres} ${p.apellidos}', '${p.email || ''}', '${p.telefono || ''}', '${p.domicilio || ''}')">${p.nombres} ${p.apellidos} (MMBB)</div>`; });
+                adultos.data?.forEach(p => { html += `<div class="p-1 hover:bg-indigo-50 cursor-pointer" onclick="seleccionarPersonaPlan('${p.run}', '${p.nombres} ${p.apellidos}', '${p.email || ''}', '${p.telefono || ''}', '${p.domicilio || ''}')">${p.nombres} ${p.apellidos} (Adulto)</div>`; });
+                resultsDiv.innerHTML = html || 'No se encontraron resultados.';
+            } catch (err) { resultsDiv.innerHTML = 'Error en búsqueda.'; }
+        }
+        window.seleccionarPersonaPlan = function(run, nombre, email, telefono, direccion) {
+            document.getElementById('planRunResp').value = run;
+            document.getElementById('planNombreResp').value = nombre;
+            if (email) document.getElementById('planEmailResp').value = email;
+            if (telefono) document.getElementById('planTelefonoResp').value = telefono;
+            if (direccion) document.getElementById('planDireccionResp').value = direccion;
+            document.getElementById('planSearchResults').innerHTML = '';
+            showToast(`Persona seleccionada: ${nombre}`, 'success');
+        };
+
+        function abrirModalPlanPago() { 
+            document.getElementById('modalPlanPago').classList.remove('hidden'); 
+            document.getElementById('planFechaInicio').value = new Date().toISOString().split('T')[0]; 
+            firmaTesoreroData = { hasSignature: false }; 
+            firmaResponsableData = { hasSignature: false }; 
+            document.getElementById('cuotasContainer').style.display = 'none'; 
+            setTimeout(() => { 
+                if (document.getElementById('firmaTesoreroCanvas') && document.getElementById('firmaResponsableCanvas')) {
+                    initSignatureCanvas('firmaTesoreroCanvas', 'firmaTesoreroPlaceholder', 'clearFirmaTesorero', 'saveFirmaTesorero', 'firmaTesoreroPreview', 'firmaTesoreroImage', 'firmaTesoreroTimestamp', (data) => firmaTesoreroData = data);
+                    initSignatureCanvas('firmaResponsableCanvas', 'firmaResponsablePlaceholder', 'clearFirmaResponsable', 'saveFirmaResponsable', 'firmaResponsablePreview', 'firmaResponsableImage', 'firmaResponsableTimestamp', (data) => firmaResponsableData = data);
+                } else {
+                    console.warn('Canvas de firmas no encontrados, reintentando...');
+                    setTimeout(() => {
+                        initSignatureCanvas('firmaTesoreroCanvas', 'firmaTesoreroPlaceholder', 'clearFirmaTesorero', 'saveFirmaTesorero', 'firmaTesoreroPreview', 'firmaTesoreroImage', 'firmaTesoreroTimestamp', (data) => firmaTesoreroData = data);
+                        initSignatureCanvas('firmaResponsableCanvas', 'firmaResponsablePlaceholder', 'clearFirmaResponsable', 'saveFirmaResponsable', 'firmaResponsablePreview', 'firmaResponsableImage', 'firmaResponsableTimestamp', (data) => firmaResponsableData = data);
+                    }, 200);
+                }
+            }, 150); 
+        }
+        function cerrarModalPlanPago() { document.getElementById('modalPlanPago').classList.add('hidden'); }
+
+        function generarTablaCuotas() {
+            const numCuotas = parseInt(document.getElementById('planNumCuotas').value);
+            const montoTotal = parseFloat(document.getElementById('planMontoTotal').value);
+            const fechaInicio = document.getElementById('planFechaInicio').value;
+            const periodo = document.getElementById('planPeriodo').value;
+            if (isNaN(numCuotas) || numCuotas <= 0 || isNaN(montoTotal) || montoTotal <= 0 || !fechaInicio) {
+                document.getElementById('cuotasContainer').style.display = 'none';
+                return;
+            }
+            const montoBase = montoTotal / numCuotas;
+            let html = '';
+            for (let i = 1; i <= numCuotas; i++) {
+                let fecha = new Date(fechaInicio);
+                if (periodo === 'mensual') fecha.setMonth(fecha.getMonth() + i - 1);
+                else if (periodo === 'quincenal') fecha.setDate(fecha.getDate() + 15 * (i - 1));
+                else if (periodo === 'semanal') fecha.setDate(fecha.getDate() + 7 * (i - 1));
+                const fechaStr = fecha.toISOString().split('T')[0];
+                html += `<tr>
+                            <td class="px-4 py-2 text-center">${i}<\/td>
+                            <td class="px-4 py-2"><input type="number" class="cuota-monto w-full px-2 py-1 border rounded" value="${montoBase.toFixed(0)}" onchange="actualizarResumenCuotas()"><\/td>
+                            <td class="px-4 py-2"><input type="date" class="cuota-fecha w-full px-2 py-1 border rounded" value="${fechaStr}"><\/td>
+                            <td class="px-4 py-2 text-center"><button onclick="eliminarFilaCuota(this)" class="text-rose-600"><i class="fas fa-trash"></i><\/button><\/td>
+                           <\/tr>`;
+            }
+            document.getElementById('cuotasList').innerHTML = html;
+            document.getElementById('cuotasContainer').style.display = 'block';
+            cambiarTipoCuota();
+            actualizarResumenCuotas();
+        }
+        function eliminarFilaCuota(btn) { if (confirm('¿Eliminar esta cuota?')) { const row = btn.closest('tr'); row.remove(); const rows = document.querySelectorAll('#cuotasList tr'); rows.forEach((row, index) => { row.cells[0].innerText = index + 1; }); actualizarResumenCuotas(); } }
+        function actualizarResumenCuotas() {
+            const montos = Array.from(document.querySelectorAll('.cuota-monto')).map(input => parseFloat(input.value) || 0);
+            const total = montos.reduce((a, b) => a + b, 0);
+            const promedio = montos.length ? total / montos.length : 0;
+            document.getElementById('resumenTotal').innerText = new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP' }).format(total);
+            document.getElementById('resumenPromedio').innerText = new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP' }).format(promedio);
+        }
+        function cambiarTipoCuota() {
+            const tipo = document.getElementById('planTipoCuota').value;
+            const inputs = document.querySelectorAll('.cuota-monto');
+            if (tipo === 'fija') {
+                const montoTotal = parseFloat(document.getElementById('planMontoTotal').value) || 0;
+                const numCuotas = parseInt(document.getElementById('planNumCuotas').value) || 1;
+                const montoFijo = montoTotal / numCuotas;
+                inputs.forEach(input => {
+                    input.value = montoFijo.toFixed(0);
+                    input.readOnly = true;
+                    input.classList.add('bg-slate-100');
+                });
+                actualizarResumenCuotas();
+            } else {
+                inputs.forEach(input => {
+                    input.readOnly = false;
+                    input.classList.remove('bg-slate-100');
+                });
+                actualizarResumenCuotas();
+            }
+        }
+        function recalcularCuotasPorMontoTotal() {
+            const tipo = document.getElementById('planTipoCuota').value;
+            if (tipo === 'fija') {
+                generarTablaCuotas();
+            } else {
+                actualizarResumenCuotas();
+            }
+        }
+
+        function initSignatureCanvas(canvasId, placeholderId, clearBtnId, saveBtnId, previewId, imageId, timestampId, callback) {
+            const canvas = document.getElementById(canvasId);
+            if (!canvas) {
+                console.warn(`Canvas ${canvasId} no encontrado`);
+                return;
+            }
+            const placeholder = document.getElementById(placeholderId);
+            const preview = document.getElementById(previewId);
+            const image = document.getElementById(imageId);
+            const timestamp = document.getElementById(timestampId);
+            const rect = canvas.parentElement.getBoundingClientRect();
+            canvas.width = rect.width;
+            canvas.height = 200;
+            const ctx = canvas.getContext('2d');
+            ctx.fillStyle = 'white';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.lineWidth = 3;
+            ctx.strokeStyle = '#1E293B';
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+            let drawing = false, lastX = 0, lastY = 0;
+            function getCoords(e) {
+                const rect = canvas.getBoundingClientRect();
+                const scaleX = canvas.width / rect.width, scaleY = canvas.height / rect.height;
+                let clientX, clientY;
+                if (e.touches) { clientX = e.touches[0].clientX; clientY = e.touches[0].clientY; }
+                else { clientX = e.clientX; clientY = e.clientY; }
+                return { x: (clientX - rect.left) * scaleX, y: (clientY - rect.top) * scaleY };
+            }
+            function startDrawing(e) {
+                e.preventDefault();
+                drawing = true;
+                const coords = getCoords(e);
+                lastX = coords.x;
+                lastY = coords.y;
+                placeholder.style.display = 'none';
+                ctx.beginPath();
+                ctx.moveTo(lastX, lastY);
+            }
+            function draw(e) {
+                if (!drawing) return;
+                e.preventDefault();
+                const coords = getCoords(e);
+                ctx.lineTo(coords.x, coords.y);
+                ctx.stroke();
+                lastX = coords.x;
+                lastY = coords.y;
+            }
+            function stopDrawing(e) {
+                e.preventDefault();
+                drawing = false;
+            }
+            canvas.addEventListener('mousedown', startDrawing);
+            canvas.addEventListener('mousemove', draw);
+            canvas.addEventListener('mouseup', stopDrawing);
+            canvas.addEventListener('mouseout', stopDrawing);
+            canvas.addEventListener('touchstart', startDrawing, { passive: false });
+            canvas.addEventListener('touchmove', draw, { passive: false });
+            canvas.addEventListener('touchend', stopDrawing);
+            canvas.addEventListener('touchcancel', stopDrawing);
+            canvas.addEventListener('contextmenu', (e) => e.preventDefault());
+            document.getElementById(clearBtnId).addEventListener('click', function() {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                ctx.fillStyle = 'white';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                placeholder.style.display = 'block';
+                preview.classList.remove('active');
+                callback({ hasSignature: false });
+            });
+            document.getElementById(saveBtnId).addEventListener('click', function() {
+                const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                const hasDrawing = Array.from(imageData.data).some(val => val !== 0);
+                if (!hasDrawing) { alert('Por favor, realice su firma antes de guardar.'); return; }
+                const compressedCanvas = document.createElement('canvas');
+                const maxWidth = 400;
+                const scale = Math.min(1, maxWidth / canvas.width);
+                compressedCanvas.width = canvas.width * scale;
+                compressedCanvas.height = canvas.height * scale;
+                compressedCanvas.getContext('2d').drawImage(canvas, 0, 0, compressedCanvas.width, compressedCanvas.height);
+                const compressedUrl = compressedCanvas.toDataURL('image/jpeg', 0.5);
+                const data = { hasSignature: true, image: compressedUrl, timestamp: new Date().toLocaleString('es-CL') };
+                image.src = compressedUrl;
+                timestamp.textContent = `Firmado: ${data.timestamp}`;
+                preview.classList.add('active');
+                callback(data);
+            });
+        }
+
+        async function guardarPlanPago() {
+            const runResp = document.getElementById('planRunResp').value.trim();
+            const nombreResp = document.getElementById('planNombreResp').value.trim();
+            const emailResp = document.getElementById('planEmailResp').value.trim();
+            const telefonoResp = document.getElementById('planTelefonoResp').value.trim();
+            const direccionResp = document.getElementById('planDireccionResp').value.trim();
+            const runTes = document.getElementById('planRunTes').value.trim();
+            const nombreTes = document.getElementById('planNombreTes').value.trim();
+            const observaciones = document.getElementById('planObservaciones').value.trim();
+            const montoTotal = parseFloat(document.getElementById('planMontoTotal').value);
+            const numCuotas = parseInt(document.getElementById('planNumCuotas').value);
+            const fechaInicio = document.getElementById('planFechaInicio').value;
+            const fechaFin = document.getElementById('planFechaFin').value;
+
+            if (!runResp || !nombreResp || !emailResp || !runTes || !nombreTes || isNaN(montoTotal) || isNaN(numCuotas) || !fechaInicio || !fechaFin) {
+                alert('Complete todos los campos obligatorios (*).');
+                return;
+            }
+            if (!firmaTesoreroData.hasSignature || !firmaResponsableData.hasSignature) {
+                alert('Ambas firmas son requeridas.');
+                return;
+            }
+
+            const btn = document.querySelector('#modalPlanPago .bg-indigo-600');
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-pulse"></i> Guardando...';
+
+            try {
+                const uploadFirma = async (dataUrl, prefix) => {
+                    const blob = await (await fetch(dataUrl)).blob();
+                    const fileName = `${prefix}_${Date.now()}.jpg`;
+                    await supabaseClient.storage.from(PAYMENT_BUCKET).upload(fileName, blob, { contentType: 'image/jpeg' });
+                    return supabaseClient.storage.from(PAYMENT_BUCKET).getPublicUrl(fileName).data.publicUrl;
+                };
+                const firmaTesUrl = await uploadFirma(firmaTesoreroData.image, 'firma_tesorero');
+                const firmaRespUrl = await uploadFirma(firmaResponsableData.image, 'firma_responsable');
+
+                const cuotaMontos = Array.from(document.querySelectorAll('.cuota-monto')).map(input => parseFloat(input.value) || 0);
+                const cuotaFechas = Array.from(document.querySelectorAll('.cuota-fecha')).map(input => input.value);
+
+                const logoUrl = 'https://i.imgur.com/11u9rUD.png';
+                const fechaActual = new Date().toLocaleString('es-CL');
+                const documentoHTML = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Plan de Pagos</title><style>body{font-family:Arial;padding:20px;} .header{text-align:center;margin-bottom:20px;} .compromiso{background:#f0f7ff;padding:15px;border-left:4px solid #1E3A8A;margin:20px 0;} table{border-collapse:collapse;width:100%;margin:10px 0;} th,td{border:1px solid #ccc;padding:8px;text-align:left;}</style>    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#0E2586">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="ERP Scout">
+</head><body><div class="header"><img src="${logoUrl}" style="height:80px;"><br><h2>Grupo Guía y Scouts Salvador Sanfuentes</h2></div><h3>Plan de Pagos</h3><p><strong>Responsable:</strong> ${nombreResp} (RUN: ${runResp})</p><p><strong>Email:</strong> ${emailResp}</p><p><strong>Teléfono:</strong> ${telefonoResp || 'No informado'}</p><p><strong>Dirección:</strong> ${direccionResp || 'No informada'}</p><p><strong>Tesorero:</strong> ${nombreTes} (RUN: ${runTes})</p><p><strong>Monto Total:</strong> $${montoTotal.toLocaleString('es-CL')}</p><p><strong>Número de Cuotas:</strong> ${numCuotas}</p><p><strong>Período:</strong> ${fechaInicio} al ${fechaFin}</p>${observaciones ? `<p><strong>Observaciones:</strong> ${observaciones}</p>` : ''}<h4>Detalle de Cuotas</h4><table border="1" cellpadding="5"> <th>N°</th><th>Monto</th><th>Vencimiento</th> ${cuotaMontos.map((m, i)=>`<tr><td>${i+1}<\/td><td>$${m.toLocaleString('es-CL')}<\/td><td>${cuotaFechas[i]}<\/td><\/tr>`).join('')}  <\/table><div class="compromiso"><strong>Declaración de compromiso:</strong> El responsable ${nombreResp} declara conocer y aceptar las condiciones del plan de pagos, comprometiéndose a cumplir con el pago de las cuotas en las fechas establecidas. El incumplimiento podrá derivar en la suspensión de beneficios o actividades, según lo estipulado en el reglamento interno del grupo.</div><h4>Firmas</h4><p>Tesorero: <img src="${firmaTesUrl}" style="max-width:200px; border:1px solid #ccc;"></p><p>Responsable: <img src="${firmaRespUrl}" style="max-width:200px; border:1px solid #ccc;"></p><p><em>Documento generado el ${fechaActual}</em></p><script>if('serviceWorker' in navigator){navigator.serviceWorker.register('/sw.js').catch(()=>{});}</script>
+</body></html>`;
+
+                await fetch('https://hyixmaxhoxvamoecuars.supabase.co/functions/v1/send-email',{method:'POST',headers:{'Content-Type':'application/json','apikey':'sb_publishable_JW9Y4kz_Wiy6e1E1KdzAyQ_PBbWUf6t'},body:JSON.stringify({
+                    to_email: emailResp,
+                    cc_email: CC_EMAILS,
+                    subject: `Plan de Pagos - ${nombreResp}`,
+                    html_content: documentoHTML
+                })});
+
+                const { data: planData, error: planError } = await supabaseClient
+                    .from('planes_pago')
+                    .insert({
+                        run_responsable: runResp,
+                        nombre_responsable: nombreResp,
+                        email_responsable: emailResp,
+                        telefono_responsable: telefonoResp || null,
+                        direccion_responsable: direccionResp || null,
+                        run_tesorero: runTes,
+                        nombre_tesorero: nombreTes,
+                        observaciones: observaciones || null,
+                        monto_total: montoTotal,
+                        numero_cuotas: numCuotas,
+                        fecha_inicio: fechaInicio,
+                        fecha_fin: fechaFin,
+                        firma_tesorero_url: firmaTesUrl,
+                        firma_responsable_url: firmaRespUrl,
+                        estado: 'activo'
+                    })
+                    .select();
+                if (planError) throw planError;
+
+                if (planData && planData.length > 0) {
+                    const planId = planData[0].id;
+                    for (let i = 0; i < cuotaMontos.length; i++) {
+                        await supabaseClient
+                            .from('pagos_plan')
+                            .insert({
+                                plan_id: planId,
+                                numero_cuota: i + 1,
+                                monto: cuotaMontos[i],
+                                fecha_vencimiento: cuotaFechas[i],
+                                estado: 'pendiente'
+                            });
+                    }
+                }
+
+                showToast('Plan de pago guardado y correo enviado', 'success');
+                cerrarModalPlanPago();
+                if (currentTab === 'planes') cargarListaPlanes();
+            } catch (error) {
+                console.error('Error guardando plan:', error);
+                showToast('Error: ' + error.message, 'error');
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = 'Guardar Plan y Enviar Correo';
+            }
+        }
+
+        // ==================== DETALLE DEL PLAN ====================
+        async function verPlan(planId) {
+            currentPlanId = planId;
+            try {
+                const { data: plan, error: planError } = await supabaseClient.from('planes_pago').select('*').eq('id', planId).single();
+                if (planError) throw planError;
+                const { data: cuotas, error: cuotasError } = await supabaseClient.from('pagos_plan').select('*').eq('plan_id', planId).order('numero_cuota');
+                if (cuotasError) throw cuotasError;
+
+                const totalPagado = (cuotas || []).reduce((sum, c) => sum + (c.monto_pagado || 0), 0);
+                const saldoPendiente = plan.monto_total - totalPagado;
+
+                const infoDiv = document.getElementById('detallePlanInfo');
+                infoDiv.innerHTML = `
+                    <p><strong>Responsable:</strong> ${plan.nombre_responsable} (${plan.run_responsable})</p>
+                    <p><strong>Email:</strong> ${plan.email_responsable}</p>
+                    <p><strong>Teléfono:</strong> ${plan.telefono_responsable || 'No informado'}</p>
+                    <p><strong>Dirección:</strong> ${plan.direccion_responsable || 'No informada'}</p>
+                    <p><strong>Tesorero:</strong> ${plan.nombre_tesorero}</p>
+                    <p><strong>Monto Total:</strong> ${currencyFormatter.format(plan.monto_total)}</p>
+                    <p><strong>Total Pagado:</strong> ${currencyFormatter.format(totalPagado)}</p>
+                    <p><strong>Saldo Pendiente:</strong> ${currencyFormatter.format(saldoPendiente)}</p>
+                    <p><strong>Número de Cuotas:</strong> ${plan.numero_cuotas}</p>
+                    <p><strong>Período:</strong> ${plan.fecha_inicio} al ${plan.fecha_fin}</p>
+                    ${plan.observaciones ? `<p><strong>Observaciones:</strong> ${plan.observaciones}</p>` : ''}
+                    <p><strong>Estado:</strong> ${plan.estado}</p>
+                `;
+
+                let cuotasHtml = '';
+                if (!cuotas || cuotas.length === 0) {
+                    cuotasHtml = '<p class="text-slate-500 text-center">No hay cuotas registradas para este plan.</p>';
+                } else {
+                    for (let c of cuotas) {
+                        const montoPagado = c.monto_pagado || 0;
+                        const saldoCuota = c.monto - montoPagado;
+                        const estadoCuota = saldoCuota <= 0 ? 'pagado' : (montoPagado > 0 ? 'parcial' : 'pendiente');
+                        const fechaPago = c.fecha_pago ? new Date(c.fecha_pago).toLocaleDateString('es-CL') : '-';
+                        const comprobante = c.comprobante_url ? `<a href="${c.comprobante_url}" target="_blank" class="text-indigo-600"><i class="fas fa-file-pdf"></i> Ver</a>` : '-';
+                        const diferencia = montoPagado - c.monto;
+                        const diferenciaHtml = (estadoCuota === 'pagado' && Math.abs(diferencia) > 0) ? `<span class="ml-2 text-xs ${diferencia > 0 ? 'text-green-600' : 'text-red-600'}">(${diferencia > 0 ? `+${currencyFormatter.format(diferencia)}` : `${currencyFormatter.format(diferencia)}`} de diferencia)</span>` : '';
+                        const acciones = (estadoCuota !== 'pagado') ? `<button onclick="abrirModalPagoCuota('${c.id}', ${c.monto}, ${c.numero_cuota})" class="ml-2 text-indigo-600 hover:underline"><i class="fas fa-dollar-sign"></i></button>` : '-';
+                        cuotasHtml += `
+                            <div class="p-3 border rounded-lg flex items-center justify-between">
+                                <div>
+                                    <span class="font-bold">Cuota ${c.numero_cuota}</span> - Vence: ${c.fecha_vencimiento} - Monto: ${currencyFormatter.format(c.monto)}${diferenciaHtml}
+                                    ${estadoCuota === 'parcial' ? `<br><span class="text-xs text-slate-500">Pagado: ${currencyFormatter.format(montoPagado)} - Saldo pendiente: ${currencyFormatter.format(saldoCuota)}</span>` : ''}
+                                </div>
+                                <div>
+                                    <span class="px-2 py-1 rounded-full text-xs ${estadoCuota === 'pagado' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}">${estadoCuota}</span>
+                                    ${acciones}
+                                    ${comprobante !== '-' ? ` ${comprobante}` : ''}
+                                    ${estadoCuota !== 'pendiente' ? `<span class="ml-2 text-xs text-slate-500">Pagado: ${currencyFormatter.format(montoPagado)} el ${fechaPago}</span>` : ''}
+                                </div>
+                            </div>
+                        `;
+                    }
+                }
+                document.getElementById('detalleCuotas').innerHTML = cuotasHtml;
+                document.getElementById('modalVerPlan').classList.remove('hidden');
+            } catch (error) {
+                console.error('Error al cargar plan:', error);
+                showToast('Error al cargar el plan: ' + error.message, 'error');
+                document.getElementById('detallePlanInfo').innerHTML = `<p class="text-red-600">Error: ${error.message}</p>`;
+            }
+        }
+
+        function cerrarModalVerPlan() { document.getElementById('modalVerPlan').classList.add('hidden'); }
+        function handlePagoCuotaFile(input) { const file = input.files[0]; if (!file) { document.getElementById('pagoCuotaFileLabel').innerHTML = 'Seleccionar archivo'; pagoCuotaFileData = null; return; } document.getElementById('pagoCuotaFileLabel').innerHTML = file.name; pagoCuotaFileData = file; }
+        function abrirModalPagoCuota(cuotaId, montoCuota, numeroCuota) {
+            currentCuotaId = cuotaId;
+            document.getElementById('pagoCuotaInfo').innerText = `Cuota N° ${numeroCuota} - Monto: ${currencyFormatter.format(montoCuota)}`;
+            document.getElementById('pagoCuotaMonto').value = '';
+            document.getElementById('pagoCuotaFileLabel').innerHTML = 'Seleccionar archivo';
+            document.getElementById('pagoCuotaFile').value = '';
+            pagoCuotaFileData = null;
+            document.getElementById('modalPagoCuota').classList.remove('hidden');
+        }
+        function cerrarModalPagoCuota() { document.getElementById('modalPagoCuota').classList.add('hidden'); }
+        async function guardarPagoCuota() {
+            const monto = parseFloat(document.getElementById('pagoCuotaMonto').value);
+            if (isNaN(monto) || monto <= 0) { alert('Ingrese un monto válido'); return; }
+
+            const { data: cuota, error: cuotaError } = await supabaseClient.from('pagos_plan').select('*').eq('id', currentCuotaId).single();
+            if (cuotaError) { showToast('Error al obtener la cuota', 'error'); return; }
+
+            const montoPagadoActual = cuota.monto_pagado || 0;
+            const nuevoMontoPagado = montoPagadoActual + monto;
+            let estado = 'pendiente';
+            let mensaje = '';
+            if (nuevoMontoPagado >= cuota.monto) {
+                estado = 'pagado';
+                mensaje = `Se ha completado el pago de la cuota. Monto total pagado: ${currencyFormatter.format(nuevoMontoPagado)}`;
+            } else {
+                estado = 'parcial';
+                mensaje = `Pago parcial registrado. Queda un saldo pendiente de ${currencyFormatter.format(cuota.monto - nuevoMontoPagado)} para completar la cuota.`;
+                if (!confirm(`${mensaje}\n¿Desea continuar?`)) return;
+            }
+
+            let comprobanteUrl = null;
+            if (pagoCuotaFileData) {
+                try {
+                    const fileName = `comprobante_cuota_${currentCuotaId}_${Date.now()}.${pagoCuotaFileData.name.split('.').pop()}`;
+                    const { error } = await supabaseClient.storage.from(PAYMENT_BUCKET).upload(fileName, pagoCuotaFileData);
+                    if (error) throw error;
+                    const { data: urlData } = supabaseClient.storage.from(PAYMENT_BUCKET).getPublicUrl(fileName);
+                    comprobanteUrl = urlData.publicUrl;
+                } catch (err) { showToast('Error al subir comprobante: ' + err.message, 'error'); return; }
+            }
+
+            try {
+                const { error } = await supabaseClient.from('pagos_plan').update({
+                    estado: estado,
+                    fecha_pago: estado === 'pagado' ? new Date().toISOString().split('T')[0] : null,
+                    comprobante_url: comprobanteUrl,
+                    monto_pagado: nuevoMontoPagado
+                }).eq('id', currentCuotaId);
+                if (error) throw error;
+                showToast(mensaje, 'success');
+                cerrarModalPagoCuota();
+                verPlan(currentPlanId);
+            } catch (error) { showToast('Error al guardar pago: ' + error.message, 'error'); }
+        }
+
+        // ==================== CONFIGURACIÓN ====================
+        function renderConfig() {
+            let html = `<div class="max-w-2xl mx-auto py-10"><div class="bg-white p-8 rounded-3xl border border-slate-200 shadow-sm"><h3 class="text-xl font-bold mb-6">Configuración</h3><h4 class="font-bold mb-2">Cuentas base</h4><button onclick="crearCuentasBase()" class="w-full py-4 bg-green-600 text-white font-bold rounded-2xl hover:bg-green-700 mb-6">Crear cuentas del grupo</button><hr class="my-6"><h4 class="font-bold mb-2">Webhook</h4><input type="text" id="apiUrlInput" placeholder="URL de Webhook (Google Apps Script)" value="${localStorage.getItem('teso_api') || ''}" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl mb-4"><button onclick="saveApiUrl()" class="w-full py-4 bg-indigo-600 text-white font-bold rounded-2xl hover:bg-indigo-700">Guardar</button></div></div>`;
+            document.getElementById('tesoreriaContent').innerHTML = html;
+        }
+        function saveApiUrl() { const url = document.getElementById('apiUrlInput').value; localStorage.setItem('teso_api', url); showToast('URL guardada', 'success'); }
+
+        // ==================== AUXILIARES ====================
+        function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
+        function syncData() { const btn = document.getElementById('syncIcon'); btn.classList.add('fa-spin'); setTimeout(() => { btn.classList.remove('fa-spin'); cargarDatos(); document.getElementById('syncBadge').innerHTML = '<span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> Online'; }, 1000); }
+
+        window.onload = () => { cargarDatos(); switchTesoreriaTab('dashboard'); };
+
+        // Función complemento (para pagos parciales de cuotas)
+        window.abrirComplemento = async function(accId, movId, montoRestante) {
+            const account = accounts.find(a => a.id === accId);
+            const movimiento = account.movimientos.find(m => m.id === movId);
+            if (!movimiento) return;
+            let personaData = null;
+            if (movimiento.persona_run) {
+                personaData = {
+                    tipo: movimiento.persona_tipo,
+                    run: movimiento.persona_run,
+                    nombre: movimiento.persona_nombre,
+                    email: movimiento.persona_email,
+                    telefono: movimiento.persona_telefono,
+                    direccion: movimiento.persona_direccion
+                };
+            }
+            openTxModal(accId, {
+                tipoMovimiento: 'cuota',
+                tipoCuotaId: movimiento.tipo_cuota_id,
+                concepto: `Complemento: ${movimiento.concepto}`,
+                monto: montoRestante,
+                tipo: 'ingreso',
+                moneda: movimiento.moneda || 'CLP',
+                referencia: movimiento.referencia,
+                personaData: personaData
+            });
+        };
+
+        // Exponer funciones globales
+        window.switchTesoreriaTab = switchTesoreriaTab;
+        window.selectAccount = selectAccount;
+        window.openAddAccountModal = openAddAccountModal;
+        window.guardarNuevaCuentaConTipos = guardarNuevaCuentaConTipos;
+        window.agregarTipoCuotaTemporal = agregarTipoCuotaTemporal;
+        window.eliminarTipoTemporal = eliminarTipoTemporal;
+        window.abrirConfigTiposCuota = abrirConfigTiposCuota;
+        window.agregarTipoCuotaCuenta = agregarTipoCuotaCuenta;
+        window.eliminarTipoCuotaCuenta = eliminarTipoCuotaCuenta;
+        window.openTxModal = openTxModal;
+        window.addTransaction = addTransaction;
+        window.toggleTipoCuota = toggleTipoCuota;
+        window.openEditTxModal = openEditTxModal;
+        window.updateTransaction = updateTransaction;
+        window.deleteTransaction = deleteTransaction;
+        window.handleFileSelect = handleFileSelect;
+        window.abrirModalAgregarPersona = abrirModalAgregarPersona;
+        window.cerrarModalPersona = cerrarModalPersona;
+        window.agregarPersonaManual = agregarPersonaManual;
+        window.abrirModalPagoRegistro = abrirModalPagoRegistro;
+        window.cerrarModalPagoRegistro = cerrarModalPagoRegistro;
+        window.guardarPagoRegistro = guardarPagoRegistro;
+        window.handlePagoRegistroFile = handlePagoRegistroFile;
+        window.abrirModalConfigCuotas = abrirModalConfigCuotas;
+        window.exportToPDF = exportToPDF;
+        window.exportToExcel = exportToExcel;
+        window.crearCuentasBase = crearCuentasBase;
+        window.abrirModalPlanPago = abrirModalPlanPago;
+        window.cerrarModalPlanPago = cerrarModalPlanPago;
+        window.guardarPlanPago = guardarPlanPago;
+        window.generarTablaCuotas = generarTablaCuotas;
+        window.cambiarTipoCuota = cambiarTipoCuota;
+        window.actualizarResumenCuotas = actualizarResumenCuotas;
+        window.eliminarFilaCuota = eliminarFilaCuota;
+        window.recalcularCuotasPorMontoTotal = recalcularCuotasPorMontoTotal;
+        window.checkTesoreroAndSwitch = checkTesoreroAndSwitch;
+        window.buscarPersonaPlan = buscarPersonaPlan;
+        window.verPlan = verPlan;
+        window.cerrarModalVerPlan = cerrarModalVerPlan;
+        window.abrirModalPagoCuota = abrirModalPagoCuota;
+        window.cerrarModalPagoCuota = cerrarModalPagoCuota;
+        window.guardarPagoCuota = guardarPagoCuota;
+        window.handlePagoCuotaFile = handlePagoCuotaFile;
+    </script>
+<script>if('serviceWorker' in navigator){navigator.serviceWorker.register('/sw.js').catch(()=>{});}</script>
+</body>
+</html>

@@ -1,0 +1,920 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Planificador de Reuniones — ERP Scout</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <!-- Google Calendar API: gapi (client) + GIS (autenticación) -->
+    <script src="https://apis.google.com/js/api.js" async defer></script>
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
+
+        :root {
+            --azul-profundo: #0E2586;
+            --gris-fondo: #f4f7f9;
+            --gris-claro: #e2e8f0;
+            --blanco: #ffffff;
+            --texto-oscuro: #2d3748;
+            --texto-claro: #718096;
+            --border-color: #cbd5e0;
+            --amarillo: #FFD100;
+            --color-manada: #FFD100;
+            --color-tropa: #00853F;
+            --color-compania: #00853F;
+            --color-pioneros: #0055A5;
+            --color-caminantes: #E31837;
+            --success: #2ecc71;
+            --warning: #f39c12;
+            --danger: #e74c3c;
+            --info: #3498db;
+        }
+        *{margin:0;padding:0;box-sizing:border-box;font-family:'Poppins',sans-serif;}
+        body{background:var(--gris-fondo);min-height:100vh;color:var(--texto-oscuro);}
+
+        .topbar{background:linear-gradient(135deg,var(--azul-profundo),#1a36a8);color:white;padding:14px 22px;display:flex;align-items:center;gap:12px;}
+        .topbar h1{font-size:1.05rem;font-weight:600;flex:1;}
+
+        .layout{display:grid;grid-template-columns:360px 1fr;gap:16px;max-width:1280px;margin:18px auto;padding:0 14px 60px;}
+
+        .card{background:var(--blanco);border-radius:12px;padding:18px 20px;box-shadow:0 2px 10px rgba(0,0,0,0.06);border:1px solid var(--gris-claro);}
+        .card h2{font-size:0.95rem;font-weight:600;color:var(--azul-profundo);margin-bottom:14px;display:flex;align-items:center;gap:8px;padding-bottom:10px;border-bottom:1px solid var(--gris-claro);}
+
+        .fg{display:flex;flex-direction:column;gap:5px;margin-bottom:12px;}
+        .fg label{font-size:0.8rem;font-weight:600;color:var(--texto-oscuro);}
+        .fg input,.fg select,.fg textarea{padding:9px 12px;border:1px solid var(--border-color);border-radius:8px;font-size:0.88rem;font-family:inherit;outline:none;transition:0.18s;color:var(--texto-oscuro);background:var(--blanco);}
+        .fg input:focus,.fg select:focus,.fg textarea:focus{border-color:var(--azul-profundo);box-shadow:0 0 0 3px rgba(14,37,134,0.1);}
+        .fg textarea{resize:vertical;min-height:72px;}
+
+        .btn{padding:9px 18px;border:none;border-radius:8px;font-size:0.86rem;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:6px;transition:0.18s;font-family:inherit;}
+        .btn-p{background:var(--azul-profundo);color:white;}
+        .btn-p:hover{background:#1a36a8;transform:translateY(-1px);box-shadow:0 4px 10px rgba(14,37,134,0.25);}
+        .btn-v{background:var(--success);color:white;}.btn-v:hover{background:#2ecc71;}
+        .btn-r{background:var(--danger);color:white;}.btn-r:hover{background:#d9453a;}
+        .btn-cancel{background:var(--gris-fondo);color:var(--texto-oscuro);border:1px solid var(--border-color);}
+        .btn-cancel:hover{background:var(--gris-claro);}
+        .btn-sm{padding:5px 11px;font-size:0.78rem;}
+        .btn-full{width:100%;justify-content:center;margin-top:4px;}
+
+        /* Lista reuniones */
+        .reunion-item{border:1px solid var(--gris-claro);border-radius:10px;padding:13px 15px;margin-bottom:9px;cursor:pointer;transition:0.18s;background:var(--blanco);}
+        .reunion-item:hover{border-color:var(--azul-profundo);background:#fafbff;}
+        .reunion-item.sel{border-color:var(--azul-profundo);background:#eef3ff;box-shadow:0 0 0 3px rgba(14,37,134,0.08);}
+        .ri-header{display:flex;align-items:flex-start;gap:10px;}
+        .ri-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;margin-top:6px;}
+        .ri-info{flex:1;min-width:0;}
+        .ri-info h4{font-size:0.88rem;font-weight:600;color:var(--texto-oscuro);}
+        .ri-info .meta{font-size:0.76rem;color:var(--texto-claro);display:flex;gap:10px;flex-wrap:wrap;margin-top:4px;align-items:center;}
+        .ri-actions{margin-left:auto;opacity:0;transition:0.18s;}
+        .reunion-item:hover .ri-actions{opacity:1;}
+
+        /* Panel detalle */
+        .det-header{padding:18px 20px;background:linear-gradient(135deg,var(--azul-profundo),#1a36a8);border-radius:10px 10px 0 0;color:white;}
+        .det-header h2{font-size:1.1rem;font-weight:700;border:none;padding:0;color:white;margin:0;}
+        .det-header p{font-size:0.8rem;opacity:0.85;margin-top:4px;}
+        .det-meta{display:flex;gap:10px;flex-wrap:wrap;margin-top:10px;}
+        .det-meta span{font-size:0.78rem;background:rgba(255,255,255,0.15);padding:4px 11px;border-radius:14px;display:flex;align-items:center;gap:5px;}
+
+        /* Actividades */
+        .act-timeline{margin-top:6px;}
+        .act-item{display:flex;gap:12px;margin-bottom:10px;align-items:flex-start;}
+        .act-time{font-size:0.76rem;font-weight:700;color:var(--azul-profundo);min-width:54px;text-align:right;padding-top:7px;}
+        .act-content{flex:1;background:var(--gris-fondo);border-radius:8px;padding:9px 12px;border-left:3px solid var(--azul-profundo);}
+        .act-content h5{font-size:0.85rem;font-weight:600;color:var(--texto-oscuro);margin-bottom:2px;}
+        .act-content p{font-size:0.78rem;color:var(--texto-claro);}
+        .act-tipo{font-size:0.68rem;font-weight:700;padding:2px 8px;border-radius:10px;display:inline-block;margin-bottom:5px;text-transform:uppercase;letter-spacing:0.3px;}
+        .tipo-apertura{background:#dbeafe;color:#1e40af;}
+        .tipo-desarrollo{background:rgba(0,133,63,0.15);color:var(--color-tropa);}
+        .tipo-cierre{background:#fef3c7;color:#78350f;}
+        .tipo-otro{background:var(--gris-claro);color:var(--texto-claro);}
+
+        .add-act-form{background:var(--gris-fondo);border:1px solid var(--gris-claro);border-radius:9px;padding:14px;margin-top:14px;}
+        .add-act-form h4{font-size:0.84rem;font-weight:600;margin-bottom:10px;color:var(--azul-profundo);display:flex;align-items:center;gap:6px;}
+        .form-row-act{display:grid;grid-template-columns:1fr 1fr;gap:9px;}
+        .form-row-act .fg{margin-bottom:0;}
+
+        .estado-badge{display:inline-block;padding:3px 10px;border-radius:12px;font-size:0.7rem;font-weight:700;text-transform:uppercase;letter-spacing:0.3px;}
+        .estado-planificada{background:#dbeafe;color:#1e40af;}
+        .estado-realizada{background:rgba(0,133,63,0.15);color:var(--color-tropa);}
+        .estado-cancelada{background:#fef2f2;color:var(--danger);}
+
+        .tabs{display:flex;gap:3px;background:var(--gris-fondo);border-radius:9px;padding:3px;margin-bottom:16px;}
+        .tab{flex:1;padding:8px;border:none;border-radius:7px;font-size:0.81rem;font-weight:500;cursor:pointer;background:transparent;color:var(--texto-claro);transition:0.16s;font-family:inherit;}
+        .tab.act{background:var(--blanco);color:var(--azul-profundo);font-weight:700;box-shadow:0 2px 6px rgba(0,0,0,0.08);}
+        .panel{display:none;}.panel.vis{display:block;}
+
+        .empty{text-align:center;padding:28px;color:var(--texto-claro);}
+        .empty i{font-size:1.8rem;margin-bottom:8px;display:block;color:var(--gris-claro);}
+
+        .welcome-box{text-align:center;padding:50px 20px;color:var(--texto-claro);}
+        .welcome-box i{font-size:3rem;margin-bottom:16px;display:block;color:var(--gris-claro);}
+        .welcome-box p{font-size:0.92rem;line-height:1.6;}
+
+        .filter-bar{display:flex;gap:7px;margin-bottom:12px;}
+        .filter-bar select{flex:1;padding:7px 10px;border:1px solid var(--border-color);border-radius:7px;font-size:0.83rem;outline:none;font-family:inherit;background:var(--blanco);color:var(--texto-oscuro);}
+        .filter-bar select:focus{border-color:var(--azul-profundo);}
+
+        @media(max-width:760px){.layout{grid-template-columns:1fr;}.form-row-act{grid-template-columns:1fr;}}
+    </style>
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#0E2586">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="ERP Scout">
+</head>
+<body>
+
+<div class="topbar">
+    <i class="fas fa-clipboard-list" style="font-size:1.3rem;color:var(--amarillo)"></i>
+    <h1>Planificador de Reuniones</h1>
+</div>
+
+<div class="layout">
+    <!-- COLUMNA IZQUIERDA -->
+    <div>
+        <div class="card" style="margin-bottom:14px">
+            <h2><i class="fas fa-plus-circle"></i> Nueva reunión</h2>
+            <div class="fg"><label>Título</label><input type="text" id="nTitulo" placeholder="Ej: Reunión Tropa — Sábado"></div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:9px">
+                <div class="fg"><label>Unidad</label>
+                    <select id="nUnidad">
+                        <option value="Grupo">Grupo (todas)</option>
+                        <option value="Manada">Manada</option>
+                        <option value="Tropa">Tropa</option>
+                        <option value="Compañía">Compañía</option>
+                        <option value="Avanzada">Avanzada</option>
+                        <option value="Clan">Clan</option>
+                        <option value="Dirigentes">Dirigentes</option>
+                    </select>
+                </div>
+                <div class="fg"><label>Fecha</label><input type="date" id="nFecha"></div>
+                <div class="fg"><label>Hora inicio</label><input type="time" id="nHoraI" value="09:00"></div>
+                <div class="fg"><label>Hora fin</label><input type="time" id="nHoraF" value="12:00"></div>
+            </div>
+            <div class="fg"><label>Lugar</label><input type="text" id="nLugar" placeholder="Sede, Plaza, Camping..."></div>
+            <div class="fg"><label>Objetivo</label><textarea id="nObjetivo" placeholder="¿Qué se espera lograr?"></textarea></div>
+            <button class="btn btn-p btn-full" onclick="crearReunion()"><i class="fas fa-save"></i> Guardar reunión</button>
+        </div>
+
+        <div class="card">
+            <h2><i class="fas fa-list"></i> Reuniones</h2>
+            <div class="filter-bar">
+                <select id="filtroUnidadR" onchange="cargarReuniones()">
+                    <option value="">Todas las unidades</option>
+                    <option value="Grupo">Grupo</option>
+                    <option value="Manada">Manada</option>
+                    <option value="Tropa">Tropa</option>
+                    <option value="Compañía">Compañía</option>
+                    <option value="Avanzada">Avanzada</option>
+                    <option value="Clan">Clan</option>
+                    <option value="Dirigentes">Dirigentes</option>
+                </select>
+                <select id="filtroEstado" onchange="cargarReuniones()">
+                    <option value="">Todos los estados</option>
+                    <option value="planificada">Planificadas</option>
+                    <option value="realizada">Realizadas</option>
+                    <option value="cancelada">Canceladas</option>
+                </select>
+            </div>
+            <div id="listaReuniones"><div class="empty"><i class="fas fa-circle-notch fa-spin"></i>Cargando...</div></div>
+        </div>
+    </div>
+
+    <!-- COLUMNA DERECHA: detalle -->
+    <div>
+        <div class="card" id="bienvenida">
+            <div class="welcome-box">
+                <i class="fas fa-clipboard-list"></i>
+                <p>Selecciona una reunión para ver su detalle<br>o crea una nueva desde el panel izquierdo.</p>
+            </div>
+        </div>
+        <div id="panelDetalle" style="display:none">
+            <div class="card" style="padding:0;overflow:hidden">
+                <div class="det-header">
+                    <h2 id="detTitulo">—</h2>
+                    <div class="det-meta">
+                        <span id="detFecha"><i class="far fa-calendar"></i>—</span>
+                        <span id="detHora"><i class="far fa-clock"></i>—</span>
+                        <span id="detLugar"><i class="fas fa-map-marker-alt"></i>—</span>
+                        <span id="detUnidad"><i class="fas fa-users"></i>—</span>
+                    </div>
+                    <div style="margin-top:10px;display:flex;gap:7px;flex-wrap:wrap">
+                        <button onclick="sincronizarGoogleCalendar()" id="btnSyncGC" style="background:#34a853;color:white;border:none;padding:6px 12px;border-radius:6px;font-size:0.78rem;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:5px" title="Agrega la reunión directamente a tu Google Calendar (requiere autorización la primera vez)"><i class="fab fa-google"></i> Sincronizar con Google Calendar</button>
+                        <button onclick="abrirEnGoogleCalendar()" style="background:#4285F4;color:white;border:none;padding:6px 12px;border-radius:6px;font-size:0.78rem;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:5px" title="Abre Google Calendar con el evento pre-llenado"><i class="far fa-calendar-plus"></i> Abrir en Google Calendar</button>
+                        <button onclick="descargarICS()" style="background:rgba(255,255,255,0.2);color:white;border:1px solid rgba(255,255,255,0.35);padding:6px 12px;border-radius:6px;font-size:0.78rem;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:5px" title="Archivo .ics compatible con Outlook, Apple Calendar"><i class="fas fa-download"></i> .ics</button>
+                    </div>
+                </div>
+
+                <div style="padding:18px 20px">
+                    <div class="tabs">
+                        <button class="tab act" onclick="cambiarTab('programa',this)"><i class="fas fa-list-ol"></i> Programa</button>
+                        <button class="tab" onclick="cambiarTab('objetivo',this)"><i class="fas fa-bullseye"></i> Objetivo / Notas</button>
+                        <button class="tab" onclick="cambiarTab('invitados',this)"><i class="fas fa-envelope"></i> Invitados</button>
+                        <button class="tab" onclick="cambiarTab('estado',this)"><i class="fas fa-check-circle"></i> Estado</button>
+                    </div>
+
+                    <div class="panel vis" id="tProg">
+                        <h2 style="font-size:0.92rem;font-weight:600;color:var(--azul-profundo);margin-bottom:12px;display:flex;align-items:center;gap:6px"><i class="fas fa-list-ol"></i> Programa de actividades</h2>
+                        <div class="act-timeline" id="actTimeline"></div>
+                        <div class="add-act-form">
+                            <h4><i class="fas fa-plus"></i> Agregar actividad</h4>
+                            <div class="form-row-act">
+                                <div class="fg"><label>Hora</label><input type="time" id="actHora" value="09:00"></div>
+                                <div class="fg"><label>Tipo</label>
+                                    <select id="actTipo"><option value="apertura">Apertura</option><option value="desarrollo">Desarrollo</option><option value="cierre">Cierre</option><option value="otro">Otro</option></select>
+                                </div>
+                            </div>
+                            <div class="fg"><label>Actividad</label><input type="text" id="actNombre" placeholder="Ej: Juego de confianza, Técnica de primeros auxilios..."></div>
+                            <div class="fg" style="margin-bottom:10px"><label>Descripción</label><input type="text" id="actDesc" placeholder="Opcional"></div>
+                            <button class="btn btn-v btn-sm" onclick="agregarActividad()"><i class="fas fa-plus"></i> Agregar</button>
+                        </div>
+                    </div>
+
+                    <div class="panel" id="tObjetivo">
+                        <div class="fg"><label>Objetivo de la reunión</label><textarea id="editObjetivo" rows="4"></textarea></div>
+                        <div class="fg"><label>Notas</label><textarea id="editNotas" rows="4" placeholder="Anotaciones, acuerdos, pendientes..."></textarea></div>
+                        <button class="btn btn-p btn-sm" onclick="guardarObjetivo()"><i class="fas fa-save"></i> Guardar</button>
+                    </div>
+
+                    <div class="panel" id="tInvitados">
+                        <h2 style="font-size:0.92rem;font-weight:600;color:var(--azul-profundo);margin-bottom:12px;display:flex;align-items:center;gap:6px"><i class="fas fa-envelope"></i> Invitados a la reunión</h2>
+                        <p style="font-size:0.8rem;color:var(--texto-claro);margin-bottom:12px">Selecciona los miembros. Al sincronizar con Google Calendar recibirán la invitación por email.</p>
+
+                        <div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap">
+                            <input type="text" id="filtroInvitados" placeholder="🔎 Filtrar por nombre o email..." oninput="filtrarInvitados()" style="flex:1;min-width:160px;padding:7px 11px;border:2px solid var(--gris-claro);border-radius:7px;font-size:0.85rem;font-family:inherit;outline:none">
+                            <select id="filtroTipoInvitado" onchange="filtrarInvitados()" style="padding:7px 10px;border:2px solid var(--gris-claro);border-radius:7px;font-size:0.82rem;background:white">
+                                <option value="">Todos</option>
+                                <option value="adultos">Adultos / Dirigentes</option>
+                                <option value="apoderados">Apoderados (jóvenes)</option>
+                            </select>
+                            <button class="btn btn-sm" style="background:#f1f5f9;color:var(--texto-oscuro);border:1px solid var(--gris-claro)" onclick="toggleSelTodos()"><i class="fas fa-check-double"></i> Sel/Deseleccionar</button>
+                        </div>
+
+                        <div id="listaInvitables" style="max-height:320px;overflow-y:auto;border:1px solid var(--gris-claro);border-radius:9px;background:white">
+                            <div style="padding:22px;text-align:center;color:var(--texto-claro);font-size:0.85rem"><i class="fas fa-circle-notch fa-spin"></i> Cargando miembros...</div>
+                        </div>
+
+                        <div style="display:flex;justify-content:space-between;align-items:center;margin-top:12px;padding-top:10px;border-top:1px solid var(--gris-claro)">
+                            <span style="font-size:0.82rem;color:var(--texto-claro)" id="resumenInvitados">0 seleccionados</span>
+                            <button class="btn btn-p btn-sm" onclick="guardarInvitados()"><i class="fas fa-save"></i> Guardar invitados</button>
+                        </div>
+
+                        <div id="invitadosCustomBox" style="margin-top:14px;padding-top:10px;border-top:1px dashed var(--gris-claro)">
+                            <label style="font-size:0.82rem;font-weight:600;color:var(--azul-profundo);margin-bottom:6px;display:block"><i class="fas fa-plus-circle"></i> Agregar email adicional</label>
+                            <div style="display:flex;gap:7px">
+                                <input type="email" id="invitadoCustom" placeholder="correo@ejemplo.cl" style="flex:1;padding:7px 11px;border:2px solid var(--gris-claro);border-radius:7px;font-size:0.85rem;font-family:inherit;outline:none">
+                                <button class="btn btn-v btn-sm" onclick="agregarInvitadoCustom()"><i class="fas fa-plus"></i></button>
+                            </div>
+                            <div id="invitadosCustomLista" style="margin-top:8px;display:flex;flex-wrap:wrap;gap:5px"></div>
+                        </div>
+                    </div>
+
+                    <div class="panel" id="tEstado">
+                        <p style="font-size:0.85rem;color:var(--texto-claro);margin-bottom:14px">Actualiza el estado y registra cuántos asistentes participaron.</p>
+                        <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap">
+                            <button class="btn btn-sm" style="background:#dbeafe;color:#1e40af" onclick="cambiarEstado('planificada')"><i class="far fa-calendar"></i> Planificada</button>
+                            <button class="btn btn-v btn-sm" onclick="cambiarEstado('realizada')"><i class="fas fa-check"></i> Realizada</button>
+                            <button class="btn btn-r btn-sm" onclick="cambiarEstado('cancelada')"><i class="fas fa-times"></i> Cancelada</button>
+                        </div>
+                        <div class="fg"><label>Asistentes reales</label><input type="number" id="editAsistentes" min="0" placeholder="Nº de personas"></div>
+                        <button class="btn btn-p btn-sm" onclick="guardarAsistentes()"><i class="fas fa-save"></i> Guardar</button>
+                        <div style="margin-top:18px;padding-top:16px;border-top:1px solid var(--gris-claro)">
+                            <button class="btn btn-r btn-sm" onclick="eliminarReunion()"><i class="fas fa-trash"></i> Eliminar esta reunión</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+(async()=>{
+    const SURL='https://hyixmaxhoxvamoecuars.supabase.co';
+    const SKEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imh5aXhtYXhob3h2YW1vZWN1YXJzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI3OTg1NDMsImV4cCI6MjA4ODM3NDU0M30.ZLeJIWdip2f00h4TqkZH7eqMX4wpwphaqkJpAa0N0X4';
+    const db=supabase.createClient(SURL,SKEY);
+    let reunionActiva=null;
+
+    document.getElementById('nFecha').value=new Date().toISOString().split('T')[0];
+
+    // Colores por unidad (alineados con paleta institucional)
+    const COLOR_UNIDAD={
+        Manada:'#FFD100',
+        Tropa:'#00853F',
+        'Compañía':'#00853F',
+        Avanzada:'#0055A5',
+        Clan:'#E31837',
+        Dirigentes:'#E31837',
+        Grupo:'#0E2586'
+    };
+
+    window.crearReunion=async function(){
+        const titulo=document.getElementById('nTitulo').value.trim();
+        const fecha=document.getElementById('nFecha').value;
+        if(!titulo||!fecha){alert('El título y la fecha son obligatorios.');return;}
+        const{data,error}=await db.from('reuniones').insert({
+            titulo,
+            unidad:document.getElementById('nUnidad').value,
+            fecha,
+            hora_inicio:document.getElementById('nHoraI').value||null,
+            hora_fin:document.getElementById('nHoraF').value||null,
+            lugar:document.getElementById('nLugar').value.trim()||null,
+            objetivo:document.getElementById('nObjetivo').value.trim()||null,
+            estado:'planificada',actividades:[],creado_en:new Date().toISOString()
+        }).select().single();
+        if(error){alert('Error al guardar: '+error.message);return;}
+        document.getElementById('nTitulo').value='';
+        document.getElementById('nObjetivo').value='';
+        document.getElementById('nLugar').value='';
+        await cargarReuniones();
+        seleccionarReunion(data);
+    };
+
+    window.cargarReuniones=async function(){
+        const u=document.getElementById('filtroUnidadR').value;
+        const e=document.getElementById('filtroEstado').value;
+        let q=db.from('reuniones').select('*').order('fecha',{ascending:false});
+        if(u)q=q.eq('unidad',u);
+        if(e)q=q.eq('estado',e);
+        const{data}=await q;
+        const lista=document.getElementById('listaReuniones');
+        if(!data?.length){lista.innerHTML='<div class="empty"><i class="fas fa-calendar-times"></i>No hay reuniones.</div>';return;}
+        lista.innerHTML=data.map(r=>{
+            const c=COLOR_UNIDAD[r.unidad]||'#3498db';
+            const f=r.fecha?new Date(r.fecha+'T12:00:00').toLocaleDateString('es-CL',{weekday:'short',day:'2-digit',month:'short'}):'—';
+            const nActs=(r.actividades||[]).length;
+            return`<div class="reunion-item ${reunionActiva?.id===r.id?'sel':''}" onclick="seleccionarReunion(${JSON.stringify(r).replace(/"/g,'&quot;')})">
+                <div class="ri-header">
+                    <div class="ri-dot" style="background:${c}"></div>
+                    <div class="ri-info">
+                        <h4>${r.titulo}</h4>
+                        <div class="meta">
+                            <span><i class="far fa-calendar"></i>${f}</span>
+                            ${r.hora_inicio?`<span><i class="far fa-clock"></i>${r.hora_inicio}</span>`:''}
+                            <span><i class="fas fa-users"></i>${r.unidad}</span>
+                            <span class="estado-badge estado-${r.estado}">${r.estado}</span>
+                        </div>
+                    </div>
+                    <div class="ri-actions">
+                        <button class="btn btn-r btn-sm" onclick="event.stopPropagation();eliminarDirecto('${r.id}')"><i class="fas fa-trash"></i></button>
+                    </div>
+                </div>
+                ${nActs?`<p style="font-size:0.74rem;color:var(--texto-claro);margin-top:6px;margin-left:20px"><i class="fas fa-list"></i> ${nActs} actividad${nActs>1?'es':''}</p>`:''}
+            </div>`;
+        }).join('');
+    };
+
+    window.seleccionarReunion=function(r){
+        if(typeof r==='string')r=JSON.parse(r);
+        reunionActiva=r;
+        document.getElementById('bienvenida').style.display='none';
+        document.getElementById('panelDetalle').style.display='block';
+        document.getElementById('detTitulo').textContent=r.titulo;
+        const f=r.fecha?new Date(r.fecha+'T12:00:00').toLocaleDateString('es-CL',{weekday:'long',day:'numeric',month:'long',year:'numeric'}):'Sin fecha';
+        document.getElementById('detFecha').innerHTML=`<i class="far fa-calendar"></i>${f}`;
+        document.getElementById('detHora').innerHTML=`<i class="far fa-clock"></i>${r.hora_inicio||'—'} — ${r.hora_fin||'—'}`;
+        document.getElementById('detLugar').innerHTML=`<i class="fas fa-map-marker-alt"></i>${r.lugar||'Sin definir'}`;
+        document.getElementById('detUnidad').innerHTML=`<i class="fas fa-users"></i>${r.unidad}`;
+        document.getElementById('editObjetivo').value=r.objetivo||'';
+        document.getElementById('editNotas').value=r.notas||'';
+        document.getElementById('editAsistentes').value=r.asistentes_esperados||'';
+        renderActividades(r.actividades||[]);
+        cargarReuniones();
+    };
+
+    function renderActividades(acts){
+        const sorted=[...acts].sort((a,b)=>(a.hora||'').localeCompare(b.hora||''));
+        document.getElementById('actTimeline').innerHTML=sorted.length?sorted.map((a,i)=>`
+            <div class="act-item">
+                <div class="act-time">${a.hora||'—'}</div>
+                <div class="act-content">
+                    <span class="act-tipo tipo-${a.tipo||'otro'}">${a.tipo||'otro'}</span>
+                    <h5>${a.nombre}</h5>
+                    ${a.desc?`<p>${a.desc}</p>`:''}
+                </div>
+                <button onclick="eliminarActividad(${i})" style="background:none;border:none;color:var(--texto-claro);cursor:pointer;font-size:0.9rem;margin-top:5px;padding:4px"><i class="fas fa-times"></i></button>
+            </div>`).join(''):`<p style="font-size:0.83rem;color:var(--texto-claro);text-align:center;padding:14px">Sin actividades planificadas.</p>`;
+    }
+
+    window.agregarActividad=async function(){
+        if(!reunionActiva)return;
+        const nombre=document.getElementById('actNombre').value.trim();
+        if(!nombre)return;
+        const acts=[...(reunionActiva.actividades||[]),{hora:document.getElementById('actHora').value,tipo:document.getElementById('actTipo').value,nombre,desc:document.getElementById('actDesc').value.trim()}];
+        await db.from('reuniones').update({actividades:acts}).eq('id',reunionActiva.id);
+        reunionActiva.actividades=acts;
+        document.getElementById('actNombre').value='';
+        document.getElementById('actDesc').value='';
+        renderActividades(acts);
+    };
+
+    window.eliminarActividad=async function(idx){
+        if(!reunionActiva)return;
+        const acts=(reunionActiva.actividades||[]).filter((_,i)=>i!==idx);
+        await db.from('reuniones').update({actividades:acts}).eq('id',reunionActiva.id);
+        reunionActiva.actividades=acts;renderActividades(acts);
+    };
+
+    window.guardarObjetivo=async function(){
+        if(!reunionActiva)return;
+        await db.from('reuniones').update({objetivo:document.getElementById('editObjetivo').value,notas:document.getElementById('editNotas').value}).eq('id',reunionActiva.id);
+        reunionActiva.objetivo=document.getElementById('editObjetivo').value;
+        reunionActiva.notas=document.getElementById('editNotas').value;
+        alert('Guardado.');
+    };
+
+    window.cambiarEstado=async function(estado){
+        if(!reunionActiva)return;
+        await db.from('reuniones').update({estado}).eq('id',reunionActiva.id);
+        reunionActiva.estado=estado;
+        await cargarReuniones();
+    };
+
+    window.guardarAsistentes=async function(){
+        if(!reunionActiva)return;
+        const n=parseInt(document.getElementById('editAsistentes').value)||0;
+        await db.from('reuniones').update({asistentes_esperados:n}).eq('id',reunionActiva.id);
+        alert('Asistencia guardada.');
+    };
+
+    window.eliminarReunion=async function(){
+        if(!reunionActiva||!confirm('¿Eliminar esta reunión?'))return;
+        await db.from('reuniones').delete().eq('id',reunionActiva.id);
+        reunionActiva=null;
+        document.getElementById('bienvenida').style.display='block';
+        document.getElementById('panelDetalle').style.display='none';
+        await cargarReuniones();
+    };
+
+    window.eliminarDirecto=async function(id){
+        if(!confirm('¿Eliminar esta reunión?'))return;
+        await db.from('reuniones').delete().eq('id',id);
+        if(reunionActiva?.id===id){reunionActiva=null;document.getElementById('bienvenida').style.display='block';document.getElementById('panelDetalle').style.display='none';}
+        await cargarReuniones();
+    };
+
+    window.cambiarTab=function(tab,el){
+        document.querySelectorAll('.tab').forEach(t=>t.classList.remove('act'));
+        el.classList.add('act');
+        ['tProg','tObjetivo','tInvitados','tEstado'].forEach(id=>document.getElementById(id).classList.remove('vis'));
+        const map={programa:'tProg',objetivo:'tObjetivo',invitados:'tInvitados',estado:'tEstado'};
+        document.getElementById(map[tab]).classList.add('vis');
+        if(tab === 'invitados') cargarInvitables();
+    };
+
+    // ══════════════════════════════════════════════
+    // INVITADOS: lee adultos_registros + mmbb_registrations (apoderados)
+    // ══════════════════════════════════════════════
+    let todosInvitables = [];
+    let invitadosCustom = []; // emails agregados manualmente
+
+    async function cargarInvitables(){
+        if(!reunionActiva){ return; }
+        const cont = document.getElementById('listaInvitables');
+
+        // Recuperar invitados ya guardados (columna opcional 'invitados' — si no existe, ignoramos)
+        const invitadosYaSeleccionados = new Set(reunionActiva.invitados_emails || []);
+        invitadosCustom = [...(reunionActiva.invitados_custom || [])];
+        renderInvitadosCustom();
+
+        cont.innerHTML = '<div style="padding:22px;text-align:center;color:var(--texto-claro);font-size:0.85rem"><i class="fas fa-circle-notch fa-spin"></i> Cargando miembros...</div>';
+
+        try {
+            // Adultos registrados (dirigentes, staff)
+            const adRes = await db.from('adultos_registros').select('id,nombres,apellidos,email,roles,unidad_rol').not('email','is',null).order('apellidos');
+            const adultos = (adRes.data || []).map(a => ({
+                tipo: 'adultos',
+                id: 'ad_' + a.id,
+                email: a.email,
+                nombre: `${a.nombres || ''} ${a.apellidos || ''}`.trim(),
+                extra: [a.roles, a.unidad_rol].filter(Boolean).join(' · ')
+            }));
+
+            // Apoderados de jóvenes (titular)
+            const jvRes = await db.from('mmbb_registrations').select('id,nombres,apellidos,unidad,apoderado_titular_nombre,apoderado_titular_email').not('apoderado_titular_email','is',null).order('apellidos');
+            const apoderados = (jvRes.data || []).map(j => ({
+                tipo: 'apoderados',
+                id: 'jv_' + j.id,
+                email: j.apoderado_titular_email,
+                nombre: j.apoderado_titular_nombre || `Apoderado de ${j.nombres} ${j.apellidos}`,
+                extra: `Apoderado de ${j.nombres} ${j.apellidos} · ${j.unidad || '—'}`
+            }));
+
+            todosInvitables = [...adultos, ...apoderados];
+
+            // Marcar los que ya estaban seleccionados
+            todosInvitables.forEach(p => { p.seleccionado = invitadosYaSeleccionados.has(p.email); });
+
+            renderListaInvitables();
+        } catch(err){
+            cont.innerHTML = `<div style="padding:22px;text-align:center;color:#dc2626;font-size:0.82rem"><i class="fas fa-exclamation-triangle"></i> Error al cargar: ${err.message}</div>`;
+        }
+    }
+
+    function renderListaInvitables(){
+        const cont = document.getElementById('listaInvitables');
+        const q = (document.getElementById('filtroInvitados')?.value || '').toLowerCase();
+        const tipo = document.getElementById('filtroTipoInvitado')?.value || '';
+        const filtrados = todosInvitables.filter(p => {
+            const matchQ = !q || p.nombre.toLowerCase().includes(q) || p.email.toLowerCase().includes(q);
+            const matchT = !tipo || p.tipo === tipo;
+            return matchQ && matchT;
+        });
+        if(!filtrados.length){
+            cont.innerHTML = '<div style="padding:22px;text-align:center;color:var(--texto-claro);font-size:0.85rem"><i class="fas fa-inbox"></i> Sin resultados</div>';
+            actualizarResumenInvitados();
+            return;
+        }
+        cont.innerHTML = filtrados.map(p => {
+            const bgTipo = p.tipo === 'adultos' ? '#e0e7ff' : '#fef3c7';
+            const colorTipo = p.tipo === 'adultos' ? '#3730a3' : '#78350f';
+            const labelTipo = p.tipo === 'adultos' ? 'Adulto' : 'Apoderado';
+            return `<label class="inv-row" style="display:flex;align-items:center;gap:10px;padding:8px 12px;border-bottom:1px solid var(--gris-claro);cursor:pointer;transition:0.12s" onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background=''">
+                <input type="checkbox" class="chk-inv" data-email="${p.email}" ${p.seleccionado?'checked':''} onchange="togglarInvitado('${p.email}',this.checked)" style="cursor:pointer;accent-color:var(--azul-profundo)">
+                <div style="flex:1;min-width:0">
+                    <div style="font-size:0.85rem;font-weight:600;color:var(--texto-oscuro);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${p.nombre}</div>
+                    <div style="font-size:0.72rem;color:var(--texto-claro);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${p.email}${p.extra?' · '+p.extra:''}</div>
+                </div>
+                <span style="background:${bgTipo};color:${colorTipo};font-size:0.68rem;font-weight:700;padding:2px 8px;border-radius:10px;flex-shrink:0">${labelTipo}</span>
+            </label>`;
+        }).join('');
+        actualizarResumenInvitados();
+    }
+
+    window.filtrarInvitados = function(){ renderListaInvitables(); };
+
+    window.togglarInvitado = function(email, checked){
+        const p = todosInvitables.find(x => x.email === email);
+        if(p) p.seleccionado = checked;
+        actualizarResumenInvitados();
+    };
+
+    window.toggleSelTodos = function(){
+        const q = (document.getElementById('filtroInvitados')?.value || '').toLowerCase();
+        const tipo = document.getElementById('filtroTipoInvitado')?.value || '';
+        const filtrados = todosInvitables.filter(p => {
+            const matchQ = !q || p.nombre.toLowerCase().includes(q) || p.email.toLowerCase().includes(q);
+            const matchT = !tipo || p.tipo === tipo;
+            return matchQ && matchT;
+        });
+        const todosSel = filtrados.every(p => p.seleccionado);
+        filtrados.forEach(p => { p.seleccionado = !todosSel; });
+        renderListaInvitables();
+    };
+
+    function actualizarResumenInvitados(){
+        const sel = todosInvitables.filter(p => p.seleccionado).length;
+        const tot = sel + invitadosCustom.length;
+        document.getElementById('resumenInvitados').innerHTML = `<strong>${tot}</strong> invitado${tot!==1?'s':''} (${sel} del grupo${invitadosCustom.length?' + '+invitadosCustom.length+' extra':''})`;
+    }
+
+    window.agregarInvitadoCustom = function(){
+        const inp = document.getElementById('invitadoCustom');
+        const email = (inp.value || '').trim().toLowerCase();
+        if(!email || !email.includes('@')){ alert('Email inválido.'); return; }
+        if(invitadosCustom.includes(email)){ alert('Ya agregado.'); return; }
+        invitadosCustom.push(email);
+        inp.value = '';
+        renderInvitadosCustom();
+        actualizarResumenInvitados();
+    };
+
+    function renderInvitadosCustom(){
+        const cont = document.getElementById('invitadosCustomLista');
+        if(!invitadosCustom.length){ cont.innerHTML = ''; return; }
+        cont.innerHTML = invitadosCustom.map(em =>
+            `<span style="background:#f1f5f9;border:1px solid var(--gris-claro);padding:3px 10px;border-radius:14px;font-size:0.76rem;display:inline-flex;align-items:center;gap:5px">${em}<i class="fas fa-times" style="cursor:pointer;color:#64748b" onclick="quitarInvitadoCustom('${em}')"></i></span>`
+        ).join('');
+    }
+
+    window.quitarInvitadoCustom = function(email){
+        invitadosCustom = invitadosCustom.filter(e => e !== email);
+        renderInvitadosCustom();
+        actualizarResumenInvitados();
+    };
+
+    window.guardarInvitados = async function(){
+        if(!reunionActiva) return;
+        const emailsGrupo = todosInvitables.filter(p => p.seleccionado).map(p => p.email);
+
+        // Intentamos guardar en columnas dedicadas; si no existen, usamos campo notas como fallback
+        try {
+            const { error } = await db.from('reuniones').update({
+                invitados_emails: emailsGrupo,
+                invitados_custom: invitadosCustom
+            }).eq('id', reunionActiva.id);
+            if(error){
+                // Columnas no existen: guardar dentro de "notas" como marcador
+                const todoEmails = [...emailsGrupo, ...invitadosCustom];
+                const notasActuales = (reunionActiva.notas || '').replace(/\n?▸ INVITADOS:.*$/s, '');
+                const nuevasNotas = notasActuales + (todoEmails.length ? `\n▸ INVITADOS: ${todoEmails.join(', ')}` : '');
+                await db.from('reuniones').update({ notas: nuevasNotas }).eq('id', reunionActiva.id);
+                reunionActiva.notas = nuevasNotas;
+            }
+            reunionActiva.invitados_emails = emailsGrupo;
+            reunionActiva.invitados_custom = invitadosCustom;
+            alert('Invitados guardados. Al sincronizar con Google Calendar recibirán la invitación por email.');
+        } catch(err){
+            alert('Error al guardar: ' + err.message);
+        }
+    };
+
+    // Devuelve lista combinada de emails para pasar a Google Calendar
+    function obtenerTodosLosInvitados(){
+        const grupo = reunionActiva?.invitados_emails || [];
+        const custom = reunionActiva?.invitados_custom || [];
+        // Si se guardaron en notas (fallback), extraer
+        if(!grupo.length && !custom.length && reunionActiva?.notas){
+            const m = reunionActiva.notas.match(/▸ INVITADOS:\s*(.+?)(?:\n|$)/);
+            if(m){
+                return m[1].split(',').map(e => e.trim()).filter(Boolean);
+            }
+        }
+        return [...new Set([...grupo, ...custom])];
+    }
+
+    // ── GOOGLE CALENDAR / ICS ──
+    // Construye fechas en formato YYYYMMDDTHHMMSS (UTC o local) que Google Calendar acepta
+    function formatearFechaCalendar(fechaStr, horaStr){
+        // fechaStr: 'YYYY-MM-DD', horaStr: 'HH:MM' | null
+        if(!fechaStr) return null;
+        const h = horaStr || '09:00';
+        // Construimos en zona local, luego volcamos a ISO sin caracteres separadores
+        const dt = new Date(`${fechaStr}T${h}:00`);
+        if(isNaN(dt.getTime())) return null;
+        const pad = n => String(n).padStart(2,'0');
+        return `${dt.getFullYear()}${pad(dt.getMonth()+1)}${pad(dt.getDate())}T${pad(dt.getHours())}${pad(dt.getMinutes())}00`;
+    }
+
+    // Duración default 1h30min si falta hora_fin
+    function calcularFin(fechaStr, horaInicio, horaFin){
+        if(horaFin) return formatearFechaCalendar(fechaStr, horaFin);
+        if(!horaInicio) return formatearFechaCalendar(fechaStr, '10:30');
+        const [h,m] = horaInicio.split(':').map(Number);
+        const finH = (h + 1) % 24;
+        const finStr = `${String(finH).padStart(2,'0')}:${String(m+30 >= 60 ? m+30-60 : m+30).padStart(2,'0')}`;
+        return formatearFechaCalendar(fechaStr, finStr);
+    }
+
+    // Construye descripción concatenando objetivo + actividades + notas
+    function construirDescripcionCalendar(r){
+        const partes = [];
+        if(r.objetivo) partes.push('OBJETIVO:\n' + r.objetivo);
+        if(Array.isArray(r.actividades) && r.actividades.length){
+            const lineas = r.actividades
+                .slice().sort((a,b) => (a.hora||'').localeCompare(b.hora||''))
+                .map(a => `${a.hora || '—'} · ${a.nombre || ''}${a.descripcion ? ' — ' + a.descripcion : ''}`);
+            partes.push('PROGRAMA:\n' + lineas.join('\n'));
+        }
+        if(r.notas) partes.push('NOTAS:\n' + r.notas);
+        partes.push('\n— Generado desde ERP Scout · Grupo Guías y Scouts Salvador Sanfuentes');
+        return partes.join('\n\n');
+    }
+
+    // Abre la URL de Google Calendar con el evento pre-llenado
+    // Por defecto se crea en el calendario "primary" del usuario, pero si tiene el calendario
+    // del grupo agregado en su Google Calendar, puede cambiarlo desde el desplegable "Calendario"
+    window.abrirEnGoogleCalendar = function(){
+        if(!reunionActiva) return;
+        const r = reunionActiva;
+        const inicio = formatearFechaCalendar(r.fecha, r.hora_inicio);
+        const fin = calcularFin(r.fecha, r.hora_inicio, r.hora_fin);
+        if(!inicio || !fin){ alert('La reunión no tiene fecha válida.'); return; }
+
+        const descripcion = construirDescripcionCalendar(r);
+        const params = new URLSearchParams({
+            action: 'TEMPLATE',
+            text: r.titulo + ' · ' + (r.unidad || 'Grupo'),
+            dates: `${inicio}/${fin}`,
+            details: descripcion,
+            location: r.lugar || 'Local del grupo',
+            ctz: 'America/Santiago',
+            src: GOOGLE_CALENDAR_ID  // sugiere guardarlo en el calendario del grupo
+        });
+        const url = 'https://calendar.google.com/calendar/render?' + params.toString();
+        window.open(url, '_blank');
+    };
+
+    // Descarga un archivo .ics (compatible con Google, Outlook, Apple)
+    window.descargarICS = function(){
+        if(!reunionActiva) return;
+        const r = reunionActiva;
+        const inicio = formatearFechaCalendar(r.fecha, r.hora_inicio);
+        const fin = calcularFin(r.fecha, r.hora_inicio, r.hora_fin);
+        if(!inicio || !fin){ alert('La reunión no tiene fecha válida.'); return; }
+
+        const descripcion = construirDescripcionCalendar(r).replace(/\n/g, '\\n');
+        const now = new Date();
+        const pad = n => String(n).padStart(2,'0');
+        const stamp = `${now.getUTCFullYear()}${pad(now.getUTCMonth()+1)}${pad(now.getUTCDate())}T${pad(now.getUTCHours())}${pad(now.getUTCMinutes())}00Z`;
+        const uid = `reunion-${r.id}@erp-scout.grupo-sanfuentes`;
+
+        const ics = [
+            'BEGIN:VCALENDAR',
+            'VERSION:2.0',
+            'PRODID:-//ERP Scout//Grupo Guias y Scouts Salvador Sanfuentes//ES',
+            'CALSCALE:GREGORIAN',
+            'METHOD:PUBLISH',
+            'BEGIN:VEVENT',
+            `UID:${uid}`,
+            `DTSTAMP:${stamp}`,
+            `DTSTART;TZID=America/Santiago:${inicio}`,
+            `DTEND;TZID=America/Santiago:${fin}`,
+            `SUMMARY:${(r.titulo + ' · ' + (r.unidad || 'Grupo')).replace(/,/g, '\\,')}`,
+            `DESCRIPTION:${descripcion.replace(/,/g, '\\,')}`,
+            `LOCATION:${(r.lugar || 'Local del grupo').replace(/,/g, '\\,')}`,
+            `STATUS:${r.estado === 'realizada' ? 'CONFIRMED' : r.estado === 'cancelada' ? 'CANCELLED' : 'TENTATIVE'}`,
+            'END:VEVENT',
+            'END:VCALENDAR'
+        ].join('\r\n');
+
+        const blob = new Blob([ics], { type: 'text/calendar;charset=utf-8' });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = `reunion_${(r.titulo || 'evento').replace(/[^\w]/g,'_').slice(0,40)}_${r.fecha || 'sinfecha'}.ics`;
+        a.click();
+    };
+
+    // ══════════════════════════════════════════════
+    // GOOGLE CALENDAR — Sincronización directa con el calendario del GRUPO
+    // ══════════════════════════════════════════════
+    // Reutiliza las mismas credenciales del dashboard (API Key + Calendar ID).
+    // Las reuniones se agregan al calendario institucional del grupo,
+    // NO al calendario personal del usuario que hace clic.
+    //
+    // Para que funcione hay que:
+    //   1. En Google Cloud Console (mismo proyecto de la API Key), crear un
+    //      OAuth 2.0 Client ID de tipo "Aplicación web" y pegarlo abajo.
+    //   2. Agregar la URL de Netlify como "Origen autorizado de JavaScript".
+    //   3. El usuario que sincronice debe tener permiso de EDICIÓN sobre el
+    //      calendario del grupo (configurable desde Google Calendar → Compartir).
+    // ──────────────────────────────────────────────
+    const GOOGLE_API_KEY   = 'AIzaSyCDoio0ErDpLvAtlM28r2CYSgFdJYG2NIg';
+    const GOOGLE_CALENDAR_ID = 'c_55638f9d91b7cabb9f93d361daf455b034f197e8cdfed2c8fd79ea5a6e91af2d@group.calendar.google.com';
+    const GOOGLE_CLIENT_ID = '324614579301-k7v7um3tqnedc5br0f6rd37dmcrm80tv.apps.googleusercontent.com';
+    const GOOGLE_SCOPES = 'https://www.googleapis.com/auth/calendar.events';
+    const GOOGLE_DISCOVERY = 'https://www.googleapis.com/discovery/v1/apis/calendar/v3/rest';
+
+    let gcTokenClient = null;
+    let gcGapiReady = false;
+    let gcGisReady = false;
+
+    // Esperar a que carguen los scripts de Google
+    function inicializarGapi(){
+        if(typeof gapi === 'undefined') return;
+        gapi.load('client', async () => {
+            await gapi.client.init({
+                apiKey: GOOGLE_API_KEY,
+                discoveryDocs: [GOOGLE_DISCOVERY]
+            });
+            gcGapiReady = true;
+        });
+    }
+    function inicializarGis(){
+        if(typeof google === 'undefined' || !google.accounts?.oauth2) return;
+        if(!GOOGLE_CLIENT_ID) return; // sin Client ID no inicializamos
+        gcTokenClient = google.accounts.oauth2.initTokenClient({
+            client_id: GOOGLE_CLIENT_ID,
+            scope: GOOGLE_SCOPES,
+            callback: ''  // se asigna dinámicamente al pedir token
+        });
+        gcGisReady = true;
+    }
+    // Polling hasta que ambos scripts estén cargados
+    (function esperarGoogle(){
+        if(typeof gapi !== 'undefined' && !gcGapiReady) inicializarGapi();
+        if(typeof google !== 'undefined' && google.accounts?.oauth2 && !gcGisReady) inicializarGis();
+        if(!gcGapiReady || !gcGisReady) setTimeout(esperarGoogle, 400);
+    })();
+
+    // Pedir token al usuario (abre popup de consentimiento la primera vez)
+    function solicitarTokenGoogle(){
+        return new Promise((resolve, reject) => {
+            if(!gcTokenClient){ reject(new Error('Google OAuth no inicializado. Revisa GOOGLE_CLIENT_ID.')); return; }
+            gcTokenClient.callback = (resp) => {
+                if(resp.error) reject(new Error(resp.error));
+                else resolve(resp);
+            };
+            // Si ya hay un token activo, no pedir de nuevo el consentimiento
+            if(gapi.client.getToken() === null){
+                gcTokenClient.requestAccessToken({ prompt: 'consent' });
+            } else {
+                gcTokenClient.requestAccessToken({ prompt: '' });
+            }
+        });
+    }
+
+    // Función principal: sincroniza la reunión con el calendario del GRUPO
+    window.sincronizarGoogleCalendar = async function(){
+        if(!reunionActiva){ alert('Selecciona una reunión primero.'); return; }
+
+        if(!GOOGLE_CLIENT_ID){
+            alert('Falta el OAuth Client ID de Google.\n\n'+
+                  'La API Key y el Calendar ID ya están configurados (los mismos del dashboard).\n'+
+                  'Sólo hay que agregar un Client ID en el mismo proyecto de Google Cloud:\n\n'+
+                  '1. https://console.cloud.google.com/ → proyecto donde ya tienes la API Key\n'+
+                  '2. Credenciales → Crear credenciales → ID de cliente OAuth → Aplicación web\n'+
+                  '3. Agrega tu URL de Netlify en "Orígenes autorizados de JavaScript"\n'+
+                  '4. Pega el Client ID en GOOGLE_CLIENT_ID del archivo planificador_reuniones.html\n\n'+
+                  'Mientras tanto puedes usar "Abrir en Google Calendar" o exportar .ics.');
+            return;
+        }
+        if(!gcGapiReady || !gcGisReady){ alert('Cargando librerías de Google, intenta de nuevo en unos segundos...'); return; }
+
+        const r = reunionActiva;
+        const btn = document.getElementById('btnSyncGC');
+        const btnHtml = btn.innerHTML;
+
+        try {
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Autorizando...';
+
+            // Asegurar token (abre popup la primera vez, silencioso después)
+            await solicitarTokenGoogle();
+
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Creando evento...';
+
+            // Construir fechas en formato ISO con zona horaria de Chile
+            const inicio = `${r.fecha}T${r.hora_inicio || '09:00'}:00`;
+            const fin = r.hora_fin
+                ? `${r.fecha}T${r.hora_fin}:00`
+                : `${r.fecha}T${((parseInt((r.hora_inicio||'09:00').split(':')[0])+1)%24).toString().padStart(2,'0')}:${(r.hora_inicio||'09:00').split(':')[1]||'00'}:00`;
+
+            // Obtener emails de invitados (del grupo + custom)
+            const emailsInvitados = obtenerTodosLosInvitados();
+            const attendees = emailsInvitados.map(em => ({ email: em, responseStatus: 'needsAction' }));
+
+            const eventoGoogle = {
+                summary: `${r.titulo} · ${r.unidad || 'Grupo'}`,
+                location: r.lugar || 'Local del grupo',
+                description: construirDescripcionCalendar(r),
+                start: { dateTime: inicio, timeZone: 'America/Santiago' },
+                end:   { dateTime: fin,    timeZone: 'America/Santiago' },
+                reminders: { useDefault: true },
+                status: r.estado === 'realizada' ? 'confirmed' : r.estado === 'cancelada' ? 'cancelled' : 'tentative',
+                attendees: attendees,
+                guestsCanSeeOtherGuests: true,
+                guestsCanInviteOthers: false
+            };
+
+            // Parámetros comunes: 'all' = enviar emails de invitación a todos los attendees
+            const sendUpdates = attendees.length > 0 ? 'all' : 'none';
+
+            // Si la reunión ya se sincronizó antes, actualizar (PUT) en vez de crear
+            let resultado;
+            if(r.google_event_id){
+                resultado = await gapi.client.calendar.events.update({
+                    calendarId: GOOGLE_CALENDAR_ID,
+                    eventId: r.google_event_id,
+                    sendUpdates: sendUpdates,
+                    resource: eventoGoogle
+                });
+            } else {
+                resultado = await gapi.client.calendar.events.insert({
+                    calendarId: GOOGLE_CALENDAR_ID,
+                    sendUpdates: sendUpdates,
+                    resource: eventoGoogle
+                });
+                // Guardar el ID devuelto en la BD para futuras actualizaciones
+                const eventId = resultado.result.id;
+                try {
+                    await db.from('reuniones').update({ google_event_id: eventId }).eq('id', r.id);
+                    reunionActiva.google_event_id = eventId;
+                } catch(e){
+                    console.warn('No se pudo guardar google_event_id (columna opcional):', e.message);
+                }
+            }
+
+            btn.innerHTML = '<i class="fas fa-check"></i> ¡Sincronizado al grupo!';
+            btn.style.background = '#16a34a';
+            setTimeout(() => {
+                btn.innerHTML = btnHtml;
+                btn.style.background = '#34a853';
+                btn.disabled = false;
+            }, 2500);
+
+            // Mostrar enlace al evento creado
+            if(resultado.result.htmlLink){
+                if(confirm(`Evento sincronizado al calendario del grupo${attendees.length ? ' · ' + attendees.length + ' invitaciones enviadas' : ''}.\n\n¿Abrir el evento en Google Calendar?`)){
+                    window.open(resultado.result.htmlLink, '_blank');
+                }
+            }
+        } catch(err){
+            console.error('Error sincronizando:', err);
+            let msg = err.message || JSON.stringify(err.result?.error || err);
+            if(msg.includes('403') || msg.includes('Forbidden')){
+                msg += '\n\nPosible causa: la cuenta que autorizaste no tiene permiso de edición sobre el calendario del grupo. Ve a Google Calendar → Configuración del calendario del grupo → "Compartir con usuarios específicos" → agrégate con "Hacer cambios en eventos".';
+            }
+            alert('Error al sincronizar: ' + msg);
+            btn.innerHTML = btnHtml;
+            btn.disabled = false;
+        }
+    };
+
+    await cargarReuniones();
+})();
+</script>
+<script>if('serviceWorker' in navigator){navigator.serviceWorker.register('/sw.js').catch(()=>{});}</script>
+</body>
+</html>

@@ -1,0 +1,1063 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ERP Scout - Módulo de Adultos Voluntarios</title>
+    <!-- Tailwind CSS (CDN para desarrollo, reemplazar en producción) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts: Poppins -->
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <!-- Supabase JS -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <!-- EmailJS SDK -->
+    
+    <style>
+        /* ========== ESTILOS UNIFICADOS ERP ========== */
+        :root {
+            --azul-profundo: #1E3A8A;
+            --azul-secundario: #3B82F6;
+            --color-bandada: #4169E1;
+            --color-manada: #F59E0B;
+            --color-tropa: #10B981;
+            --color-compania: #0D9488;
+            --color-pioneros: #8B5CF6;
+            --color-caminantes: #EF4444;
+            --gris-fondo: #F8FAFC;
+            --border-color: #E2E8F0;
+            --texto-claro: #64748B;
+            --texto-oscuro: #1E293B;
+            --success: #10B981;
+            --warning: #F59E0B;
+            --danger: #EF4444;
+            --info: #3B82F6;
+        }
+        
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Poppins', sans-serif; }
+        body { background: var(--gris-fondo); padding: 20px; overflow-x: hidden; color: var(--texto-oscuro); }
+        
+        .btn-modern { 
+            padding: 10px 20px; 
+            border-radius: 10px; 
+            font-weight: 700; 
+            cursor: pointer; 
+            transition: all 0.2s; 
+            display: inline-flex; 
+            align-items: center; 
+            gap: 8px; 
+            justify-content: center; 
+            outline: none; 
+            border: 1px solid rgba(255,255,255,0.3); 
+            background: rgba(255,255,255,0.1); 
+            color: white; 
+            backdrop-filter: blur(4px); 
+        }
+        .btn-modern:hover { background: rgba(255,255,255,0.2); transform: translateY(-1px); border-color: white; }
+
+        .programa-layout { display: flex; gap: 25px; height: calc(100vh - 100px); transition: all 0.3s; }
+        
+        .adult-list-panel { width: 360px; background: white; border-radius: 16px; border: 1px solid var(--border-color); display: flex; flex-direction: column; overflow: hidden; flex-shrink: 0; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); }
+        .adult-list-header { padding: 25px 20px; background: white; border-bottom: 1px solid var(--border-color); z-index: 10; }
+        .adult-list-header h3 { font-size: 1.15rem; margin-bottom: 15px; font-weight: 800; color: var(--azul-profundo); }
+        .search-wrapper { position: relative; margin-bottom: 15px; }
+        .search-wrapper i { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: var(--texto-claro); }
+        .search-wrapper input { padding-left: 40px; width: 100%; background: #F1F5F9; border: 2px solid transparent; border-radius: 10px; padding-top: 10px; padding-bottom: 10px; outline: none; transition: all 0.3s; font-size: 0.9rem; font-weight: 500; }
+        .search-wrapper input:focus { border-color: var(--azul-secundario); background: white; box-shadow: 0 0 0 3px rgba(59,130,246,0.1); }
+        .adult-filter-tags { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 5px; }
+        .adult-tag { font-size: 0.7rem; padding: 6px 10px; border-radius: 20px; cursor: pointer; font-weight: 700; color: white; opacity: 0.5; transition: all 0.2s; text-transform: uppercase; letter-spacing: 0.05em; }
+        .adult-tag:hover { opacity: 0.8; transform: translateY(-1px); }
+        .adult-tag.active { opacity: 1; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        .adult-list { flex: 1; overflow-y: auto; list-style: none; padding: 0; margin: 0; background: #FAFAFA; }
+        .adult-list-item { padding: 15px 20px; border-bottom: 1px solid var(--border-color); display: flex; align-items: center; gap: 15px; cursor: pointer; transition: all 0.2s; background: white; }
+        .adult-list-item:hover { background: #F8FAFC; padding-left: 25px; border-left: 4px solid var(--border-color); }
+        .adult-list-item.active { background: #EFF6FF; border-left: 4px solid var(--azul-profundo); padding-left: 20px; }
+        .adult-list-pic { width: 48px; height: 48px; border-radius: 50%; object-fit: cover; border: 2px solid white; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        .adult-list-info h4 { margin: 0 0 3px 0; font-size: 0.95rem; font-weight: 700; color: var(--texto-oscuro); }
+        .adult-list-info p { margin: 0; font-size: 0.75rem; color: var(--texto-claro); font-weight: 500; }
+        
+        .adult-profile-panel { flex: 1; background: white; border-radius: 16px; border: 1px solid var(--border-color); overflow-y: auto; display: flex; flex-direction: column; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); }
+        .profile-header-card { display: flex; gap: 30px; align-items: center; padding: 40px; position: relative; overflow: hidden; flex-shrink: 0; }
+        .profile-pic-large { width: 130px; height: 130px; border-radius: 50%; border: 4px solid rgba(255,255,255,0.9); object-fit: cover; background: white; z-index: 1; box-shadow: 0 10px 25px -5px rgba(0,0,0,0.3); }
+        .profile-info { z-index: 1; flex: 1; }
+        .profile-info h2 { margin: 0 0 8px; font-size: 2.4rem; font-weight: 800; color: white; text-shadow: 0 2px 4px rgba(0,0,0,0.3); letter-spacing: -0.02em; line-height: 1.1; }
+        .badge-rol { display: inline-flex; align-items: center; gap: 8px; background: rgba(255,255,255,0.95); padding: 6px 16px; border-radius: 20px; font-size: 0.85rem; margin-bottom: 15px; font-weight: 700; color: var(--texto-oscuro); box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        .profile-info-grid { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 15px; }
+        .profile-info-grid p { margin: 0; font-size: 0.85rem; text-shadow: 0 1px 2px rgba(0,0,0,0.3); display: flex; align-items: center; gap: 6px; font-weight: 500; color: white; background: rgba(0,0,0,0.2); padding: 6px 12px; border-radius: 8px; backdrop-filter: blur(4px); }
+        .profile-actions { z-index: 1; display: flex; flex-direction: column; gap: 10px; }
+        
+        .btn{padding:8px 16px;border-radius:8px;font-weight:600;cursor:pointer;transition:all 0.2s;border:none;font-size:0.85rem;display:inline-flex;align-items:center;gap:8px;justify-content:center;outline:none;}
+        .btn-warning{background:#f59e0b;color:white;box-shadow:0 4px 6px rgba(245,158,11,0.2);} .btn-info{background:#3b82f6;color:white;box-shadow:0 4px 6px rgba(59,130,246,0.2);} .btn-success{background:#10b981;color:white;box-shadow:0 4px 6px rgba(16,185,129,0.2);} .btn-danger{background:#ef4444;color:white;box-shadow:0 4px 6px rgba(239,68,68,0.2);} .btn-primary{background:var(--azul-profundo);color:white;box-shadow:0 4px 6px rgba(30,58,138,0.2);} .btn-outline{background:white;border:2px solid var(--border-color);color:var(--texto-oscuro);} .btn-outline:hover{background:var(--gris-fondo);border-color:#cbd5e0;}
+        .btn-sm{padding:6px 12px;font-size:0.8rem;border-radius:6px;} .btn:hover{filter:brightness(1.05);transform:translateY(-2px);box-shadow:0 6px 12px rgba(0,0,0,0.15);} .btn:active{transform:translateY(0);}
+        
+        .profile-tabs { display: flex; background: white; border-bottom: 1px solid var(--border-color); padding: 0 30px; flex-shrink: 0; overflow-x: auto; }
+        .profile-tab { padding: 20px 25px; cursor: pointer; font-weight: 700; color: var(--texto-claro); border-bottom: 3px solid transparent; transition: all 0.3s; font-size: 0.9rem; display: flex; align-items: center; gap: 8px; white-space: nowrap; text-transform: uppercase; letter-spacing: 0.05em; }
+        .profile-tab:hover { color: var(--azul-profundo); background: var(--gris-fondo); }
+        .profile-tab.active { color: var(--azul-profundo); border-bottom-color: var(--azul-profundo); }
+        .profile-content-area { padding: 40px; flex: 1; background: var(--gris-fondo); }
+        .p-tab-pane { display: none; animation: fadeIn 0.4s ease; }
+        .p-tab-pane.active { display: block; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        
+        .section-title { font-size: 1.4rem; font-weight: 800; color: var(--texto-oscuro); margin-bottom: 25px; display: flex; align-items: center; gap: 10px; border-bottom: 2px solid var(--border-color); padding-bottom: 12px; }
+        
+        .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.75); z-index: 2000; justify-content: center; align-items: center; backdrop-filter: blur(6px); padding: 20px; }
+        .modal-overlay.active { display: flex; }
+        .modal-box { background: var(--gris-fondo); padding: 0; border-radius: 20px; width: 100%; max-width: 1400px; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5); animation: slideUp 0.4s cubic-bezier(0.16,1,0.3,1); max-height: 95vh; display: flex; flex-direction: column; overflow: hidden; }
+        @keyframes slideUp { from { transform: translateY(40px) scale(0.98); opacity: 0; } to { transform: translateY(0) scale(1); opacity: 1; } }
+        
+        .modal-header { padding: 25px 35px; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; background: white; z-index: 10; }
+        .modal-tabs-container { display: flex; border-bottom: 1px solid var(--border-color); background: white; padding: 0 35px; z-index: 10; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.02); }
+        .modal-body { padding: 35px; overflow-y: auto; flex: 1; }
+        .modal-footer { padding: 20px 35px; border-top: 1px solid var(--border-color); display: flex; justify-content: flex-end; gap: 15px; background: white; z-index: 10; }
+        
+        .modal-edit-section { margin-bottom: 30px; border: 1px solid var(--border-color); border-radius: 16px; overflow: hidden; background: white; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+        .modal-edit-section legend { font-weight: 800; background: white; padding: 15px 25px; width: 100%; margin: 0; border-bottom: 1px solid var(--border-color); font-size: 1.1rem; color: var(--azul-profundo); display: flex; align-items: center; gap: 10px; }
+        .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; padding: 25px; }
+        .form-item { display: flex; flex-direction: column; }
+        .form-item label { font-weight: 700; margin-bottom: 8px; font-size: 0.8rem; color: var(--texto-claro); text-transform: uppercase; letter-spacing: 0.05em; }
+        .form-item input, .form-item select, .form-item textarea { width: 100%; padding: 12px 15px; border: 1px solid var(--border-color); border-radius: 10px; outline: none; transition: all 0.2s; font-size: 0.95rem; background: var(--gris-fondo); color: var(--texto-oscuro); }
+        .form-item input:focus, .form-item select:focus, .form-item textarea:focus { border-color: var(--azul-secundario); background: white; box-shadow: 0 0 0 4px rgba(59,130,246,0.1); }
+        .full-width { grid-column: 1 / -1; }
+
+        .table-wrapper { overflow-x: auto; border: 1px solid var(--border-color); border-radius: 12px; background: white; margin-top: 10px; }
+        .ppf-table { width: 100%; text-align: left; border-collapse: collapse; font-size: 0.85rem; }
+        .ppf-table th { background: #F1F5F9; padding: 15px 12px; border-bottom: 2px solid var(--border-color); color: var(--texto-claro); font-weight: 800; text-transform: uppercase; font-size: 0.7rem; letter-spacing: 0.05em; }
+        .ppf-table td { padding: 12px; border-bottom: 1px solid #F1F5F9; vertical-align: middle; }
+        .ppf-table tr:last-child td { border-bottom: none; }
+        .ppf-table tr:hover td { background: #F8FAFC; }
+        
+        .modal-table-input { width: 100%; padding: 10px 12px; border: 1px solid transparent; border-radius: 8px; background-color: var(--gris-fondo); font-size: 0.85rem; transition: all 0.2s; resize: vertical; color: var(--texto-oscuro); }
+        .modal-table-input:focus { border-color: var(--azul-secundario); background: white; box-shadow: 0 0 0 3px rgba(59,130,246,0.1); outline: none; }
+        .modal-table-input:hover:not(:focus) { border-color: var(--border-color); }
+        
+        .sub-tab-pane { display: none; animation: fadeIn 0.3s ease; }
+        .sub-tab-pane.active { display: block; }
+        .edit-tab-pane { display: none; animation: fadeIn 0.3s ease; }
+        .edit-tab-pane.active { display: block; }
+        
+        /* Stepper & Tooltip */
+        .progression-stepper { display: flex; justify-content: space-between; margin: 15px auto 30px; position: relative; padding: 30px 40px; background: white; border: 1px solid var(--border-color); border-radius: 20px; width: 100%; max-width: 950px; }
+        .progression-stepper::before { content: ''; position: absolute; top: 55px; left: 5%; right: 5%; height: 6px; background: #F1F5F9; z-index: 0; border-radius: 3px; }
+        .p-step { flex: 1; text-align: center; position: relative; z-index: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+        .p-step-icon { width: 56px; height: 56px; border-radius: 50%; background: white; margin: 0 auto 12px; display: flex; align-items: center; justify-content: center; font-size: 1.25rem; color: #94A3B8; border: 4px solid #E2E8F0; transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1); box-shadow: 0 4px 6px rgba(0,0,0,0.05); position: relative; cursor: help; z-index: 20; }
+        .p-tooltip { visibility: hidden; opacity: 0; position: absolute; bottom: 120%; left: 50%; transform: translateX(-50%); background: #1E293B; color: white; padding: 12px 16px; border-radius: 8px; font-size: 0.75rem; width: 260px; text-align: center; z-index: 100; transition: all 0.3s; box-shadow: 0 10px 25px rgba(0,0,0,0.4); line-height: 1.4; font-weight: 500; pointer-events: none; border: 1px solid #334155; }
+        .p-tooltip::after { content: ''; position: absolute; top: 100%; left: 50%; margin-left: -6px; border-width: 6px; border-style: solid; border-color: #1E293B transparent transparent transparent; }
+        .p-step-icon:hover .p-tooltip { visibility: visible; opacity: 1; bottom: 130%; }
+        
+        .p-step.completed .p-step-icon { border-color: #059669; }
+        .p-step.completed .p-step-label { color: #059669; }
+        .p-step.active .p-step-icon { transform: scale(1.2); border-color: #D97706; box-shadow: 0 10px 15px -3px rgba(245,158,11,0.4); }
+        .p-step-label { font-size: 0.7rem; font-weight: 800; color: #64748B; text-transform: uppercase; letter-spacing: 0.05em; transition: 0.3s; }
+        .p-step.active .p-step-label { color: var(--texto-oscuro); transform: scale(1.05); margin-top: 5px;}
+
+        .toast-container { position: fixed; bottom: 25px; right: 25px; z-index: 3000; display: flex; flex-direction: column; gap: 12px; }
+        .toast { background: white; border-left: 5px solid var(--success); padding: 16px 24px; border-radius: 12px; box-shadow: 0 10px 25px -5px rgba(0,0,0,0.15); display: flex; align-items: center; gap: 15px; animation: slideInRight 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards; font-size: 0.95rem; font-weight: 600; }
+        @keyframes slideInRight { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+        
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #CBD5E0; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94A3B8; }
+        
+        .interactive-link { transition: color 0.2s; display: inline-flex; align-items: center; gap: 6px; color: white; font-weight: 600; text-decoration: none; }
+        .interactive-link:hover { color: #A7F3D0 !important; text-decoration: underline; }
+        .link-dark { transition: color 0.2s; display: inline-flex; align-items: center; gap: 6px; color: #1E3A8A; font-weight: 600; text-decoration: none; }
+        .link-dark:hover { color: #10B981; text-decoration: underline; }
+        
+        .cert-card { display: flex; align-items: center; gap: 15px; padding: 15px 20px; border-radius: 20px; background: white; border: 1px solid var(--border-color); box-shadow: 0 1px 2px rgba(0,0,0,0.05); transition: all 0.2s; }
+        .cert-card:hover { transform: translateY(-2px); box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); }
+        .cert-icon { width: 48px; height: 48px; border-radius: 16px; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; background: #F1F5F9; color: var(--texto-claro); flex-shrink: 0; }
+        
+        @media print {
+            body { background: white; padding: 0; margin: 0; }
+            .programa-layout, .adult-list-panel, .profile-tabs, .profile-actions, .modal-overlay, .toast-container, .btn, .interactive-link, .link-dark { display: none !important; }
+            .adult-profile-panel { width: 100%; height: auto; overflow: visible; box-shadow: none; border: none; }
+            .profile-header-card { background: white !important; color: black !important; padding: 20px; }
+            .profile-info h2 { color: black !important; text-shadow: none; }
+            .profile-info-grid p { color: black !important; background: #f1f5f9 !important; text-shadow: none; }
+            .badge-rol { background: #f1f5f9 !important; color: black !important; border: 1px solid #ccc; }
+            .profile-content-area { padding: 20px; }
+            .cert-card { border: 1px solid #ddd; }
+            .ppf-table th { background: #f1f5f9; }
+            .progression-stepper { display: none; }
+            .profile-tab { display: none; }
+        }
+    </style>
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#0E2586">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="ERP Scout">
+</head>
+<body>
+
+    <div style="background: linear-gradient(135deg, var(--azul-profundo) 0%, #172554 100%); color: white; padding: 20px 30px; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 15px; margin-bottom: 25px; border-radius: 16px; box-shadow: 0 10px 25px -5px rgba(30, 58, 138, 0.3);">
+        <div style="display: flex; align-items: center; gap: 20px;">
+            <div class="bg-white/10 text-white w-14 h-14 rounded-xl flex items-center justify-center text-3xl shadow-inner border border-white/20 backdrop-blur-sm">
+                <i class="fas fa-user-tie"></i>
+            </div>
+            <div>
+                <h1 class="text-2xl font-extrabold leading-tight tracking-tight">Gestión de Adultos Voluntarios</h1>
+                <p class="text-xs font-semibold text-blue-200 uppercase tracking-widest mt-1">Control Institucional, Formación y Desempeño</p>
+            </div>
+        </div>
+        <div class="flex gap-3">
+            <button class="btn-modern bg-emerald-600/20 hover:bg-emerald-600/40 border-emerald-400/30 text-emerald-50 shadow-sm" onclick="window.mostrarNotificacion('info', 'Módulo de inscripción externa activo en la web pública.')">
+                <i class="fas fa-user-plus"></i> Nuevo Ingreso
+            </button>
+        </div>
+    </div>
+
+    <div class="programa-layout">
+        <div class="adult-list-panel">
+            <div class="adult-list-header">
+                <h3><i class="fas fa-address-book mr-2"></i> Padrón de Dirigentes</h3>
+                <div class="search-wrapper">
+                    <i class="fas fa-search"></i>
+                    <input type="text" id="search-adult" placeholder="Buscar dirigente o unidad..." onkeyup="window.filterAdultList()">
+                </div>
+                <div class="adult-filter-tags" id="filter-tags">
+                    <span class="adult-tag active" style="background: var(--texto-oscuro);" onclick="window.filterByFormacion('Todos', this)">Todos</span>
+                    <span class="adult-tag" style="background: #3b82f6;" onclick="window.filterByFormacion('Básico', this)">Básico</span>
+                    <span class="adult-tag" style="background: #8b5cf6;" onclick="window.filterByFormacion('Medio', this)">Medio</span>
+                    <span class="adult-tag" style="background: #10b981;" onclick="window.filterByFormacion('Avanzado', this)">Avanzado</span>
+                    <span class="adult-tag" style="background: #f59e0b;" onclick="window.filterByFormacion('IM3', this)">IM3</span>
+                    <span class="adult-tag" style="background: #ef4444;" onclick="window.filterByFormacion('IM4', this)">IM4</span>
+                </div>
+            </div>
+            <ul class="adult-list" id="adult-ul-list"></ul>
+        </div>
+
+        <div class="adult-profile-panel" id="adult-profile-view">
+            <div style="display:flex; height:100%; justify-content:center; align-items:center; flex-direction:column; color:var(--texto-claro); background:white;">
+                <div class="bg-slate-50 p-12 rounded-full mb-8 border-4 border-dashed border-slate-200 transition-all hover:scale-105 hover:bg-blue-50 hover:border-blue-200 hover:text-blue-500">
+                    <i class="fas fa-id-badge text-7xl text-slate-300"></i>
+                </div>
+                <h2 class="text-2xl font-extrabold text-slate-800 mb-3">Seleccione un Expediente</h2>
+                <p class="text-center text-sm font-medium text-slate-500 max-w-md leading-relaxed">Consulte el Plan Personal de Formación (PPF), Acuerdos Oficiales, Gestión del Desempeño, VCM y Ficha Médica del dirigente.</p>
+            </div>
+        </div>
+    </div>
+
+    <div id="modal-editar-adulto" class="modal-overlay">
+        <div class="modal-box">
+            <div class="modal-header">
+                <div class="flex items-center gap-4">
+                    <div class="w-12 h-12 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 text-xl"><i class="fas fa-user-edit"></i></div>
+                    <div>
+                        <h3 style="margin:0; padding:0; border:none; font-size:1.5rem; font-weight:800; color:var(--texto-oscuro);">Edición Integral</h3>
+                        <p class="text-xs text-slate-500 mt-1 font-semibold uppercase tracking-wide">Actualización de Expediente y PPF</p>
+                    </div>
+                </div>
+                <button onclick="window.cerrarModalEditarAdulto()" class="text-slate-400 hover:text-red-500 hover:bg-red-50 text-xl outline-none transition w-10 h-10 rounded-full flex justify-center items-center"><i class="fas fa-times"></i></button>
+            </div>
+            
+            <div class="modal-tabs-container">
+                <button class="px-6 py-4 font-bold text-sm text-indigo-600 border-b-4 border-indigo-600 outline-none edit-tab-btn transition uppercase tracking-wide bg-white" onclick="window.switchModalTab('edit-civil', this)"><i class="fas fa-address-card mr-2"></i> Civil y Médico</button>
+                <button class="px-6 py-4 font-bold text-sm text-slate-500 hover:text-indigo-600 outline-none edit-tab-btn transition uppercase tracking-wide bg-transparent" onclick="window.switchModalTab('edit-ppf', this)"><i class="fas fa-tasks mr-2"></i> Formación PPF</button>
+                <button class="px-6 py-4 font-bold text-sm text-slate-500 hover:text-indigo-600 outline-none edit-tab-btn transition uppercase tracking-wide bg-transparent" onclick="window.switchModalTab('edit-desempeno', this)"><i class="fas fa-chart-line mr-2"></i> Gestión Desempeño</button>
+            </div>
+
+            <div class="modal-body" id="modal-edit-adult-content"></div>
+            
+            <div class="modal-footer">
+                <button onclick="window.cerrarModalEditarAdulto()" class="btn btn-outline py-2.5 px-6 bg-white font-bold">Descartar</button>
+                <button onclick="window.guardarEdicionAdulto(event)" class="btn btn-success py-2.5 px-8 shadow-lg text-base"><i class="fas fa-cloud-upload-alt mr-2"></i> Guardar Cambios en BD</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="toast-container" class="toast-container"></div>
+
+    <script>
+        // ================= DECLARACIÓN GLOBAL MATRIZ COMPETENCIAS AGSCh =================
+        window.diccionarioCompetencias = {
+            "Adaptabilidad al cambio": {
+                "Nivel 1 (Comprensión y Aplicación)": [
+                    "Comprende las nuevas necesidades, otros puntos de vista y formas de hacer las cosas.",
+                    "Genera respuestas nuevas o adapta soluciones conocidas, a nuevas situaciones.",
+                    "Piensa y actúa con rapidez de reacción para amoldarse a los cambios.",
+                    "Apoya y propone activamente los procesos de cambio, la integración de ideas y criterios diversos en búsqueda de objetivos de mejora.",
+                    "Reconoce y responde rápidamente a nuevas oportunidades y riesgos imprevistos."
+                ],
+                "Nivel 2 (Análisis y Resultado)": [
+                    "Brinda soluciones de manera flexible a normas o procedimientos cuando las circunstancias lo exigen, sin perder el propósito de la norma o el procedimiento.",
+                    "Toma decisiones autónomamente como respuesta a situaciones cambiantes, manteniéndose dentro de los objetivos generales o estrategia.",
+                    "Es creativa/o e innovador/a en el desempeño de sus funciones, promoviendo cambios de procesos, servicios o relaciones, de acuerdo con lo que requieran las nuevas situaciones, guiando al equipo hacia la adaptación.",
+                    "Anticipa cambios y ajusta actividades, en consecuencia.",
+                    "Adopta cambios de manera oportuna y en lo pertinente, realiza los ajustes a las nuevas tendencias, adaptándose con versatilidad a distintos contextos, situaciones, medios y personas."
+                ],
+                "Nivel 3 (Evaluación y Diseño)": [
+                    "Reflexiona sobre las actividades realizadas, identificando cómo se podrían mejorar.",
+                    "Anticipa riesgos emergentes y aprovecha oportunidades para satisfacer las necesidades futuras.",
+                    "Modifica estrategias y objetivos de la Asociación, con celeridad, ante cambios externos, o nuevas necesidades, creando nuevos modelos y métodos organizacionales en respuesta a nuevos contextos, condiciones y situaciones.",
+                    "Promueve la experimentación para generar procesos de innovación.",
+                    "Promueve la adaptabilidad al cambio entre sus colaboradores y les brinda apoyo para que a su vez la desarrollen en sus respectivos equipos de trabajo."
+                ]
+            },
+            "Aprendizaje y Desarrollo personal": {
+                "Nivel 1 (Comprensión y Aplicación)": [
+                    "Busca nuevos aprendizajes (enfoques, herramientas, métodos y tecnologías) con el fin de permanecer actualizada/o en los conocimientos técnicos y practices requeridas por su área de desempeño.",
+                    "Formula y desarrolla su Plan Personal de Formación (Formación Básica o Formación Continua), comprendiendo las sugerencias y críticas constructivas por parte de quienes apoyan este proceso.",
+                    "Asiste por initiative propia a seminarios o talleres de actualización como oportunidades de crecimiento personal.",
+                    "Aplica su conocimiento o habilidades adquiridas en los procesos o actividades en las cuales se desenvuelve, agregando valor a los resultados del área o estructura.",
+                    "Dedica cierto tiempo mensual a la recopilación de información, lectura de artículos o libros relacionados con su especialidad, rol o función, a fin de reforzar las fortalezas y mejorar las debilidades."
+                ],
+                "Nivel 2 (Análisis y Resultado)": [
+                    "Actúa como agente de cambio y propagador de nuevas ideas, metodologías y tecnologías.",
+                    "Aplica en su trabajo nuevos aprendizajes que enriquecen su quehacer y comparte este aprendizaje con las y los demás.",
+                    "Motiva a otras personas a participar en procesos de mejora continua y los ayuda a enfrentar nuevos retos de desarrollo personal.",
+                    "Busca información útil, convirtiendo su experiencia y conocimientos en documentos, artículos e informes para compartir así este saber con los demás.",
+                    "Ofrece orientación y retroalimentación a los demás para ayudarles en el desempeño de sus funciones y la gestión de sus talentos."
+                ],
+                "Nivel 3 (Evaluación y Diseño)": [
+                    "Reflexiona sobre sus propios resultados y establece nuevo plan de acción para la mejora o emprender nuevos desafíos.",
+                    "Reflexiona acerca de sus propias experiencias como lecciones aprendidas que comparte abiertamente con otras personas.",
+                    "Integra y sistematiza información de diversas fuentes, incluyendo expertos, para hacerla comprensible a los demás.",
+                    "Desarrolla un ambiente que nutre el pensamiento creativo, el cuestionamiento y la experimentación, actualizándose en las últimas metodologías y prácticas de su especialidad, estableciendo nuevas metas de aprendizaje.",
+                    "No sólo es experta/o en su área, sino que tiene una importante formación integral que le permite relacionar y aplicar sus conocimientos a las necesidades de la Asociación en general."
+                ]
+            },
+            "Compromiso": {
+                "Nivel 1 (Comprensión y Aplicación)": [
+                    "Comprende cómo su cargo o función impacta en el logro de la Misión del Movimiento, siendo capaz de responsabilizarse con las tareas asumidas y lineamientos fijados.",
+                    "Siente como propios los principios y valores de la institución, demostrando respeto y actuando en conformidad a ellos, siendo referente para las demás personas.",
+                    "Dedica tiempo en la preparación y sustentación de propuestas en los equipos de trabajo en los que participa.",
+                    "Demuestra iniciativa y está dispuesta/o a desarrollar dichas ideas.",
+                    "Cumple y exige el cumplimiento de los procesos y normatividad en general."
+                ],
+                "Nivel 2 (Análisis y Resultado)": [
+                    "Comparte al exterior del Movimiento, la Asociación o estructura en la que se desenvuelve, el significado del Propósito, los Principios, los Valores y la Misión del Movimiento.",
+                    "Motiva y asesora a las demás personas del equipo a obrar de manera respetuosa, amable y responsable.",
+                    "Asesora y guía a otros en la implementación del Propósito, los Principios, los Valores y la Misión del Movimiento.",
+                    "Demuestra iniciativa en los momentos de crisis o situaciones adversas, siendo capaz de promover dichas ideas entre las demás personas, generating motivación en los demás.",
+                    "Da seguimiento a sus compromisos y reconoce las acciones que debe implementar para su cumplimiento."
+                ],
+                "Nivel 3 (Evaluación y Diseño)": [
+                    "Participa en la definición de aspectos claves para Asociación, comprometiendo esfuerzos y dando cumplimiento personal y profesional para el logro de los objetivos, implementando acciones de mejora.",
+                    "Dedica un porcentaje de su tiempo a la revisión de los planes de trabajo y objetivos, y su contribución en ellos.",
+                    "Impulsa acciones que comprometan a más personas a lograr objetivos comunes, inspirándolas a ser referentes, valorando el esfuerzo de las y los demás, aportando a la motivación y el compromiso del grupo al que pertenece.",
+                    "Genera espacios que fomenten la iniciativa y responsabilidad en momentos críticos.",
+                    "Es disciplinada/o y considerada/o en cuanto al uso de los recursos materiales y del tiempo que las y los voluntarios invierten en la Organización."
+                ]
+            },
+            "Conciencia organizacional": {
+                "Nivel 1 (Comprensión y Aplicación)": [
+                    "Entiende como su desempeño influye e impacta la forma en la que funciona la estructura o área en la cual se desempeña y actúa de acuerdo a los requerimientos establecidos para su cargo.",
+                    "Es respetuosa/o la cultura organizacional y mantiene la imagen corporativa, siendo fiel testimonio de los valores de la Institución.",
+                    "Entiende como el medio y las circunstancias externas influyen e impactan en el desempeño de su cargo o función.",
+                    "Conoce el sistema de gobernanza de la institución y participa de estas según el nivel de desempeño de su cargo o función.",
+                    "Utiliza los canales adecuados de comunicación interna en la Asociación."
+                ],
+                "Nivel 2 (Análisis y Resultado)": [
+                    "Analiza con mayor profundidad el funcionamiento de la institución e implementa procedimientos organizacionales en la solución de problemas.",
+                    "Brinda orientación clara sobre las políticas y procedimientos de la Asociación.",
+                    "Demuestra entendimiento y aplicación de los principios de gobernanza dentro de la Asociación, participando activamente de las diferentes instancias.",
+                    "Promueve permanentemente las prácticas democráticas y el respeto a las diferencias, promoviendo la cooperación, la paz y el entendimiento.",
+                    "Construye redes de personas clave dentro y fuera de la estructura o área, a fin de que puedan aportarle información valiosa para la Organización."
+                ],
+                "Nivel 3 (Evaluación y Diseño)": [
+                    "Reflexiona sobre el impacto de la sociedad civil, el gobierno, la empresa privada, las ONG y otros grupos de interés externos e identifica con facilidad aquellas personas que toman decisiones, creando y manteniendo una red de contactos, para el cumplimiento de la Misión de la Asociación.",
+                    "Apoya e instrumenta las decisiones organizacionales, creando estrategias y/o herramientas a fin de comprometer el logro de los objetivos y la búsqueda constante de la calidad y la eficiencia.",
+                    "Impulsa a que los diferentes niveles de la Asociación participen e implementen las decisiones tomadas por la Asamblea Nacional, las Conferencias Regionales y Mundiales Guías y Scouts, según sea el caso.",
+                    "Verifica que los aspectos claves de los procesos a su cargo sean acordes a los procedimientos prescritos, referente al propio actuar y a las acciones ejercida en el área o equipo el cual lidera o integra.",
+                    "Promueve el fortalecimiento de la Asociación en relación a la dimensión internacional del Movimiento."
+                ]
+            },
+            "Cuidado de las personas": {
+                "Nivel 1 (Comprensión y Aplicación)": [
+                    "Presenta una adecuada estabilidad emocional, actuando de manera regulada frente a los demás, permitiéndole relacionarse apropiadamente con otras personas, en especial con niñas, niños y jóvenes.",
+                    "Tiene conocimientos de la responsabilidad que conlleva su rol o cargo en la relación directa con niñas, niños y jóvenes, aplicando dichos conocimientos en su entorno.",
+                    "Muestra un adecuado autocuidado, dando testimonio propositivo y motivador a las demás personas en especial a niñas, niños y jóvenes, transmitiendo a estos el respeto y cuidado de sí mismas/os.",
+                    "Demuestra interés por el bienestar físico, psicológico y moral de las niñas, niños y jóvenes, permitiéndole contribuir al desarrollo integral de estos.",
+                    "Prevé situaciones de peligro, con el fin de evitar, minimizar o contralar estos mismos. Actúa de manera oportuna ante condiciones o acciones riesgosas, procurando el cuidado de sí misma/o y de las demás personas en especial de niñas, niños y jóvenes."
+                ],
+                "Nivel 2 (Análisis y Resultado)": [
+                    "Orienta a otras personas adultas sobre la importancia del cuidado y respeto hacia las demás personas, en especial en la protección de niñas, niños y jóvenes, como garantes de derecho. Promoviendo las políticas y material existente en la Asociación.",
+                    "Propicia y/o potencia instancias formativas sobre el cuidado, protección y responsabilidad de NNJ, para todas aquellas personas que tienen relación directa o indirectamente con su cargo o función.",
+                    "Gestiona iniciativas que aportan al buen trato, espacios seguros y de confianza entre las personas.",
+                    "Promueve acciones de promoción de la salud, bienestar y cuidado personal, con el fin de impactar en otras personas, tanto de NNJ como de personas adultas, sobre la importancia de mantener una adecuada calidad de vida.",
+                    "Asesora en acciones preventivas y correctivas con el fin de evitar situaciones de riesgo o peligro."
+                ],
+                "Nivel 3 (Evaluación y Diseño)": [
+                    "Genera alianzas con las distintas instituciones u organismos, para el desarrollo de planes de promoción de factores protectores y mitigación de factores de riesgo para la niñez y la juventud.",
+                    "Establece y/o valida protocolos y procedimientos oficiales para entornos protectores y seguros de NNJ y personas adultas, en las distintas instancias de participación, donde se fomente espacios de buen trato y libres de cualquier forma de violencia o abuso.",
+                    "Instrumenta decisiones organizacionales que apuntan hacia el desarrollo integral de NNJ, su bienestar físico, psicológico y moral. Evaluando posteriormente instancias de mejora de procesos y procedimientos.",
+                    "Confecciona, sistematiza e impulsa, en los diferentes niveles de la Asociación, buenas prácticas que vayan en beneficio del cuidado de las personas.",
+                    "Reflexiona y verifica que el propio actuar y las acciones ejercidas en el área o equipo el cual lidera o integra sean acordes a las políticas y protocolos prescritos referente al cuidado de las personas y protección de NNJ."
+                ]
+            },
+            "Habilidades interpersonales": {
+                "Nivel 1 (Comprensión y Aplicación)": [
+                    "Escucha y dialoga con todas las personas, mediante un lenguaje corporal y tono de voz adecuado, manteniendo un trato digno, respetuoso y tolerante con las y los demás en todas las situaciones.",
+                    "Guarda confidencialidad de las conversaciones privadas y mantiene la objetividad, contrarresta argumentos prejuiciosos o superficiales con solvencia.",
+                    "Expone sus opiniones, sugerencias y brinda retroalimentación con claridad cuando corresponde, en reuniones o momentos en que se le solicita, transmitiendo sus ideas de manera precisa y concisa tanto por escrito como verbalmente.",
+                    "Con regularidad es autocrítica/o de su propio rol cuando se generan malos entendidos o desacuerdos. aceptando el no tener razón, admitiendo los propios errores.",
+                    "Realiza preguntas y trata de decir con sus propias palabras lo que entiende sobre lo que las personas expresan, a fin de verificar si realmente está comprendiendo la situación de la otra persona."
+                ],
+                "Nivel 2 (Análisis y Resultado)": [
+                    "Es coherente entre lo que dice u ofrece y lo que realmente realiza y aporta.",
+                    "Facilita una atmósfera de comunicación sincera, animando la discusión y debate abierto, involucrándose proactivamente en mediar malentendidos y discusiones entre pares, a fin de facilitar el contacto y el intercambio de ideas.",
+                    "Ajusta su manera de expresarse teniendo en cuenta las particularidades de sus oyentes. Escucha puntos de vista de las y los demás, modificando su propia perspectiva, esmerándose por construir relaciones cálidas, duraderas basadas en una conducta honesta y veraz.",
+                    "Entrega mensajes claros para el logro de la tarea y el desarrollo del equipo, brindando una apropiada retroalimentación para orientar el desempeño de este.",
+                    "Muestra disposición a escuchar las necesidades e intereses de las y los demás, poniéndose en el lugar de la otra persona para entender sus emociones o pensamientos."
+                ],
+                "Nivel 3 (Evaluación y Diseño)": [
+                    "Evalúa la dinámica del equipo y el diseño efectivo de reuniones, replanteándose y cambiando su forma de comunicar de ser necesario, a fin de influenciar positivamente en las demás personas para una adecuada toma de decisiones, solución de problemas y planteamiento de nuevas estrategias.",
+                    "Permanentemente busca mejores estrategias de negociación para producir resultados efectivos y cuidando las relaciones, buscando dentro de los argumentos que le son favorables, ventajas que beneficien a la contraparte para propiciar los acuerdos.",
+                    "Proyecta proactividad a la hora de brindar apoyo a las situaciones que requieren de esfuerzos integrados, buscando soluciones en conjunto y participando colaborativamente.",
+                    "Desafía los prejuicios y la intolerancia. Puede criticar ideas de manera respetuosa, pero no criticar a quienes las expresan.",
+                    "De manera sincera solicita retroalimentación a sus acciones, sin tomarse las situaciones o palabras de los otros de manera personal, reconociendo abiertamente sus equivocaciones."
+                ]
+            },
+            "Planeamiento estratégico": {
+                "Nivel 1 (Comprensión y Aplicación)": [
+                    "Comprende la diferencia y relación entre el plan Estratégico y el plan Operativo. Interpreta y cumple los lineamientos del plan estratégico del nivel al que pertenece (Grupo, Distrito, Zona, Nacional) y en los cuales se encuentra involucrada/o.",
+                    "Formula objetivos y programa las acciones a desarrollar, definiendo plazos, prioridades y utilizando los recursos disponibles con eficiencia, verificando el progreso de las tareas o asignaciones, a medida que se dan los avances.",
+                    "Sabe ejercer sobre otras personas adultas, un sentido de compromiso con respecto a los indicadores del plan estratégico y/o operativo del nivel al que pertenece.",
+                    "Formula y presenta informe de los resultados de su cargo o función, comunicándolas claramente sus conclusiones y las hace comprensibles a otras personas, incluyéndolas en el proceso de planificación."
+                ],
+                "Nivel 2 (Análisis y Resultado)": [
+                    "Propone planes operativos considerando los objetivos a largo plazo, la planificación de los niveles superiores, las opiniones de los demás miembros del equipo y las metas y planes de la Asociación.",
+                    "Documenta lo acordado sobre metas y objetivos, verificando lo que se ha encomendado o instruido sea realizado, distribuyendo la información entre todas las personas implicadas en el proyecto.",
+                    "Realiza seguimiento a los planes de manera metódica, sistemática y organizada, generating datos e información para la oportuna toma de decisiones.",
+                    "Comunica adecuadamente las políticas y sus cambios, identificando factores claves que se traducen en acciones concretas y planes a corto, mediano y largo plazo.",
+                    "Maneja el tiempo eficientemente, distribuyendo adecuadamente las tareas, personas y recursos técnicos, siendo capaz de participar paralelamente de diferentes proyectos."
+                ],
+                "Nivel 3 (Evaluación y Diseño)": [
+                    "Evalúa periódicamente sus resultados, en base a las metas y plazos fijados, considerando factores internos y externos críticos para el logro de sus planes y actividades, tomando medidas en correspondencia con lo hallado.",
+                    "Participa en el análisis de los entornos internos y externos de la Organización y considera cómo las políticas actuales pueden ser afectadas por ellos.",
+                    "Impulsa acciones de mejora a los planes estratégicos y/o operativos del nivel al que pertenece.",
+                    "Diseña o implementa un marco para la revisión de los lineamientos de acuerdo a los acontecimientos actuales y futuros, utilizando correctamente herramientas e instrumentos de planificación, para organizar el trabajo y hacer seguimiento.",
+                    "Dirige varios proyectos simultáneamente, los cuales apuntan al logro de objetivos estratégicos para la Asociación, manteniendo el control de ellos."
+                ]
+            },
+            "Trabajo en equipo": {
+                "Nivel 1 (Comprensión y Aplicación)": [
+                    "Asume el liderazgo voluntariamente al ser requerido, independientemente de su cargo o rol.",
+                    "Crea un ambiente de respeto, cooperación, motivación y participación entre las y los integrantes del equipo.",
+                    "Asigna el crédito merecido a las y los integrantes del equipo, valorando sus ideas y experiencias.",
+                    "Apoya a la integración de las nuevas personas adultas en el equipo, proporcionando la orientación e información necesaria.",
+                    "Se integra adecuadamente a la toma de decisiones grupales, siendo una persona tolerante, dispuesta a considerar otras perspectivas y aprender de las y los demás."
+                ],
+                "Nivel 2 (Análisis y Resultado)": [
+                    "Conoce las fortalezas y debilidades de las y los integrantes del equipo y promueve que cada cual realice aportes a los objetivos del nivel al que pertenece.",
+                    "Brindo y asegura el apoyo necesario para el desarrollo y éxito del equipo, implementando modalidades alternativas de trabajo cuando sean requeridas.",
+                    "Genera un clima de trabajo que promueve un ambiente de confianza, vínculos honestos y de hermandad, resolviendo los conflictos que puedan surgir en el equipo.",
+                    "Ayuda a las personas de su equipo a aprender a comunicarse e interactuar con otros equipos o grupos.",
+                    "Contribuye y anima al equipo en la construcción de una visión compartida."
+                ],
+                "Nivel 3 (Evaluación y Diseño)": [
+                    "Evalúa las debilidades y fortalezas del equipo y sus miembros para proponer acciones de mejora.",
+                    "Evalúa objetivamente su propia participación y contribución en los resultados del equipo.",
+                    "Propone y fomenta planes de mejora medibles en los que se involucren acciones de todas las personas del equipo.",
+                    "Observa patrones de interacción dentro del equipo y se anticipa a los conflictos para prevenirlos. En caso de ya existir, es capaz de plantear abiertamente los conflictos para optimizar la calidad de las decisiones y la efectividad del equipo.",
+                    "Apoya el desempeño de otras áreas y fomenta el intercambio de información y experiencias, expresando satisfacción personal por los éxitos de las y los demás, sin importar el área a la que pertenezcan."
+                ]
+            }
+        };
+
+        window.competenciasEspecificas = [
+            "Específica: Animación de actividades educativas",
+            "Específica: Aplicación del Método",
+            "Específica: Conocimiento de las características de NNJ",
+            "Específica: Conocimiento normativo",
+            "Específica: Conocimiento técnico",
+            "Específica: Espiritualidad",
+            "Específica: Expresión oral y escrita",
+            "Específica: Gestión del tiempo",
+            "Específica: Iniciativa",
+            "Específica: Integridad",
+            "Específica: Liderazgo",
+            "Específica: Manejo de herramientas y software contables",
+            "Específica: Manejo de números y cifras",
+            "Específica: Prolijidad",
+            "Específica: Uso de las TIC's",
+            "Específica: Vocación de servicio"
+        ];
+        
+        window.nivelesCompetencia = ["Nivel 1 (Comprensión y Aplicación)", "Nivel 2 (Análisis y Resultado)", "Nivel 3 (Evaluación y Diseño)"];
+        window.criteriosDesempenoFijos = ["Productividad", "Cumplimiento de Objetivos", "Eficiencia", "Disposición", "Código de Conducta"];
+        window.todasLasCompetencias = [...Object.keys(window.diccionarioCompetencias), ...window.competenciasEspecificas, ...window.criteriosDesempenoFijos];
+        window.criteriosDesempeno = [...window.criteriosDesempenoFijos, ...window.competenciasEspecificas, ...Object.keys(window.diccionarioCompetencias)];
+
+        window.insigniasRamas = {
+            'Bandada': 'https://i.imgur.com/1aGKetX.png', 'Pichón': 'https://i.imgur.com/FV5CyzO.png', 'Aprendiz': 'https://i.imgur.com/w25teqR.png', 'Viajera': 'https://i.imgur.com/a9xgrWU.png', 'Guía de Vuelo': 'https://i.imgur.com/XGGnl9N.png',
+            'Manada': 'https://i.imgur.com/0bZQNJs.png', 'Lobezno': 'https://i.imgur.com/lSrmFXz.png', 'Saltador': 'https://i.imgur.com/AXcwr5h.png', 'Diestro': 'https://i.imgur.com/VBD3nDy.png', 'Cazador': 'https://i.imgur.com/QrsX3NY.png',
+            'Compania': 'https://i.imgur.com/eoG0c2D.png', 'Compañía': 'https://i.imgur.com/eoG0c2D.png', 'Alba': 'https://i.imgur.com/CyEFpPL.png', 'Amanecer': 'https://i.imgur.com/JQqcy0X.png', 'Luz': 'https://i.imgur.com/9ZheqTf.png', 'Resplandor': 'https://i.imgur.com/vkJj0bK.png',
+            'Tropa': 'https://i.imgur.com/2M19fp0.png', 'Cernícalo': 'https://i.imgur.com/yJyps57.png', 'Halcón': 'https://i.imgur.com/AAZdzEG.png', 'Águila': 'https://i.imgur.com/j2OYdiD.png', 'Cóndor': 'https://i.imgur.com/GQNxp25.png',
+            'Avanzada': 'https://i.imgur.com/06YpoWy.png', 'Cruz del Sur': 'https://i.imgur.com/IStoscc.png', 'Sendero': 'https://i.imgur.com/VHZrlFN.png', 'Cumbre': 'https://i.imgur.com/3MeclHS.png',
+            'Clan': 'https://i.imgur.com/abtMi0i.png', 'Fuego': 'https://i.imgur.com/IEr3Kms.png', 'Antorcha': 'https://i.imgur.com/qTTibWH.png'
+        };
+
+        window.SUPABASE_URL = 'https://hyixmaxhoxvamoecuars.supabase.co';
+        window.SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imh5aXhtYXhob3h2YW1vZWN1YXJzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI3OTg1NDMsImV4cCI6MjA4ODM3NDU0M30.ZLeJIWdip2f00h4TqkZH7eqMX4wpwphaqkJpAa0N0X4';
+        window.supabaseClient = window.supabase ? window.supabase.createClient(window.SUPABASE_URL, window.SUPABASE_ANON_KEY) : supabase.createClient(window.SUPABASE_URL, window.SUPABASE_ANON_KEY);
+        window.padronAdultos = [];
+        window.activeFilter = 'Todos';
+        window.activeTab = 'p-formacion';
+        window.currentEditAdultoId = null;
+        const clsInp = "modal-table-input border border-gray-300 rounded focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none bg-white text-sm p-2 w-full";
+
+        window.escapeHtml = function(s) { return s?String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'):''; };
+        window.calcularEdad = function(f) { if(!f) return 0; const h=new Date(), n=new Date(f); let e=h.getFullYear()-n.getFullYear(); const m=h.getMonth()-n.getMonth(); if(m<0||(m===0&&h.getDate()<n.getDate())) e--; return e; };
+        window.formatWsp = function(phone) { if(!phone) return ''; let cleaned = phone.replace(/\D/g, ''); if(cleaned.startsWith('9') && cleaned.length === 8) cleaned = '9' + cleaned; if(cleaned.length === 9) cleaned = '56' + cleaned; return cleaned; };
+        window.mostrarNotificacion = function(t, m) { const c=document.getElementById('toast-container'); const x=document.createElement('div'); x.className='toast'; let col=t==='exito'?'#10b981':t==='info'?'#3b82f6':'#ef4444'; x.style.borderLeftColor=col; x.innerHTML=`<div class="bg-white rounded-full p-1.5 shadow-sm border"><i class="fas fa-check-circle" style="color:${col}; font-size:1.5rem;"></i></div><span style="flex:1;">${m}</span><button onclick="this.parentElement.remove()" style="background:none; border:none; cursor:pointer; color:#94a3b8; font-size:1.2rem;"><i class="fas fa-times"></i></button>`; c.appendChild(x); setTimeout(()=>x.remove(),5000); };
+        window.getCompetenciasOptions = function(selectedVal) { return `<option value="">Seleccionar Competencia...</option>` + window.todasLasCompetencias.map(c => `<option value="${window.escapeHtml(c)}" ${c===selectedVal?'selected':''}>${window.escapeHtml(c)}</option>`).join(''); };
+        window.getNivelesOptions = function(selectedVal) { return `<option value="">Seleccionar Nivel...</option>` + window.nivelesCompetencia.map(n => `<option value="${window.escapeHtml(n)}" ${n===selectedVal?'selected':''}>${window.escapeHtml(n)}</option>`).join(''); };
+        window.getComportamientosOptionsPre = function(compKey, niv, selectedVal) { let optionsHtml = '<option value="">Seleccionar Comportamiento Observable...</option>'; if (!compKey) return optionsHtml; if (window.diccionarioCompetencias[compKey]) { if (niv && window.diccionarioCompetencias[compKey][niv]) { const behaviors = window.diccionarioCompetencias[compKey][niv]; optionsHtml += behaviors.map(b => `<option value="${window.escapeHtml(b)}" ${b===selectedVal?'selected':''}>${window.escapeHtml(b)}</option>`).join(''); } else { optionsHtml = '<option value="">Seleccione el Nivel primero...</option>'; } } else { optionsHtml += `<option value="Comportamiento genérico" ${selectedVal==='Comportamiento genérico'?'selected':''}>Comportamiento genérico</option>`; if(selectedVal && selectedVal !== 'Comportamiento genérico') { optionsHtml += `<option value="${window.escapeHtml(selectedVal)}" selected>${window.escapeHtml(selectedVal)}</option>`; } } return optionsHtml; };
+        window.actualizarNivelesYComportamientos = function(element) { const tr = element.closest('tr'); if(!tr) return; const comp = element.value; const nivSelect = tr.querySelector('.c-niv, .r-niv, .s-niv, .ac-niv, .co-niv, .st-niv'); const behSelect = tr.querySelector('.beh-select'); if (nivSelect) { if (window.diccionarioCompetencias[comp]) { nivSelect.style.display = 'block'; } else { nivSelect.style.display = 'none'; nivSelect.value = ''; } window.actualizarComportamientos(nivSelect); } else if (behSelect) { behSelect.innerHTML = window.getComportamientosOptionsPre(comp, null, ''); } };
+        window.actualizarComportamientos = function(element) { const tr = element.closest('tr'); if(!tr) return; const compSelect = tr.querySelector('.c-comp, .r-comp, .s-comp, .ac-crit, .co-crit, .st-crit'); const nivSelect = tr.querySelector('.c-niv, .r-niv, .s-niv, .ac-niv, .co-niv, .st-niv'); const behSelect = tr.querySelector('.beh-select'); if(!compSelect || !behSelect) return; const comp = compSelect.value; const niv = (nivSelect && nivSelect.style.display !== 'none') ? nivSelect.value : null; behSelect.innerHTML = window.getComportamientosOptionsPre(comp, niv, ''); };
+        window.actualizarCampoAdulto = async function(id, field, value) { try { let payload = {}; payload[field] = value; const { error } = await window.supabaseClient.from('adultos_registros').update(payload).eq('id', id); if (error) throw error; const index = window.padronAdultos.findIndex(a => a.id === id); if (index !== -1) { window.padronAdultos[index][field] = value; window.renderAdultProfile(window.padronAdultos[index]); } window.mostrarNotificacion('exito', 'Dato actualizado correctamente.'); } catch (e) { console.error(e); window.mostrarNotificacion('error', 'Error al actualizar.'); } };
+
+        window.verAcuerdoOriginal = function(id) {
+            const adulto = window.padronAdultos.find(x => x.id === id);
+            if (!adulto || !adulto.compromisoOficial) return;
+            const comp = adulto.compromisoOficial;
+            let c = {};
+            try { c = typeof comp.compromisos === 'string' ? JSON.parse(comp.compromisos) : (comp.compromisos || {}); } catch(err) {}
+            const e = window.escapeHtml;
+            const w = window.open('', '_blank');
+
+            const doc = `
+            <!DOCTYPE html>
+            <html lang="es">
+            <head>
+                <meta charset="UTF-8">
+                <title>Compromiso Original Firmado - ${e(comp.nombre)}</title>
+                <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;800&display=swap" rel="stylesheet">
+                <style>
+                    body { font-family: 'Poppins', sans-serif; margin: 0; padding: 40px; color: #1e293b; background: #f8fafc; line-height: 1.6; }
+                    .container { max-width: 800px; margin: 0 auto; background: white; padding: 40px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); border-top: 8px solid #1e3a8a; }
+                    .header { text-align: center; margin-bottom: 30px; border-bottom: 2px solid #e2e8f0; padding-bottom: 20px; }
+                    .header-logo { max-width: 90px; height: auto; margin-bottom: 15px; }
+                    h1 { color: #1e3a8a; font-size: 24px; margin: 0 0 5px 0; font-weight: 800; text-transform: uppercase; }
+                    .subtitle { color: #64748b; font-size: 14px; margin: 0; }
+                    .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 30px; background: #f1f5f9; padding: 20px; border-radius: 8px; border: 1px solid #e2e8f0; }
+                    .info-item strong { display: block; font-size: 11px; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 3px; }
+                    .info-item span { font-weight: 600; font-size: 14px; color: #0f172a; }
+                    .compromiso-section { margin-bottom: 25px; }
+                    .section-title { color: #1e3a8a; font-size: 18px; border-bottom: 2px solid #e2e8f0; padding-bottom: 10px; margin-bottom: 20px; font-weight: 800; }
+                    .compromiso-item { margin-bottom: 20px; padding-left: 15px; border-left: 4px solid #3b82f6; }
+                    .compromiso-item h3 { margin: 0 0 8px 0; color: #1e3a8a; font-size: 13px; text-transform: uppercase; letter-spacing: 0.05em; }
+                    .compromiso-item p { margin: 0; font-size: 14px; background: #fafafa; padding: 12px; border-radius: 6px; border: 1px solid #e2e8f0; line-height: 1.5; color: #334155; }
+                    .firma-container { margin-top: 50px; text-align: center; border-top: 2px dashed #cbd5e1; padding-top: 40px; }
+                    .firma-img { max-width: 300px; max-height: 150px; border: 1px solid #cbd5e1; border-radius: 8px; padding: 10px; background: white; margin-bottom: 15px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+                    .firma-text { color: #1e3a8a; font-weight: 800; font-size: 16px; margin-bottom: 5px; }
+                    .timestamp { color: #64748b; font-size: 11px; margin-top: 10px; }
+                    .print-btn { display: block; margin: 40px auto 0; background: #1e3a8a; color: white; border: none; padding: 12px 24px; border-radius: 8px; cursor: pointer; font-size: 15px; font-weight: 600; font-family: 'Poppins', sans-serif; transition: background 0.2s; }
+                    .print-btn:hover { background: #1e40af; }
+                    @media print { body { padding: 0; background: white; } .container { box-shadow: none; border: none; padding: 0; } .print-btn { display: none; } }
+                </style>
+                <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#0E2586">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="ERP Scout">
+</head>
+            <body>
+                <div class="container">
+                    <div class="header">
+                        <img src="https://i.imgur.com/11u9rUD.png" alt="Logo Grupo Salvador Sanfuentes" class="header-logo" onerror="this.src='https://via.placeholder.com/100x100/1e3a8a/ffffff?text=Logo+Grupo'">
+                        <h1>COMPROMISO PERSONAL DE VOLUNTARIADO</h1>
+                        <p class="subtitle">Grupo Guía y Scouts Salvador Sanfuentes</p>
+                    </div>
+                    <div class="info-grid">
+                        <div class="info-item"><strong>Nombre Completo</strong><span>${e(comp.nombre)}</span></div>
+                        <div class="info-item"><strong>RUN</strong><span>${e(comp.run)}</span></div>
+                        <div class="info-item"><strong>Fecha de Registro</strong><span>${e(comp.fecha)}</span></div>
+                        <div class="info-item"><strong>Correo Electrónico</strong><span>${e(comp.email)}</span></div>
+                        ${comp.ap_nombre ? `<div class="info-item"><strong>Acompañante Personal (AP)</strong><span>${e(comp.ap_nombre)}</span></div>` : ''}
+                        ${comp.apf_nombre ? `<div class="info-item"><strong>Asesor P. Formación (APF)</strong><span>${e(comp.apf_nombre)}</span></div>` : ''}
+                    </div>
+                    <div class="compromiso-section">
+                        <h2 class="section-title">Acuerdos Establecidos</h2>
+                        <div class="compromiso-item"><h3>1. Formación Institucional (Cursos)</h3><p>${e(c.compromiso_formacion || c.formacion || 'Sin redactar')}</p></div>
+                        <div class="compromiso-item"><h3>2. Trabajo en la Unidad (Metas)</h3><p>${e(c.compromiso_unidad || c.unidad || 'Sin redactar')}</p></div>
+                        <div class="compromiso-item"><h3>3. Participación y Asistencia</h3><p>${e(c.compromiso_asistencia || c.asistencia || 'Sin redactar')}</p></div>
+                        <div class="compromiso-item"><h3>4. Relación y Trabajo con AP</h3><p>${e(c.compromiso_ap || c.ap || 'Sin redactar')}</p></div>
+                        <div class="compromiso-item"><h3>5. Desarrollo General del PPF</h3><p>${e(c.compromiso_ppf || c.ppf || 'Sin redactar')}</p></div>
+                        <div class="compromiso-item"><h3>6. Criterios Evaluación Final</h3><p>${e(c.compromiso_evaluacion || c.evaluacion || 'Sin redactar')}</p></div>
+                        <div class="compromiso-item"><h3>7. Otros Acuerdos Extras</h3><p>${e(c.compromiso_otros || c.otros || 'Sin registrar')}</p></div>
+                    </div>
+                    <div class="firma-container">
+                        <div class="firma-text">Firma Digital del Voluntario</div>
+                        ${comp.firma_url ? `<img src="${comp.firma_url}" class="firma-img" alt="Firma">` : '<div style="padding: 20px; border: 1px solid #cbd5e1; display: inline-block; border-radius: 8px; color: #64748b;">Firma no disponible</div>'}
+                        <div class="timestamp">Documento firmado electrónicamente. Registro digital con sello de tiempo:<br>${e(comp.firma_timestamp || comp.created_at || 'N/A')}</div>
+                    </div>
+                    <button class="print-btn" onclick="window.print()">🖨️ Imprimir o Guardar PDF</button>
+                </div>
+            <script>if('serviceWorker' in navigator){navigator.serviceWorker.register('/sw.js').catch(()=>{});}</script>
+</body>
+            </html>`;
+            w.document.write(doc);
+            w.document.close();
+        };
+
+        window.cargarAdultos = async function() {
+            try {
+                const { data, error } = await window.supabaseClient.from('adultos_registros').select('*').order('apellidos');
+                if (error) throw error;
+                const { data: compromisos, error: errComp } = await window.supabaseClient.from('compromisos_adultos').select('*');
+                
+                const normalizeRun = (r) => r ? String(r).replace(/[^0-9Kk]/g, '').toUpperCase() : '';
+                const compMap = {}; 
+                if (compromisos && !errComp) { compromisos.forEach(c => { compMap[normalizeRun(c.run)] = c; }); }
+                
+                window.padronAdultos = (data || []).map(a => {
+                    const compOficial = compMap[normalizeRun(a.run)] || null; 
+                    let cJSON = {};
+                    if (compOficial && compOficial.compromisos) {
+                        try { cJSON = typeof compOficial.compromisos === 'string' ? JSON.parse(compOficial.compromisos) : compOficial.compromisos; } catch(e) {}
+                    }
+                    
+                    let nivelMapeado = a.nivel_formacion || 'Sin Formación';
+                    if (nivelMapeado.toLowerCase() === 'inicial') nivelMapeado = 'Básico';
+                    else if (nivelMapeado.toLowerCase() === 'medio') nivelMapeado = 'Medio';
+                    else if (nivelMapeado.toLowerCase() === 'avanzado' || nivelMapeado.toLowerCase() === 'director' || nivelMapeado.toLowerCase() === 'formador') nivelMapeado = 'Avanzado';
+
+                    return { id: a.id, nombreCompleto: `${a.nombres} ${a.apellidos}`.trim(), nombres: a.nombres, apellidos: a.apellidos, run: a.run, fecha_nacimiento: a.fecha_nacimiento, edad: window.calcularEdad(a.fecha_nacimiento), foto_url: a.foto_url || 'https://ui-avatars.com/api/?name='+encodeURIComponent(a.nombres)+'&background=1e293b&color=fff&bold=true', email: a.email, telefono: a.telefono, domicilio: a.domicilio, nacionalidad: a.nacionalidad, roles: a.roles || [], unidad_rol: a.unidad_rol || 'Sin Unidad Asignada', nivel_formacion: nivelMapeado, cursos: a.cursos || [], fase_ciclo_vida: a.fase_ciclo_vida || 'Captación/Ingreso', compromisoOficial: compOficial, ap_nombre: compOficial && compOficial.ap_nombre ? compOficial.ap_nombre : (a.ap_nombre || ''), apf_nombre: compOficial && compOficial.apf_nombre ? compOficial.apf_nombre : (a.apf_nombre || ''), etapa_ppf: a.etapa_ppf || 'Inicial', compromiso_formacion: cJSON.compromiso_formacion || cJSON.formacion || a.compromiso_formacion || '', compromiso_unidad: cJSON.compromiso_unidad || cJSON.unidad || a.compromiso_unidad || '', compromiso_asistencia: cJSON.compromiso_asistencia || cJSON.asistencia || a.compromiso_asistencia || '', compromiso_ap: cJSON.compromiso_ap || cJSON.ap || a.compromiso_ap || '', compromiso_ppf: cJSON.compromiso_ppf || cJSON.ppf || a.compromiso_ppf || '', compromiso_evaluacion: cJSON.compromiso_evaluacion || cJSON.evaluacion || a.compromiso_evaluacion || '', compromiso_otros: cJSON.compromiso_otros || cJSON.otros || a.compromiso_otros || '', ppf_competencias: a.ppf_competencias || [], ppf_ruta_aprendizaje: a.ppf_ruta_aprendizaje || [], ppf_seguimiento: a.ppf_seguimiento || [], desempeno_funciones: a.desempeno_funciones || [], desempeno_acontecimientos: a.desempeno_acontecimientos || [], desempeno_conductual: a.desempeno_conductual || [], desempeno_star: a.desempeno_star || [], cert_antecedentes_url: a.cert_antecedentes_url, cert_inhabilidad_url: a.cert_inhabilidad_url, cert_inhabilidad_relevante_url: a.cert_inhabilidad_relevante_url, cuota_pagada: a.cuota_pagada, emergencia_nombre: a.emergencia_nombre, emergencia_telefono: a.emergencia_telefono, emergencia_parentesco: a.emergencia_parentesco, prevision_salud: a.prevision_salud, isapre_nombre: a.isapre_nombre, grupo_sanguineo: a.grupo_sanguineo, alergias: a.alergias || [], profesion: a.profesion, disponibilidad: a.disponibilidad, certificados_formacion: a.certificados_formacion || {} };
+                });
+                window.renderAdultList();
+            } catch (e) { window.mostrarNotificacion('error', 'Error al cargar datos.'); console.error(e); }
+        };
+
+        window.filterByFormacion = function(nivel, btn) { document.querySelectorAll('.adult-tag').forEach(el=>{el.classList.remove('active'); el.style.opacity='0.5';}); btn.classList.add('active'); btn.style.opacity='1'; window.activeFilter = nivel; window.renderAdultList(); };
+        window.filterAdultList = function() { window.renderAdultList(); };
+        window.renderAdultList = function() { const query = document.getElementById('search-adult').value.toLowerCase(); const ul = document.getElementById('adult-ul-list'); ul.innerHTML = ''; let count = 0; window.padronAdultos.forEach(a => { const matchName = a.nombreCompleto.toLowerCase().includes(query) || (a.roles.join(' ')).toLowerCase().includes(query) || a.unidad_rol.toLowerCase().includes(query); const matchFilter = window.activeFilter === 'Todos' || a.nivel_formacion === window.activeFilter; if (matchName && matchFilter) { count++; const li = document.createElement('li'); li.className = 'adult-list-item'; let badgeColor = '#94A3B8'; if(a.nivel_formacion === 'Básico') badgeColor = '#3B82F6'; else if(a.nivel_formacion === 'Medio') badgeColor = '#8B5CF6'; else if(a.nivel_formacion === 'Avanzado') badgeColor = '#10B981'; li.onclick = () => { document.querySelectorAll('.adult-list-item').forEach(e=>e.classList.remove('active')); li.classList.add('active'); window.renderAdultProfile(a); }; const mainRole = a.roles && a.roles.length > 0 ? a.roles[0] : 'Voluntario'; li.innerHTML = `<img src="${a.foto_url}" class="adult-list-pic" style="border-color:${badgeColor}"><div class="adult-list-info"><h4>${window.escapeHtml(a.nombreCompleto)}</h4><p><i class="fas fa-id-badge text-[0.65rem] mr-1 text-slate-400"></i>${window.escapeHtml(mainRole)} - <span class="font-semibold">${window.escapeHtml(a.unidad_rol)}</span></p></div><div class="ml-auto w-3 h-3 rounded-full" style="background:${badgeColor}"></div>`; ul.appendChild(li); } }); if(count === 0) ul.innerHTML = `<div class="p-8 text-center text-slate-400"><i class="fas fa-search text-4xl mb-4 opacity-30 block"></i><p class="text-sm font-semibold">No se encontraron dirigentes.</p></div>`; };
+
+        window.switchTab = function(btn, tabId) { btn.parentElement.querySelectorAll('.profile-tab').forEach(t=>t.classList.remove('active')); btn.classList.add('active'); btn.parentElement.nextElementSibling.querySelectorAll('.p-tab-pane').forEach(p=>p.classList.remove('active')); document.getElementById(tabId).classList.add('active'); window.activeTab = tabId; };
+        window.switchSubTab = function(btn, tabId, containerId) { const container = document.getElementById(containerId); container.parentElement.querySelectorAll('.sub-tab-btn').forEach(b => { b.classList.remove('text-blue-600','text-indigo-600','border-b-2','border-blue-600','border-indigo-600'); b.classList.add('text-slate-500', 'bg-transparent'); b.classList.remove('bg-indigo-50/50', 'bg-blue-50/50'); }); btn.classList.remove('text-slate-500', 'bg-transparent'); if(containerId === 'desempeno-container') { btn.classList.add('text-blue-600', 'border-b-2', 'border-blue-600', 'bg-blue-50/50'); } else { btn.classList.add('text-indigo-600', 'border-b-2', 'border-indigo-600', 'bg-indigo-50/50'); } container.querySelectorAll('.sub-tab-pane').forEach(p => p.classList.remove('active')); container.querySelector('#' + tabId).classList.add('active'); };
+        window.switchModalTab = function(tabId, btn) { const container = btn.closest('.modal-box'); container.querySelectorAll('.edit-tab-btn').forEach(b => { b.classList.remove('text-indigo-600', 'border-b-4', 'border-indigo-600', 'bg-white'); b.classList.add('text-slate-500', 'bg-transparent'); }); btn.classList.remove('text-slate-500', 'bg-transparent'); btn.classList.add('text-indigo-600', 'border-b-4', 'border-indigo-600', 'bg-white'); container.querySelectorAll('.edit-tab-pane').forEach(p => p.classList.remove('active')); container.querySelector('#' + tabId).classList.add('active'); };
+        window.abrirModalDesdeBoton = function(id, targetTab) { window.abrirModalEditarAdulto(id); const btn = document.querySelector(`.edit-tab-btn[onclick*="'${targetTab}'"]`); if(btn) window.switchModalTab(targetTab, btn); };
+        window.cerrarModalEditarAdulto = function() { document.getElementById('modal-editar-adulto').classList.remove('active'); window.currentEditAdultoId = null; };
+
+        window.renderAdultLifeCycleStepper = function(adulto) { const fases = ['Captación/Ingreso', 'Inducción', 'Desempeño', 'Evaluación', 'Decisión']; const iconos = ['fa-door-open', 'fa-handshake', 'fa-cogs', 'fa-clipboard-check', 'fa-balance-scale']; let currentFase = adulto.fase_ciclo_vida || 'Captación/Ingreso'; let decisionText = 'Decisión para el futuro'; let decisionColor = ''; let currentIndex = 0; if (currentFase.includes('Captación') || currentFase.includes('Ingreso')) currentIndex = 0; else if (currentFase === 'Inducción') currentIndex = 1; else if (currentFase === 'Desempeño') currentIndex = 2; else if (currentFase === 'Evaluación') currentIndex = 3; else if (['Ratificación', 'Reubicación', 'Retiro', 'Decisión'].includes(currentFase)) { currentIndex = 4; decisionText = currentFase === 'Decisión' ? 'Decisión para el futuro' : currentFase; if(currentFase === 'Ratificación') decisionColor = 'color: #10B981;'; if(currentFase === 'Reubicación') decisionColor = 'color: #F59E0B;'; if(currentFase === 'Retiro') decisionColor = 'color: #EF4444;'; } let stepsHtml = fases.map((fase, index) => { let cls = ''; if (index === currentIndex) cls = 'active'; else if (index < currentIndex) cls = 'completed'; let label = index === 4 ? decisionText : fase; let customStyle = (index === 4 && cls === 'active') ? decisionColor : ''; return `<div class="p-step ${cls}"><div class="p-step-icon"><i class="fas ${iconos[index]}"></i></div><div class="p-step-label" style="${customStyle}">${label}</div></div>`; }).join(''); let optionsHtml = ['Captación/Ingreso', 'Inducción', 'Desempeño', 'Evaluación', 'Ratificación', 'Reubicación', 'Retiro'].map(f => `<option value="${f}" ${f === currentFase ? 'selected' : ''}>${f}</option>`).join(''); return `<div class="mb-10 bg-white p-6 rounded-2xl border border-slate-200 shadow-sm"><div class="flex justify-between items-center mb-6"><h4 class="font-extrabold text-blue-900 uppercase tracking-wide text-sm"><i class="fas fa-sync-alt mr-2 text-blue-500"></i> Fases del Ciclo de Vida del Adulto</h4><select onchange="window.actualizarCampoAdulto(${adulto.id}, 'fase_ciclo_vida', this.value)" class="text-sm border border-blue-200 bg-blue-50 text-blue-800 rounded-lg px-3 py-1.5 font-bold outline-none cursor-pointer shadow-sm hover:bg-blue-100 transition focus:ring-2 focus:ring-blue-500">${optionsHtml}</select></div><div class="progression-stepper shadow-none border-none p-0 bg-transparent m-0">${stepsHtml}</div></div>`; };
+        window.renderAdultProgressionStepper = function(adulto) { 
+            const niveles = ['Sin Formación', 'Básico', 'Medio', 'Avanzado', 'IM3', 'IM4']; 
+            const imagenes = ['https://i.imgur.com/75Pkg1G.png', 'https://i.imgur.com/Doq2Vak.png', 'https://i.imgur.com/z0zOKwF.png', 'https://i.imgur.com/o1yh5lq.png', 'https://i.imgur.com/VVheryL.png', 'https://i.imgur.com/JxK1RZ8.png'];
+            const labels = ['Ingreso', 'Nivel Básico', 'Nivel Medio', 'N. Avanzado (IM)', 'IM3', 'IM4']; 
+            const tooltips = [
+                'Etapa inicial de acogida e inducción al Movimiento Scout.',
+                'Adquisición de herramientas básicas para el rol y comprensión del Método.',
+                'Profundización metodológica, técnica y habilidades para la unidad.',
+                'Entregando herramientas para liderar jóvenes o apoyar la gestión institucional.',
+                'Enfocado en roles de gestión, planificación y facilitación de equipos a nivel territorial o nacional.',
+                'Orientado a la conceptualización, diseño estratégico y desarrollo de sistemas a gran escala.'
+            ];
+            let currentIndex = niveles.indexOf(adulto.nivel_formacion); 
+            if (currentIndex === -1) currentIndex = 0; 
+            let stepsHtml = niveles.map((nivel, index) => { 
+                let cls = ''; 
+                if (index === currentIndex) cls = 'active'; else if (index < currentIndex) cls = 'completed'; 
+                return `<div class="p-step ${cls}">
+                            <div class="p-step-icon">
+                                <img src="${imagenes[index]}" style="width:100%; height:100%; object-fit:cover; border-radius:50%; padding:2px;">
+                                <div class="p-tooltip">${tooltips[index]}</div>
+                            </div>
+                            <div class="p-step-label">${labels[index]}</div>
+                        </div>`; 
+            }).join(''); 
+            
+            const nivOptions = ['Sin Formación', 'Básico', 'Medio', 'Avanzado', 'IM3', 'IM4'].map(n => `<option ${adulto.nivel_formacion===n?'selected':''}>${n}</option>`).join('');
+            
+            let certsHtml = `<div class="flex flex-wrap gap-3 mt-6 justify-center pt-4 border-t border-slate-100">`;
+            const certData = [
+                { id: 'ingreso', label: 'Ingreso', icon: 'fa-file-alt' }, { id: 'basico', label: 'Básico', icon: 'fa-file-alt' },
+                { id: 'medio', label: 'Medio', icon: 'fa-file-alt' }, { id: 'avanzado', label: 'IM', icon: 'fa-award' },
+                { id: 'im3', label: 'IM3', icon: 'fa-award' }, { id: 'im4', label: 'IM4', icon: 'fa-award' }
+            ];
+            let hasCerts = false;
+            certData.forEach(c => {
+                if (adulto.certificados_formacion && adulto.certificados_formacion[c.id]) {
+                    certsHtml += `<a href="${window.escapeHtml(adulto.certificados_formacion[c.id])}" target="_blank" class="bg-amber-50 text-amber-700 border border-amber-200 px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-amber-100 transition shadow-sm"><i class="fas ${c.icon} mr-1"></i> Cert. ${c.label}</a>`;
+                    hasCerts = true;
+                }
+            });
+            if (!hasCerts) certsHtml += `<span class="text-xs font-medium text-slate-400 italic mt-1">Sin certificados de formación enlazados.</span>`;
+            certsHtml += `</div>`;
+
+            return `<div class="mb-10 bg-white p-6 rounded-2xl border border-slate-200 shadow-sm"><div class="flex justify-between items-center mb-6"><h4 class="font-extrabold text-indigo-900 uppercase tracking-wide text-sm"><i class="fas fa-route mr-2 text-indigo-500"></i> Ruta de Formación (Nivel)</h4><select onchange="window.actualizarCampoAdulto(${adulto.id}, 'nivel_formacion', this.value)" class="text-sm border border-indigo-200 bg-indigo-50 text-indigo-800 rounded-lg px-3 py-1.5 font-bold outline-none cursor-pointer shadow-sm hover:bg-indigo-100 transition focus:ring-2 focus:ring-indigo-500">${nivOptions}</select></div><div class="progression-stepper shadow-none border-none p-0 bg-transparent m-0">${stepsHtml}</div>${certsHtml}</div>`; 
+        };
+
+        window.renderAdultProfile = function(adulto) {
+            const view = document.getElementById('adult-profile-view'); const e = window.escapeHtml;
+            const enlacesHtml = `<div class="mb-5 bg-indigo-50 border border-indigo-200 p-4 rounded-xl shadow-sm"><h4 class="font-bold text-indigo-900 mb-3 text-sm uppercase"><i class="fas fa-book-reader mr-2"></i> Documentos y Enlaces de Referencia</h4><div class="flex flex-wrap gap-2 text-[0.75rem]"><a href="https://drive.google.com/file/d/1it9s1F5xaFn-8-fHgpI43siIyDVEVsVA/view?usp=sharing" target="_blank" class="bg-white border border-indigo-300 text-indigo-700 px-3 py-1.5 rounded hover:bg-indigo-100 transition shadow-sm flex items-center gap-1.5"><i class="fas fa-external-link-alt"></i> Diccionario Competencias</a><a href="https://drive.google.com/file/d/1FZAR7FFl7KR7-R459XqdXei7PaiMKSgS/view?usp=sharing" target="_blank" class="bg-white border border-indigo-300 text-indigo-700 px-3 py-1.5 rounded hover:bg-indigo-100 transition shadow-sm flex items-center gap-1.5"><i class="fas fa-external-link-alt"></i> Perfiles de Cargo</a><a href="https://drive.google.com/file/d/1VTznr2sRVpojva2CcyLUe2-XHdpwMnRX/view?usp=drive_link" target="_blank" class="bg-white border border-indigo-300 text-indigo-700 px-3 py-1.5 rounded hover:bg-indigo-100 transition shadow-sm flex items-center gap-1.5"><i class="fas fa-external-link-alt"></i> Instructivo Ciclo Vida</a><a href="https://drive.google.com/file/d/1-5WRz1SnEDWsFnJCVlKQx_C9ZGzgaTII/view?usp=sharing" target="_blank" class="bg-white border border-indigo-300 text-indigo-700 px-3 py-1.5 rounded hover:bg-indigo-100 transition shadow-sm flex items-center gap-1.5"><i class="fas fa-external-link-alt"></i> Gestión Voluntariado</a></div></div>`;
+            const enlacesHtmlBlue = enlacesHtml.replace(/indigo/g, 'blue');
+            
+            let headerGradient = 'linear-gradient(135deg, #1E3A8A 0%, #0F172A 100%)'; let iconRol = 'fa-user-tie'; const unit = adulto.unidad_rol.toLowerCase();
+            if (unit.includes('bandada')) { headerGradient = 'linear-gradient(135deg, var(--color-bandada) 0%, #1e3a8a 100%)'; iconRol='fa-dove'; } else if (unit.includes('manada')) { headerGradient = 'linear-gradient(135deg, var(--color-manada) 0%, #b45309 100%)'; iconRol='fa-paw'; } else if (unit.includes('tropa')) { headerGradient = 'linear-gradient(135deg, var(--color-tropa) 0%, #064e3b 100%)'; iconRol='fa-compass'; } else if (unit.includes('compañía') || unit.includes('compania')) { headerGradient = 'linear-gradient(135deg, var(--color-compania) 0%, #0f766e 100%)'; iconRol='fa-sun'; } else if (unit.includes('pionero') || unit.includes('avanzada')) { headerGradient = 'linear-gradient(135deg, var(--color-pioneros) 0%, #4c1d95 100%)'; iconRol='fa-mountain'; } else if (unit.includes('caminante') || unit.includes('clan')) { headerGradient = 'linear-gradient(135deg, var(--color-caminantes) 0%, #7f1d1d 100%)'; iconRol='fa-fire'; }
+            let wspLink = window.formatWsp(adulto.telefono) ? `href="https://wa.me/${window.formatWsp(adulto.telefono)}" target="_blank" class="interactive-link"` : `class="opacity-70 cursor-not-allowed" title="Teléfono no válido"`;
+            let html = `<div class="profile-header-card" style="background: ${headerGradient};"><img src="${adulto.foto_url}" class="profile-pic-large shadow-2xl"><div class="profile-info"><h2>${e(adulto.nombreCompleto)}</h2><div class="badge-rol"><i class="fas ${iconRol} text-slate-500"></i> ${e(adulto.roles.join(' / ') || 'Voluntario')} | <span class="opacity-80 font-medium">${e(adulto.unidad_rol)}</span></div><div class="profile-info-grid text-white"><p><i class="fas fa-id-card text-blue-300"></i> RUN: ${e(adulto.run)}</p><p><i class="fas fa-envelope text-blue-300"></i> <a href="mailto:${e(adulto.email)}" class="interactive-link" style="color:white;">${e(adulto.email)}</a></p><p><i class="fab fa-whatsapp text-emerald-400"></i> <a ${wspLink} style="color:white;">${e(adulto.telefono)}</a></p><p><i class="fas fa-graduation-cap text-amber-300"></i> Nivel: <strong class="ml-1">${e(adulto.nivel_formacion)}</strong></p></div></div><div class="profile-actions"><button class="btn btn-warning shadow-lg hover:scale-105" onclick="window.imprimirExpedienteAdulto(${adulto.id})"><i class="fas fa-file-pdf"></i> Reporte PDF</button><button class="btn bg-white/20 text-white border border-white/50 shadow-xl hover:bg-white/30 hover:scale-105" onclick="window.abrirModalEditarAdulto(${adulto.id})"><i class="fas fa-user-edit"></i> Edición Gral.</button></div></div><div class="profile-tabs shadow-sm"><div class="profile-tab ${window.activeTab === 'p-formacion' ? 'active' : ''}" onclick="window.switchTab(this, 'p-formacion')"><i class="fas fa-handshake"></i> Formación y Acuerdos PPF</div><div class="profile-tab ${window.activeTab === 'p-desempeno' ? 'active' : ''}" onclick="window.switchTab(this, 'p-desempeno')"><i class="fas fa-chart-line"></i> Gestión del Desempeño</div><div class="profile-tab ${window.activeTab === 'p-vcm' ? 'active' : ''}" onclick="window.switchTab(this, 'p-vcm')"><i class="fas fa-shield-alt"></i> Institucional y VCM</div><div class="profile-tab ${window.activeTab === 'p-info' ? 'active' : ''}" onclick="window.switchTab(this, 'p-info')"><i class="fas fa-notes-medical"></i> Expediente Médico y Civil</div></div><div class="profile-content-area">`;
+            
+            let bannerAcuerdo = '';
+            if (adulto.compromisoOficial) {
+                bannerAcuerdo = `<div class="col-span-1 md:col-span-2 mb-2 p-4 bg-emerald-50 border border-emerald-200 rounded-xl flex justify-between items-center shadow-sm"><div class="flex items-center gap-4"><div class="w-12 h-12 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center text-xl shrink-0"><i class="fas fa-file-signature"></i></div><div><h4 class="font-extrabold text-emerald-900 text-sm uppercase tracking-wide">Acuerdo Mutuo Registrado</h4><p class="text-xs text-emerald-700 font-medium mt-0.5">Firmado digitalmente el ${e(adulto.compromisoOficial.fecha || 'N/A')}</p></div></div><button class="btn btn-sm btn-success shadow-sm" onclick="window.verAcuerdoOriginal(${adulto.id})"><i class="fas fa-eye"></i> Ver Original</button></div>`;
+            } else {
+                bannerAcuerdo = `<div class="col-span-1 md:col-span-2 mb-2 p-4 bg-amber-50 border border-amber-200 rounded-xl flex justify-between items-center shadow-sm"><div class="flex items-center gap-4"><div class="w-12 h-12 bg-amber-100 text-amber-600 rounded-full flex items-center justify-center text-xl shrink-0"><i class="fas fa-exclamation-triangle"></i></div><div><h4 class="font-extrabold text-amber-900 text-sm uppercase tracking-wide">Acuerdo Mutuo Pendiente</h4><p class="text-xs text-amber-700 font-medium mt-0.5">El dirigente puede registrar su compromiso en la web pública.</p></div></div></div>`;
+            }
+
+            html += `<div id="p-formacion" class="p-tab-pane ${window.activeTab === 'p-formacion' ? 'active' : ''}">${enlacesHtml}${window.renderAdultProgressionStepper(adulto)}<div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8"><div class="bg-indigo-50 border border-indigo-100 p-6 rounded-2xl shadow-sm flex flex-col justify-center lg:col-span-2"><h4 class="font-extrabold text-indigo-900 mb-2 uppercase tracking-wide text-xs"><i class="fas fa-user-check mr-2"></i> Asesor Personal (AP)</h4><p class="text-base text-indigo-800 font-bold mb-4 bg-white p-3 rounded-lg shadow-sm border border-indigo-100">${e(adulto.ap_nombre) || 'No asignado'}</p><h4 class="font-extrabold text-indigo-900 mb-2 uppercase tracking-wide text-xs"><i class="fas fa-chalkboard-teacher mr-2"></i> Asesor P. Formación (APF)</h4><p class="text-base text-indigo-800 font-bold bg-white p-3 rounded-lg shadow-sm border border-indigo-100">${e(adulto.apf_nombre) || 'No asignado'}</p></div><div class="bg-white border border-slate-200 p-6 rounded-2xl shadow-sm flex flex-col"><h4 class="font-extrabold text-sm uppercase tracking-wide text-slate-800 mb-3 border-b border-slate-100 pb-2"><i class="fas fa-certificate text-amber-500 mr-2"></i> Historial Cursos</h4><ul class="space-y-2 flex-1 overflow-y-auto max-h-32 pr-2 text-xs">${adulto.cursos.length > 0 ? adulto.cursos.map(c => `<li class="flex items-center gap-3 bg-slate-50 p-2.5 rounded-lg border border-slate-100"><i class="fas fa-check text-emerald-500"></i><span class="font-semibold text-slate-700 flex-1">${e(c)}</span></li>`).join('') : '<li class="text-slate-400 italic text-center py-4 font-medium">Sin cursos registrados.</li>'}</ul></div></div><div class="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden mb-6"><div class="bg-slate-50 px-6 py-5 border-b border-slate-200 flex justify-between items-center"><div><h4 class="font-extrabold text-slate-800 uppercase text-sm"><i class="fas fa-file-contract text-indigo-600 mr-2"></i> Plan Personal de Formación (PPF)</h4></div><div class="flex gap-3 items-center"><span class="bg-indigo-100 text-indigo-800 px-4 py-1.5 rounded-lg text-xs font-bold uppercase tracking-widest border border-indigo-200 shadow-sm">Etapa: ${e(adulto.etapa_ppf)}</span><button class="btn btn-sm btn-primary shadow-sm" onclick="window.abrirModalDesdeBoton(${adulto.id}, 'edit-ppf')"><i class="fas fa-edit"></i> Editar PPF</button></div></div><div class="flex border-b border-slate-200 bg-white px-4 overflow-x-auto"><button class="px-5 py-4 font-bold text-sm text-indigo-600 border-b-2 border-indigo-600 sub-tab-btn whitespace-nowrap bg-indigo-50/50" onclick="window.switchSubTab(this, 'ppf-acuerdos', 'ppf-container')">Acuerdos (7 Puntos)</button><button class="px-5 py-4 font-bold text-sm text-slate-500 hover:text-indigo-600 hover:bg-slate-50 sub-tab-btn whitespace-nowrap transition" onclick="window.switchSubTab(this, 'ppf-competencias', 'ppf-container')">Competencias a Desarrollar</button><button class="px-5 py-4 font-bold text-sm text-slate-500 hover:text-indigo-600 hover:bg-slate-50 sub-tab-btn whitespace-nowrap transition" onclick="window.switchSubTab(this, 'ppf-ruta', 'ppf-container')">Ruta Aprendizaje</button><button class="px-5 py-4 font-bold text-sm text-slate-500 hover:text-indigo-600 hover:bg-slate-50 sub-tab-btn whitespace-nowrap transition" onclick="window.switchSubTab(this, 'ppf-seguimiento', 'ppf-container')">Seguimiento Experiencias</button></div><div class="p-6 bg-white" id="ppf-container"><div id="ppf-acuerdos" class="sub-tab-pane active"><div class="grid grid-cols-1 md:grid-cols-2 gap-5">${bannerAcuerdo}<div class="bg-slate-50 p-5 rounded-xl border border-slate-200"><span class="text-[0.7rem] font-extrabold text-indigo-600 uppercase tracking-wide block mb-2">1. Formación Institucional</span><p class="text-sm text-slate-700 italic border-l-4 border-indigo-300 pl-3 font-medium">${e(adulto.compromiso_formacion) || 'Sin redactar'}</p></div><div class="bg-slate-50 p-5 rounded-xl border border-slate-200"><span class="text-[0.7rem] font-extrabold text-indigo-600 uppercase tracking-wide block mb-2">2. Trabajo en la Unidad</span><p class="text-sm text-slate-700 italic border-l-4 border-indigo-300 pl-3 font-medium">${e(adulto.compromiso_unidad) || 'Sin redactar'}</p></div><div class="bg-slate-50 p-5 rounded-xl border border-slate-200"><span class="text-[0.7rem] font-extrabold text-indigo-600 uppercase tracking-wide block mb-2">3. Asistencia a Actividades</span><p class="text-sm text-slate-700 italic border-l-4 border-indigo-300 pl-3 font-medium">${e(adulto.compromiso_asistencia) || 'Sin redactar'}</p></div><div class="bg-slate-50 p-5 rounded-xl border border-slate-200"><span class="text-[0.7rem] font-extrabold text-indigo-600 uppercase tracking-wide block mb-2">4. Relación con el AP</span><p class="text-sm text-slate-700 italic border-l-4 border-indigo-300 pl-3 font-medium">${e(adulto.compromiso_ap) || 'Sin redactar'}</p></div><div class="bg-slate-50 p-5 rounded-xl border border-slate-200"><span class="text-[0.7rem] font-extrabold text-indigo-600 uppercase tracking-wide block mb-2">5. Desarrollo de la PPF</span><p class="text-sm text-slate-700 italic border-l-4 border-indigo-300 pl-3 font-medium">${e(adulto.compromiso_ppf) || 'Sin redactar'}</p></div><div class="bg-slate-50 p-5 rounded-xl border border-slate-200"><span class="text-[0.7rem] font-extrabold text-indigo-600 uppercase tracking-wide block mb-2">6. Proceso de Evaluación Final</span><p class="text-sm text-slate-700 italic border-l-4 border-indigo-300 pl-3 font-medium">${e(adulto.compromiso_evaluacion) || 'Sin redactar'}</p></div><div class="bg-slate-50 p-5 rounded-xl border border-slate-200 md:col-span-2"><span class="text-[0.7rem] font-extrabold text-slate-500 uppercase tracking-wide block mb-2">7. Otros Acuerdos Extras</span><p class="text-sm text-slate-700 italic border-l-4 border-slate-300 pl-3 font-medium">${e(adulto.compromiso_otros) || 'Sin registrar'}</p></div></div></div><div id="ppf-competencias" class="sub-tab-pane"><div class="table-wrapper"><table class="ppf-table min-w-[700px]"><thead>    <tr><th>Competencia y Nivel Esperado</th><th>Comportamiento Observable</th><th>Acciones Específicas</th><th class="w-24">Plazo</th></tr></thead><tbody>${(adulto.ppf_competencias && adulto.ppf_competencias.length > 0) ? adulto.ppf_competencias.map(c => `<tr><td><strong class="text-indigo-900 block">${e(c.competencia)}</strong>${c.nivel_comp ? `<span class="text-xs font-bold text-indigo-600 bg-indigo-50 px-2 py-1 rounded block whitespace-nowrap mt-1 border border-indigo-100">${e(c.nivel_comp)}</span>` : ''}</td><td><span class="text-slate-700 bg-slate-100 px-2.5 py-1.5 rounded-lg block text-xs leading-tight font-medium">${e(c.comportamiento)}</span></td><td class="italic text-slate-600 font-medium">${e(c.accion)}</td><td><span class="bg-slate-100 border border-slate-200 px-2 py-1 rounded text-xs font-mono text-slate-600">${e(c.plazo)}</span></td></tr>`).join('') : '<tr><td colspan="4" class="text-center text-slate-400 italic py-8 font-medium">No hay competencias declaradas.</td></tr>'}</tbody></table></div></div><div id="ppf-ruta" class="sub-tab-pane"><div class="table-wrapper"><table class="ppf-table min-w-[1000px]"><thead>    <tr><th>Competencia y Nivel Esperado</th><th>Comportamiento Observable</th><th>Diagnóstico</th><th>Resultados Esperados</th><th>Experiencia Aprendizaje</th><th class="w-24">Plazo</th></tr></thead><tbody>${(adulto.ppf_ruta_aprendizaje && adulto.ppf_ruta_aprendizaje.length > 0) ? adulto.ppf_ruta_aprendizaje.map(r => `<tr><td><strong class="text-indigo-900 block">${e(r.competencia)}</strong>${r.nivel_comp ? `<span class="text-xs font-bold text-indigo-600 bg-indigo-50 px-2 py-1 rounded block whitespace-nowrap mt-1 border border-indigo-100">${e(r.nivel_comp)}</span>` : ''}</td><td><span class="text-[0.7rem] text-slate-700 bg-slate-100 px-2.5 py-1.5 rounded-lg leading-tight block font-medium">${e(r.comportamiento)}</span></td><td class="italic text-slate-600 font-medium">${e(r.diagnostico)}</td><td class="italic text-slate-600 font-medium">${e(r.resultados)}</td><td class="italic text-slate-600 font-medium">${e(r.experiencia)}</td><td><span class="bg-slate-100 border border-slate-200 px-2 py-1 rounded text-xs font-mono text-slate-600">${e(r.plazo)}</span></td></tr>`).join('') : '<tr><td colspan="6" class="text-center text-slate-400 italic py-8 font-medium">Ruta de Aprendizaje sin elaborar.</td></tr>'}</tbody></table></div></div><div id="ppf-seguimiento" class="sub-tab-pane"><div class="table-wrapper"><table class="ppf-table min-w-[1000px]"><thead>    <tr><th>Competencia y Nivel Esperado</th><th>Comportamiento Observable</th><th>Actividad Realizada</th><th>Entidad / Lugar</th><th class="w-24">Fecha</th><th>Comentarios (AP/APF)</th></tr></thead><tbody>${(adulto.ppf_seguimiento && adulto.ppf_seguimiento.length > 0) ? adulto.ppf_seguimiento.map(s => `<tr><td><strong class="text-indigo-900 block">${e(s.competencia)}</strong>${s.nivel_comp ? `<span class="text-xs font-bold text-indigo-600 bg-indigo-50 px-2 py-1 rounded block whitespace-nowrap mt-1 border border-indigo-100">${e(s.nivel_comp)}</span>` : ''}</td><td><span class="text-[0.7rem] text-slate-700 bg-slate-100 px-2.5 py-1.5 rounded-lg leading-tight block font-medium">${e(s.comportamiento)}</span></td><td class="italic text-slate-600 font-medium">${e(s.actividad)}</td><td class="italic text-slate-600 font-medium">${e(s.entidad)}</td><td><span class="bg-slate-100 border border-slate-200 px-2 py-1 rounded text-xs font-mono text-slate-600">${e(s.fecha)}</span></td><td class="italic text-slate-600 font-medium">${e(s.comentarios)}</td></tr>`).join('') : '<tr><td colspan="6" class="text-center text-slate-400 italic py-8 font-medium">El cuadro de Seguimiento está vacío.</td></tr>'}</tbody></table></div></div></div></div></div>`;
+            
+            html += `<div id="p-desempeno" class="p-tab-pane ${window.activeTab === 'p-desempeno' ? 'active' : ''}">${enlacesHtmlBlue}${window.renderAdultLifeCycleStepper(adulto)}<div class="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden mb-6"><div class="bg-slate-50 px-6 py-5 border-b border-slate-200 flex justify-between items-center"><div><h4 class="font-extrabold text-slate-800 uppercase text-sm"><i class="fas fa-chart-line text-blue-600 mr-2"></i> Evaluación Conductual Institucional</h4></div><button class="btn btn-sm btn-info shadow-sm" onclick="window.abrirModalDesdeBoton(${adulto.id}, 'edit-desempeno')"><i class="fas fa-edit"></i> Evaluar Desempeño</button></div><div class="flex border-b border-slate-200 bg-white px-4 overflow-x-auto"><button class="px-5 py-4 font-bold text-sm text-blue-600 border-b-2 border-blue-600 sub-tab-btn whitespace-nowrap bg-blue-50/50" onclick="window.switchSubTab(this, 'des-funciones', 'desempeno-container')">Funciones y Tareas</button><button class="px-5 py-4 font-bold text-sm text-slate-500 hover:text-blue-600 hover:bg-slate-50 sub-tab-btn whitespace-nowrap transition" onclick="window.switchSubTab(this, 'des-acontecimientos', 'desempeno-container')">Acontecimientos Relevantes</button><button class="px-5 py-4 font-bold text-sm text-slate-500 hover:text-blue-600 hover:bg-slate-50 sub-tab-btn whitespace-nowrap transition" onclick="window.switchSubTab(this, 'des-conductual', 'desempeno-container')">Calif. Conductual</button><button class="px-5 py-4 font-bold text-sm text-slate-500 hover:text-blue-600 hover:bg-slate-50 sub-tab-btn whitespace-nowrap transition" onclick="window.switchSubTab(this, 'des-star', 'desempeno-container')">Entrevista STAR</button></div><div class="p-6 bg-white" id="desempeno-container"><div id="des-funciones" class="sub-tab-pane active"><div class="table-wrapper"><table class="ppf-table"><thead>    <tr><th>Función establecida en perfil</th><th>Principal(es) tarea(s)</th></tr></thead><tbody>${(adulto.desempeno_funciones && adulto.desempeno_funciones.length > 0) ? adulto.desempeno_funciones.map(f => `<tr><td><strong class="text-indigo-900">${e(f.funcion)}</strong></td><td class="italic text-slate-600 font-medium">${e(f.tarea)}</td></tr>`).join('') : '<tr><td colspan="2" class="text-center text-slate-400 italic py-8 font-medium">Sin funciones detalladas.</td></tr>'}</tbody></table></div></div><div id="des-acontecimientos" class="sub-tab-pane"><div class="table-wrapper"><table class="ppf-table min-w-[700px]"><thead>    <tr><th class="w-1/4">Criterio / Competencia y Nivel</th><th class="w-1/4">Comportamiento Asignado</th><th>Acciones Observadas</th></tr></thead><tbody>${(adulto.desempeno_acontecimientos && adulto.desempeno_acontecimientos.length > 0) ? adulto.desempeno_acontecimientos.map(ac => `<tr><td><strong class="text-indigo-900 block">${e(ac.criterio)}</strong>${ac.nivel_comp ? `<span class="text-[0.65rem] text-indigo-600 font-bold block border border-indigo-100 bg-indigo-50 px-2 py-0.5 rounded w-max mt-1">${e(ac.nivel_comp)}</span>` : ''}</td><td><span class="text-[0.7rem] text-slate-700 bg-slate-100 px-2.5 py-1.5 rounded-lg block font-medium">${e(ac.comportamiento)}</span></td><td class="italic text-slate-600 font-medium">${e(ac.acciones)}</td></tr>`).join('') : '<tr><td colspan="3" class="text-center text-slate-400 italic py-8 font-medium">Sin registro de acontecimientos.</td></tr>'}</tbody></table></div></div><div id="des-conductual" class="sub-tab-pane"><div class="table-wrapper"><table class="ppf-table min-w-[800px]"><thead>    <tr><th class="w-1/5">Criterio / Competencia y Nivel</th><th class="w-1/4">Comportamiento Observado</th><th class="w-32">Calificación</th><th>Observaciones</th></tr></thead><tbody>${(adulto.desempeno_conductual && adulto.desempeno_conductual.length > 0) ? adulto.desempeno_conductual.map(co => `<tr><td><strong class="text-indigo-900 block">${e(co.criterio)}</strong>${co.nivel_comp ? `<span class="text-[0.65rem] text-indigo-600 font-bold block border border-indigo-100 bg-indigo-50 px-2 py-0.5 rounded w-max mt-1">${e(co.nivel_comp)}</span>` : ''}</td><td><span class="text-[0.7rem] text-slate-700 bg-slate-100 px-2.5 py-1.5 rounded-lg block leading-tight font-medium">${e(co.comportamiento)}</span></td><td><span class="bg-blue-50 border border-blue-200 text-blue-700 px-2.5 py-1 rounded-lg text-xs font-bold uppercase">${e(co.calificacion)}</span></td><td class="italic text-slate-600 font-medium">${e(co.observaciones)}</td></tr>`).join('') : '<tr><td colspan="4" class="text-center text-slate-400 italic py-8 font-medium">Sin calificación conductual.</td></tr>'}</tbody></table></div></div><div id="des-star" class="sub-tab-pane"><div class="table-wrapper"><table class="ppf-table min-w-[900px]"><thead>    <tr><th class="w-1/5">Competencia Observada y Nivel</th><th class="w-1/4">Comportamiento Observable</th><th class="w-1/4">Situación/Tarea</th><th class="w-1/4">Acción</th><th>Resultado</th></tr></thead><tbody>${(adulto.desempeno_star && adulto.desempeno_star.length > 0) ? adulto.desempeno_star.map(st => `<tr><td><strong class="text-indigo-900 block">${e(st.criterio)}</strong>${st.nivel_comp ? `<span class="text-[0.65rem] text-indigo-600 font-bold block border border-indigo-100 bg-indigo-50 px-2 py-0.5 rounded w-max mt-1">${e(st.nivel_comp)}</span>` : ''}</td><td><span class="text-[0.7rem] text-slate-700 bg-slate-100 px-2.5 py-1.5 rounded-lg block leading-tight font-medium">${e(st.comportamiento)}</span></td><td class="italic text-slate-600 font-medium">${e(st.situacion)}</td><td class="italic text-slate-600 font-medium">${e(st.accion)}</td><td class="italic text-slate-600 font-medium">${e(st.resultado)}</td></tr>`).join('') : '<tr><td colspan="5" class="text-center text-slate-400 italic py-8 font-medium">Sin entrevista STAR registrada.</td></tr>'}</tbody></table></div></div></div></div></div>`;
+            
+            const hasAntecedentes = !!adulto.cert_antecedentes_url; const hasInhabilidades = !!adulto.cert_inhabilidad_url; const hasInhabilidadRelevante = !!adulto.cert_inhabilidad_relevante_url;
+            html += `<div id="p-vcm" class="p-tab-pane ${window.activeTab === 'p-vcm' ? 'active' : ''}"><h3 class="section-title"><i class="fas fa-shield-alt text-emerald-600"></i> Cumplimiento Legal y VCM</h3><div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6"><div class="cert-card ${hasAntecedentes ? 'border-emerald-200 bg-emerald-50/50' : 'border-red-200 bg-red-50/50'}"><div class="cert-icon ${hasAntecedentes ? 'bg-emerald-100 text-emerald-600' : 'bg-red-100 text-red-600'}"><i class="fas ${hasAntecedentes ? 'fa-file-signature' : 'fa-times-circle'}"></i></div><div class="flex-1"><h4 class="font-extrabold text-slate-800 text-sm uppercase">Certificado Antecedentes</h4><p class="text-xs font-bold ${hasAntecedentes ? 'text-emerald-600' : 'text-red-500'} mt-1.5 bg-white w-max px-2 py-1 rounded shadow-sm border ${hasAntecedentes?'border-emerald-100':'border-red-100'}">${hasAntecedentes ? 'Vigente y Validado' : 'Faltante o Vencido'}</p></div>${hasAntecedentes ? `<a href="${adulto.cert_antecedentes_url}" target="_blank" class="btn btn-sm btn-outline bg-white border-emerald-200 text-emerald-700 hover:bg-emerald-50"><i class="fas fa-eye"></i> Ver PDF</a>` : ''}</div><div class="cert-card ${hasInhabilidades ? 'border-emerald-200 bg-emerald-50/50' : 'border-red-200 bg-red-50/50'}"><div class="cert-icon ${hasInhabilidades ? 'bg-emerald-100 text-emerald-600' : 'bg-red-100 text-red-600'}"><i class="fas ${hasInhabilidades ? 'fa-child' : 'fa-times-circle'}"></i></div><div class="flex-1"><h4 class="font-extrabold text-slate-800 text-sm uppercase">Inhabilidades (Menores)</h4><p class="text-xs font-bold ${hasInhabilidades ? 'text-emerald-600' : 'text-red-500'} mt-1.5 bg-white w-max px-2 py-1 rounded shadow-sm border ${hasInhabilidades?'border-emerald-100':'border-red-100'}">${hasInhabilidades ? 'Sin Inhabilidades / Validado' : 'Faltante - ¡Riesgo Legal!'}</p></div>${hasInhabilidades ? `<a href="${adulto.cert_inhabilidad_url}" target="_blank" class="btn btn-sm btn-outline bg-white border-emerald-200 text-emerald-700 hover:bg-emerald-50"><i class="fas fa-eye"></i> Ver PDF</a>` : ''}</div><div class="cert-card ${hasInhabilidadRelevante ? 'border-emerald-200 bg-emerald-50/50' : 'border-red-200 bg-red-50/50'}"><div class="cert-icon ${hasInhabilidadRelevante ? 'bg-emerald-100 text-emerald-600' : 'bg-red-100 text-red-600'}"><i class="fas ${hasInhabilidadRelevante ? 'fa-gavel' : 'fa-times-circle'}"></i></div><div class="flex-1"><h4 class="font-extrabold text-slate-800 text-sm uppercase">Inhabilidades Maltrato Relevante</h4><p class="text-xs font-bold ${hasInhabilidadRelevante ? 'text-emerald-600' : 'text-red-500'} mt-1.5 bg-white w-max px-2 py-1 rounded shadow-sm border ${hasInhabilidadRelevante?'border-emerald-100':'border-red-100'}">${hasInhabilidadRelevante ? 'Validado / Sin Inhabilidades' : 'Faltante - Obligatorio'}</p></div>${hasInhabilidadRelevante ? `<a href="${adulto.cert_inhabilidad_relevante_url}" target="_blank" class="btn btn-sm btn-outline bg-white border-emerald-200 text-emerald-700 hover:bg-emerald-50"><i class="fas fa-eye"></i> Ver PDF</a>` : ''}</div></div><div class="bg-slate-800 text-white p-8 rounded-2xl shadow-md flex flex-col md:flex-row justify-between items-center gap-6 relative overflow-hidden"><i class="fas fa-university absolute -right-4 -bottom-4 text-8xl text-slate-700 opacity-50"></i><div class="z-10"><h4 class="font-extrabold text-xl mb-2 flex items-center tracking-wide"><i class="fas fa-building text-slate-400 mr-3"></i> Operación Registro Institucional (ORI)</h4><p class="text-sm text-slate-400 font-medium">Validación oficial del pago de la cuota nacional y seguro institucional de accidentes.</p></div><div class="z-10 flex flex-col items-center justify-center w-36 h-28 rounded-2xl border-2 ${adulto.cuota_pagada ? 'bg-emerald-500/20 border-emerald-400 text-emerald-400' : 'bg-red-500/20 border-red-500 text-red-400'} shadow-inner shrink-0 backdrop-blur-sm"><i class="fas ${adulto.cuota_pagada ? 'fa-check-circle' : 'fa-times-circle'} text-4xl mb-2 drop-shadow-md"></i><span class="text-[0.7rem] font-extrabold uppercase text-center px-2 leading-tight">${adulto.cuota_pagada ? 'Cuota Pagada Vigente' : 'Inactivo / Impago'}</span></div></div></div>`;
+            
+            let dirMapLink = `href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(adulto.domicilio)}" target="_blank" class="link-dark" title="Ver en Google Maps"`;
+            let emWspLink = window.formatWsp(adulto.emergencia_telefono) ? `href="https://wa.me/${window.formatWsp(adulto.emergencia_telefono)}" target="_blank" class="link-dark"` : `class="opacity-70 cursor-not-allowed" title="Teléfono no válido" style="color:#64748B;"`;
+            
+            html += `<div id="p-info" class="p-tab-pane ${window.activeTab === 'p-info' ? 'active' : ''}"><div class="flex justify-between items-center border-b border-gray-200 pb-3 mb-6"><h3 class="section-title mb-0 border-none pb-0"><i class="fas fa-notes-medical text-gray-400 mr-2"></i> Expediente Médico y Personal</h3></div><div class="grid grid-cols-1 md:grid-cols-2 gap-6"><div class="bg-white border border-slate-200 p-6 rounded-2xl shadow-sm"><h4 class="font-extrabold border-b border-slate-100 pb-3 mb-4 text-slate-800 text-sm uppercase tracking-wide"><i class="fas fa-address-card text-blue-500 mr-2"></i> Datos Civiles</h4><div class="grid grid-cols-2 gap-4 text-sm"><div class="bg-slate-50 p-3 rounded-xl border border-slate-100"><span class="text-slate-400 font-bold uppercase text-[0.65rem] block mb-1">Nacionalidad</span><strong class="text-slate-800 font-semibold">${e(adulto.nacionalidad)}</strong></div><div class="bg-slate-50 p-3 rounded-xl border border-slate-100"><span class="text-slate-400 font-bold uppercase text-[0.65rem] block mb-1">Profesión/Oficio</span><strong class="text-slate-800 font-semibold">${e(adulto.profesion || 'No especificada')}</strong></div><div class="col-span-2 bg-slate-50 p-3 rounded-xl border border-slate-100"><span class="text-slate-400 font-bold uppercase text-[0.65rem] block mb-1">Domicilio Residencia</span><strong class="text-slate-800 font-semibold"><a ${dirMapLink}><i class="fas fa-map-marker-alt text-red-500 mr-1"></i> ${e(adulto.domicilio)}</a></strong></div><div class="col-span-2 bg-slate-50 p-3 rounded-xl border border-slate-100"><span class="text-slate-400 font-bold uppercase text-[0.65rem] block mb-1">Disponibilidad (Horarios)</span><strong class="text-slate-800 font-semibold">${e(adulto.disponibilidad || 'No especificada')}</strong></div></div></div><div class="bg-white border border-slate-200 p-6 rounded-2xl shadow-sm"><h4 class="font-extrabold border-b border-slate-100 pb-3 mb-4 text-slate-800 text-sm uppercase tracking-wide"><i class="fas fa-ambulance text-red-500 mr-2"></i> Contacto de Emergencia</h4><div class="bg-red-50 p-6 rounded-xl border border-red-100 h-full flex flex-col justify-center relative overflow-hidden"><i class="fas fa-heartbeat absolute -right-4 -bottom-4 text-6xl text-red-100"></i><span class="text-red-900 font-extrabold text-base uppercase tracking-wide block mb-2 relative z-10">${e(adulto.emergencia_nombre || 'No registra')}</span><span class="text-xs font-bold text-red-700 bg-red-100 px-3 py-1 rounded-lg inline-block mb-4 w-max border border-red-200 relative z-10">Vínculo: ${e(adulto.emergencia_parentesco || 'N/A')}</span><div class="flex flex-col gap-2 text-red-800 font-bold relative z-10"><span class="bg-white p-3 rounded-xl border border-red-100 shadow-sm"><i class="fab fa-whatsapp text-emerald-500 text-xl mr-2"></i> <a ${emWspLink}>${e(adulto.emergencia_telefono || 'No registra')}</a></span></div></div></div><div class="bg-white border border-slate-200 p-6 rounded-2xl shadow-sm md:col-span-2"><h4 class="font-extrabold border-b border-slate-100 pb-3 mb-5 text-slate-800 text-sm uppercase tracking-wide"><i class="fas fa-briefcase-medical text-emerald-500 mr-2 text-xl"></i> Antecedentes Médicos y Previsión</h4><div class="grid grid-cols-1 md:grid-cols-3 gap-6"><div class="space-y-4"><div class="bg-emerald-50 p-4 rounded-xl border border-emerald-100"><span class="text-emerald-800 font-bold uppercase text-[0.65rem] block mb-1">Previsión Base</span><strong class="text-emerald-900 text-xl block font-extrabold">${e(adulto.prevision_salud || 'N/A')}</strong>${adulto.isapre_nombre ? `<span class="text-xs text-emerald-700 font-bold mt-1.5 bg-white px-2 py-0.5 rounded border border-emerald-200 inline-block">${e(adulto.isapre_nombre)}</span>` : ''}</div><div class="flex items-center justify-between bg-slate-50 p-4 rounded-xl border border-slate-200"><span class="text-slate-500 font-bold uppercase text-[0.65rem]">Grupo Sanguíneo</span><strong class="bg-red-500 text-white px-4 py-1.5 rounded-lg text-lg shadow-inner font-extrabold">${e(adulto.grupo_sanguineo || '???')}</strong></div></div><div class="md:col-span-2"><div class="bg-slate-50 p-5 rounded-xl border border-slate-200 h-full"><span class="text-slate-700 font-extrabold uppercase text-sm block mb-4 flex items-center"><i class="fas fa-exclamation-triangle text-amber-500 mr-2 text-xl"></i> Alergias y Condiciones Críticas</span>${adulto.alergias && adulto.alergias.length > 0 ? `<div class="flex flex-wrap gap-2 mb-3">${adulto.alergias.map(c => `<span class="bg-amber-100 text-amber-900 border border-amber-300 font-bold text-xs px-3 py-1.5 rounded-lg shadow-sm">${e(c)}</span>`).join('')}</div>` : '<div class="bg-white text-slate-500 p-4 rounded-xl font-bold border border-slate-200 flex items-center gap-2"><i class="fas fa-check-circle text-emerald-500 text-lg"></i> El dirigente no declara alergias crónicas o restricciones.</div>'}</div></div></div></div></div></div>`;
+            html += `</div>`; view.innerHTML = html;
+        };
+
+        // ================= MODAL DE EDICIÓN COMPLETO =================
+        window.abrirModalEditarAdulto = function(id) {
+            const a = window.padronAdultos.find(x => x.id === id);
+            if (!a) return;
+            window.currentEditAdultoId = id;
+            const e = window.escapeHtml;
+            const dispNiv = (comp) => window.diccionarioCompetencias[comp] ? 'block' : 'none';
+            
+            const enlacesHtml = `<div class="mb-5 bg-indigo-50 border border-indigo-200 p-4 rounded-xl shadow-sm"><h4 class="font-bold text-indigo-900 mb-3 text-sm uppercase"><i class="fas fa-book-reader mr-2"></i> Documentos y Enlaces de Referencia</h4><div class="flex flex-wrap gap-2 text-[0.75rem]"><a href="https://drive.google.com/file/d/1it9s1F5xaFn-8-fHgpI43siIyDVEVsVA/view?usp=sharing" target="_blank" class="bg-white border border-indigo-300 text-indigo-700 px-3 py-1.5 rounded hover:bg-indigo-100 transition shadow-sm flex items-center gap-1.5"><i class="fas fa-external-link-alt"></i> Diccionario Competencias</a><a href="https://drive.google.com/file/d/1FZAR7FFl7KR7-R459XqdXei7PaiMKSgS/view?usp=sharing" target="_blank" class="bg-white border border-indigo-300 text-indigo-700 px-3 py-1.5 rounded hover:bg-indigo-100 transition shadow-sm flex items-center gap-1.5"><i class="fas fa-external-link-alt"></i> Perfiles de Cargo</a><a href="https://drive.google.com/file/d/1VTznr2sRVpojva2CcyLUe2-XHdpwMnRX/view?usp=drive_link" target="_blank" class="bg-white border border-indigo-300 text-indigo-700 px-3 py-1.5 rounded hover:bg-indigo-100 transition shadow-sm flex items-center gap-1.5"><i class="fas fa-external-link-alt"></i> Instructivo Ciclo Vida</a><a href="https://drive.google.com/file/d/1-5WRz1SnEDWsFnJCVlKQx_C9ZGzgaTII/view?usp=sharing" target="_blank" class="bg-white border border-indigo-300 text-indigo-700 px-3 py-1.5 rounded hover:bg-indigo-100 transition shadow-sm flex items-center gap-1.5"><i class="fas fa-external-link-alt"></i> Gestión Voluntariado</a></div></div>`;
+            const enlacesHtmlBlue = enlacesHtml.replace(/indigo/g, 'blue');
+
+            // Generar HTML de las tablas existentes
+            let compHTML = (a.ppf_competencias || []).map(c => `<tr><td class="border p-2 w-1/4"><select class="${clsInp} c-comp mb-2" onchange="window.actualizarNivelesYComportamientos(this)">${window.getCompetenciasOptions(c.competencia)}</select><select class="${clsInp} c-niv" style="display:${dispNiv(c.competencia)}" onchange="window.actualizarComportamientos(this)">${window.getNivelesOptions(c.nivel_comp)}</select></td><td class="border p-2 w-1/4"><select class="${clsInp} c-beh beh-select">${window.getComportamientosOptionsPre(c.competencia, c.nivel_comp, c.comportamiento)}</select></td><td class="border p-2"><textarea class="${clsInp} c-acc" rows="2">${e(c.accion)}</textarea></td><td class="border p-2"><input type="text" class="${clsInp} c-pla" value="${e(c.plazo)}"></td><td class="border p-2 text-center"><button type="button" class="bg-white border border-slate-200 text-red-500 hover:text-red-700 hover:bg-red-50 w-8 h-8 rounded-lg shadow-sm transition" onclick="this.closest('tr').remove()"><i class="fas fa-trash"></i></button></td></tr>`).join('');
+            let rutaHTML = (a.ppf_ruta_aprendizaje || []).map(r => `<tr><td class="border p-2 w-1/4"><select class="${clsInp} r-comp mb-2" onchange="window.actualizarNivelesYComportamientos(this)">${window.getCompetenciasOptions(r.competencia)}</select><select class="${clsInp} r-niv" style="display:${dispNiv(r.competencia)}" onchange="window.actualizarComportamientos(this)">${window.getNivelesOptions(r.nivel_comp)}</select></td><td class="border p-2 w-1/4"><select class="${clsInp} r-beh beh-select">${window.getComportamientosOptionsPre(r.competencia, r.nivel_comp, r.comportamiento)}</select></td><td class="border p-2"><textarea class="${clsInp} r-diag" rows="2">${e(r.diagnostico)}</textarea></td><td class="border p-2"><textarea class="${clsInp} r-res" rows="2">${e(r.resultados)}</textarea></td><td class="border p-2"><textarea class="${clsInp} r-exp" rows="2">${e(r.experiencia)}</textarea></td><td class="border p-2"><input type="text" class="${clsInp} r-plazo" value="${e(r.plazo)}"></td><td class="border p-2 text-center"><button type="button" class="bg-white border border-slate-200 text-red-500 hover:text-red-700 hover:bg-red-50 w-8 h-8 rounded-lg shadow-sm transition" onclick="this.closest('tr').remove()"><i class="fas fa-trash"></i></button></td></tr>`).join('');
+            let segHTML = (a.ppf_seguimiento || []).map(s => `<tr><td class="border p-2 w-1/4"><select class="${clsInp} s-comp mb-2" onchange="window.actualizarNivelesYComportamientos(this)">${window.getCompetenciasOptions(s.competencia)}</select><select class="${clsInp} s-niv" style="display:${dispNiv(s.competencia)}" onchange="window.actualizarComportamientos(this)">${window.getNivelesOptions(s.nivel_comp)}</select></td><td class="border p-2 w-1/4"><select class="${clsInp} s-beh beh-select">${window.getComportamientosOptionsPre(s.competencia, s.nivel_comp, s.comportamiento)}</select></td><td class="border p-2"><input type="text" class="${clsInp} s-act" value="${e(s.actividad)}"></td><td class="border p-2"><input type="text" class="${clsInp} s-ent" value="${e(s.entidad)}"></td><td class="border p-2"><input type="date" class="${clsInp} s-fec" value="${e(s.fecha)}"></td><td class="border p-2"><textarea class="${clsInp} s-com" rows="2">${e(s.comentarios)}</textarea></td><td class="border p-2 text-center"><button type="button" class="bg-white border border-slate-200 text-red-500 hover:text-red-700 hover:bg-red-50 w-8 h-8 rounded-lg shadow-sm transition" onclick="this.closest('tr').remove()"><i class="fas fa-trash"></i></button></td></tr>`).join('');
+            let funcData = a.desempeno_funciones && a.desempeno_funciones.length ? a.desempeno_funciones : [{funcion:'', tarea:''}];
+            let funcHTML = funcData.map(f => `<tr><td class="border p-2"><textarea class="${clsInp} f-fun" rows="2">${e(f.funcion)}</textarea></td><td class="border p-2"><textarea class="${clsInp} f-tar" rows="2">${e(f.tarea)}</textarea></td><td class="border p-2 text-center"><button type="button" class="bg-white border border-slate-200 text-red-500 hover:text-red-700 hover:bg-red-50 w-8 h-8 rounded-lg shadow-sm transition" onclick="this.closest('tr').remove()"><i class="fas fa-trash"></i></button></td></tr>`).join('');
+            let acontData = a.desempeno_acontecimientos && a.desempeno_acontecimientos.length ? a.desempeno_acontecimientos : window.criteriosDesempeno.map(c=>({criterio:c, nivel_comp:'', comportamiento:'', acciones:''}));
+            let acontHTML = acontData.map(ac => { const critOpts = window.getCompetenciasOptions(ac.criterio); return `<tr><td class="border p-2 w-1/4"><select class="${clsInp} ac-crit mb-2" onchange="window.actualizarNivelesYComportamientos(this)">${critOpts}</select><select class="${clsInp} ac-niv" style="display:${dispNiv(ac.criterio)}" onchange="window.actualizarComportamientos(this)">${window.getNivelesOptions(ac.nivel_comp)}</select></td><td class="border p-2 w-1/4"><select class="${clsInp} ac-beh beh-select">${window.getComportamientosOptionsPre(ac.criterio, ac.nivel_comp, ac.comportamiento)}</select></td><td class="border p-2"><textarea class="${clsInp} ac-acc" rows="2">${e(ac.acciones)}</textarea></td><td class="border p-2 text-center"><button type="button" class="bg-white border border-slate-200 text-red-500 hover:text-red-700 hover:bg-red-50 w-8 h-8 rounded-lg shadow-sm transition" onclick="this.closest('tr').remove()"><i class="fas fa-trash"></i></button></td></tr>`; }).join('');
+            let condData = a.desempeno_conductual && a.desempeno_conductual.length ? a.desempeno_conductual : window.criteriosDesempeno.map(c=>({criterio:c, nivel_comp:'', comportamiento:'', calificacion:'Nunca', observaciones:''}));
+            let condHTML = condData.map(co => { const critOpts = window.getCompetenciasOptions(co.criterio); return `<tr><td class="border p-2 w-1/4"><select class="${clsInp} co-crit mb-2" onchange="window.actualizarNivelesYComportamientos(this)">${critOpts}</select><select class="${clsInp} co-niv" style="display:${dispNiv(co.criterio)}" onchange="window.actualizarComportamientos(this)">${window.getNivelesOptions(co.nivel_comp)}</select></td><td class="border p-2 w-1/4"><select class="${clsInp} co-beh beh-select">${window.getComportamientosOptionsPre(co.criterio, co.nivel_comp, co.comportamiento)}</select></td><td class="border p-2 w-32"><select class="${clsInp} co-cal"><option ${co.calificacion==='Nunca'?'selected':''}>Nunca</option><option ${co.calificacion==='Casi nunca'?'selected':''}>Casi nunca</option><option ${co.calificacion==='A veces'?'selected':''}>A veces</option><option ${co.calificacion==='Casi siempre'?'selected':''}>Casi siempre</option><option ${co.calificacion==='Siempre'?'selected':''}>Siempre</option></select></td><td class="border p-2"><textarea class="${clsInp} co-obs" rows="2">${e(co.observaciones)}</textarea></td><td class="border p-2 text-center"><button type="button" class="bg-white border border-slate-200 text-red-500 hover:text-red-700 hover:bg-red-50 w-8 h-8 rounded-lg shadow-sm transition" onclick="this.closest('tr').remove()"><i class="fas fa-trash"></i></button></td></tr>`; }).join('');
+            let starData = a.desempeno_star && a.desempeno_star.length ? a.desempeno_star : window.criteriosDesempeno.map(c=>({criterio:c, nivel_comp:'', comportamiento:'', situacion:'', accion:'', resultado:''}));
+            let starHTML = starData.map(st => { const critOpts = window.getCompetenciasOptions(st.criterio); return `<tr><td class="border p-2 w-1/5"><select class="${clsInp} st-crit mb-2" onchange="window.actualizarNivelesYComportamientos(this)">${critOpts}</select><select class="${clsInp} st-niv" style="display:${dispNiv(st.criterio)}" onchange="window.actualizarComportamientos(this)">${window.getNivelesOptions(st.nivel_comp)}</select></td><td class="border p-2 w-1/4"><select class="${clsInp} st-beh beh-select">${window.getComportamientosOptionsPre(st.criterio, st.nivel_comp, st.comportamiento)}</select></td><td class="border p-2"><textarea class="${clsInp} st-sit" rows="2">${e(st.situacion)}</textarea></td><td class="border p-2"><textarea class="${clsInp} st-acc" rows="2">${e(st.accion)}</textarea></td><td class="border p-2"><textarea class="${clsInp} st-res" rows="2">${e(st.resultado)}</textarea></td><td class="border p-2 text-center"><button type="button" class="bg-white border border-slate-200 text-red-500 hover:text-red-700 hover:bg-red-50 w-8 h-8 rounded-lg shadow-sm transition" onclick="this.closest('tr').remove()"><i class="fas fa-trash"></i></button></td></tr>`; }).join('');
+
+            const nivOptions = ['Sin Formación', 'Básico', 'Medio', 'Avanzado', 'IM3', 'IM4'].map(n => `<option ${a.nivel_formacion===n?'selected':''}>${n}</option>`).join('');
+            
+            const certs = a.certificados_formacion || {};
+
+            const rolActual = a.roles && a.roles.length > 0 ? a.roles[0] : '';
+            const rolesList = ['Responsable de Grupo', 'Asistente de Grupo', 'Responsable de Unidad', 'Asistente de Unidad', 'Presidente/a Comité de Grupo', 'Secretario/a Comité de Grupo', 'Tesorero/a Comité de Grupo', 'Apoderado/a Representante de Rama', 'Representante Institución Patrocinante', 'Asesor/a Religioso - Espiritual', 'Delegado/a Asamblea Distrital', 'Acompañante Personal', 'Secretario/a Consejo de Grupo'];
+            let rolesOpciones = '<option value="">Seleccionar rol...</option>' + rolesList.map(r => `<option value="${r}" ${rolActual === r ? 'selected' : ''}>${r}</option>`).join('');
+            if (rolActual && !rolesList.includes(rolActual)) rolesOpciones += `<option value="${e(rolActual)}" selected>${e(rolActual)}</option>`;
+
+            const uniActual = a.unidad_rol || '';
+            const uniList = ['Grupo (Sin Unidad)', 'Bandada', 'Manada', 'Compañía', 'Tropa', 'Avanzada', 'Clan'];
+            let uniOpciones = '<option value="">Seleccionar unidad...</option>' + uniList.map(u => {
+                const match = (uniActual === u) || (u !== 'Grupo (Sin Unidad)' && uniActual.includes(u)) || (u === 'Compañía' && uniActual.includes('Compania'));
+                return `<option value="${u}" ${match ? 'selected' : ''}>${u}</option>`;
+            }).join('');
+            const uniMatched = uniList.some(u => (uniActual === u) || (u !== 'Grupo (Sin Unidad)' && uniActual.includes(u)) || (u === 'Compañía' && uniActual.includes('Compania')));
+            if (uniActual && !uniMatched) uniOpciones += `<option value="${e(uniActual)}" selected>${e(uniActual)}</option>`;
+
+            let h = `
+            <div class="edit-tab-pane active" id="edit-civil">
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <div class="space-y-6">
+                        <fieldset class="modal-edit-section border-t-4 border-blue-500"><legend><i class="fas fa-id-card mr-2 text-blue-500"></i> Identificación Civil</legend><div class="form-grid"><div class="form-item"><label>Nombres</label><input type="text" id="ea-nombres" value="${e(a.nombres)}"></div><div class="form-item"><label>Apellidos</label><input type="text" id="ea-apellidos" value="${e(a.apellidos)}"></div><div class="form-item"><label>RUN</label><input type="text" id="ea-run" value="${e(a.run)}" disabled class="bg-slate-100 cursor-not-allowed text-slate-500"></div><div class="form-item"><label>Fec. Nacimiento</label><input type="date" id="ea-fnac" value="${a.fecha_nacimiento}"></div><div class="form-item"><label>Nacionalidad</label><input type="text" id="ea-nac" value="${e(a.nacionalidad)}"></div><div class="form-item"><label>Profesión/Oficio</label><input type="text" id="ea-prof" value="${e(a.profesion)}"></div><div class="form-item full-width"><label>Domicilio Particular</label><input type="text" id="ea-dom" value="${e(a.domicilio)}"></div><div class="form-item"><label>Teléfono</label><input type="text" id="ea-tel" value="${e(a.telefono)}"></div><div class="form-item"><label>Correo Electrónico</label><input type="email" id="ea-email" value="${e(a.email)}"></div></div></fieldset>
+                        <fieldset class="modal-edit-section border-t-4 border-emerald-500"><legend><i class="fas fa-briefcase-medical mr-2 text-emerald-500"></i> Ficha Médica Base</legend><div class="form-grid"><div class="form-item"><label>Previsión</label><select id="ea-prev"><option ${a.prevision_salud==='Fonasa'?'selected':''}>Fonasa</option><option ${a.prevision_salud==='Isapre'?'selected':''}>Isapre</option><option ${a.prevision_salud==='Capredena'?'selected':''}>Capredena</option><option ${a.prevision_salud==='Dipreca'?'selected':''}>Dipreca</option><option ${a.prevision_salud==='Particular'?'selected':''}>Particular</option><option>Otra</option></select></div><div class="form-item"><label>Nombre Isapre</label><input type="text" id="ea-isa" value="${e(a.isapre_nombre)}"></div><div class="form-item"><label>Grupo Sanguíneo</label><input type="text" id="ea-sangre" value="${e(a.grupo_sanguineo)}"></div><div class="form-item full-width"><label class="text-amber-600"><i class="fas fa-exclamation-triangle"></i> Alergias Crónicas (comas)</label><input type="text" id="ea-aler" value="${e(a.alergias ? a.alergias.join(', ') : '')}" class="border-amber-300 bg-amber-50 focus:bg-white focus:ring-amber-200"></div></div></fieldset>
+                    </div>
+                    <div class="space-y-6">
+                        <fieldset class="modal-edit-section border-t-4 border-red-500"><legend><i class="fas fa-ambulance mr-2 text-red-500"></i> Contacto de Emergencia</legend><div class="form-grid bg-red-50/30"><div class="form-item full-width"><label>Nombre Completo</label><input type="text" id="ea-em-nom" value="${e(a.emergencia_nombre)}"></div><div class="form-item"><label>Parentesco / Vínculo</label><input type="text" id="ea-em-par" value="${e(a.emergencia_parentesco)}"></div><div class="form-item"><label>Teléfono de Urgencia</label><input type="text" id="ea-em-tel" value="${e(a.emergencia_telefono)}"></div></div></fieldset>
+                        <fieldset class="modal-edit-section border-t-4 border-indigo-800"><legend><i class="fas fa-building mr-2 text-indigo-700"></i> Institucional (ORI) y Roles</legend><div class="form-grid"><div class="form-item"><label>Cargo / Rol Principal</label><select id="ea-cargo" class="font-bold border-indigo-200">${rolesOpciones}</select></div><div class="form-item"><label>Unidad Asignada</label><select id="ea-uni-rol" class="font-bold border-indigo-200">${uniOpciones}</select></div><div class="form-item full-width"><label>Nivel de Formación</label><select id="ea-niv-form" class="font-bold border-indigo-200">${nivOptions}</select></div><div class="form-item full-width"><label>Fase Ciclo de Vida</label><select id="ea-fase-ciclo" class="font-bold border-blue-300 text-blue-900 bg-blue-50"><option ${a.fase_ciclo_vida==='Captación/Ingreso'?'selected':''}>Captación/Ingreso</option><option ${a.fase_ciclo_vida==='Inducción'?'selected':''}>Inducción</option><option ${a.fase_ciclo_vida==='Desempeño'?'selected':''}>Desempeño</option><option ${a.fase_ciclo_vida==='Evaluación'?'selected':''}>Evaluación</option><option ${a.fase_ciclo_vida==='Ratificación'?'selected':''}>Ratificación</option><option ${a.fase_ciclo_vida==='Reubicación'?'selected':''}>Reubicación</option><option ${a.fase_ciclo_vida==='Retiro'?'selected':''}>Retiro</option></select></div><div class="form-item full-width bg-emerald-50 p-4 rounded-xl border border-emerald-200 mt-2"><label class="flex items-center gap-3 cursor-pointer mb-0 text-emerald-900 font-bold"><input type="checkbox" id="ea-cuota" ${a.cuota_pagada?'checked':''} class="w-6 h-6 text-emerald-600 rounded"> Registro Institucional (SAS) Pagado</label></div></div></fieldset>
+                    </div>
+                </div>
+            </div>
+            <div class="edit-tab-pane" id="edit-ppf">
+                ${enlacesHtml}
+                <fieldset class="modal-edit-section border-t-4 border-indigo-500 shadow-sm"><legend><i class="fas fa-tasks text-indigo-600 mr-2"></i> Plan Personal de Formación (PPF)</legend><div class="form-grid bg-white"><div class="form-item"><label>Etapa PPF Actual</label><select id="ea-etapa-ppf" class="font-bold text-indigo-900 border-indigo-200"><option ${a.etapa_ppf==='Inicial'?'selected':''}>Inicial</option><option ${a.etapa_ppf==='En Desarrollo'?'selected':''}>En Desarrollo</option><option ${a.etapa_ppf==='Finalizando'?'selected':''}>Finalizando</option><option ${a.etapa_ppf==='No aplica'?'selected':''}>No aplica</option></select></div><div class="form-item"><label>Asesor Personal (AP)</label><input type="text" id="ea-ap" value="${e(a.ap_nombre)}"></div><div class="form-item full-width"><label>Asesor P. Formación (APF)</label><input type="text" id="ea-apf" value="${e(a.apf_nombre)}"></div><div class="form-item full-width mt-4 border-t border-slate-100 pt-6"><label class="text-indigo-800"><i class="fas fa-book-open text-slate-400 mr-1"></i> 1. Compromiso Formación (Cursos)</label><textarea id="ea-c-form" rows="2" class="border-slate-200 focus:ring-indigo-200">${e(a.compromiso_formacion)}</textarea></div><div class="form-item full-width"><label class="text-indigo-800"><i class="fas fa-campground text-slate-400 mr-1"></i> 2. Compromiso Unidad (Metas)</label><textarea id="ea-c-uni" rows="2" class="border-slate-200 focus:ring-indigo-200">${e(a.compromiso_unidad)}</textarea></div><div class="form-item full-width"><label class="text-indigo-800"><i class="fas fa-calendar-check text-slate-400 mr-1"></i> 3. Participación Asistencia</label><textarea id="ea-c-asis" rows="2" class="border-slate-200 focus:ring-indigo-200">${e(a.compromiso_asistencia)}</textarea></div><div class="form-item full-width"><label class="text-indigo-800"><i class="fas fa-user-friends text-slate-400 mr-1"></i> 4. Relación Trabajo con AP</label><textarea id="ea-c-ap" rows="2" class="border-slate-200 focus:ring-indigo-200">${e(a.compromiso_ap)}</textarea></div><div class="form-item full-width"><label class="text-indigo-800"><i class="fas fa-road text-slate-400 mr-1"></i> 5. Desarrollo General PPF</label><textarea id="ea-c-ppf" rows="2" class="border-slate-200 focus:ring-indigo-200">${e(a.compromiso_ppf)}</textarea></div><div class="form-item full-width"><label class="text-indigo-800"><i class="fas fa-clipboard-check text-slate-400 mr-1"></i> 6. Criterios Evaluación Final</label><textarea id="ea-c-eval" rows="2" class="border-slate-200 focus:ring-indigo-200">${e(a.compromiso_evaluacion)}</textarea></div><div class="form-item full-width"><label class="text-slate-500"><i class="fas fa-plus-circle mr-1"></i> 7. Otros Acuerdos Extras</label><textarea id="ea-c-otros" rows="2" class="border-slate-200">${e(a.compromiso_otros)}</textarea></div><div class="form-item full-width mt-8 border-t border-slate-200 pt-6"><div class="flex justify-between items-center mb-3"><label class="text-indigo-900 text-lg"><i class="fas fa-award text-indigo-500 mr-2"></i> Competencias a Desarrollar</label><button type="button" class="btn btn-sm btn-outline bg-white border-slate-300 shadow-sm" onclick="window.agregarFilaCompetencia()"><i class="fas fa-plus text-indigo-600"></i> Fila</button></div><div class="table-wrapper"><table class="ppf-table min-w-[900px]"><thead><tr><th>Competencia y Nivel Esperado</th><th>Comportamiento Observable</th><th>Acciones Específicas</th><th>Plazo</th><th class="w-12"></th></tr></thead><tbody id="tbody-competencias">${compHTML}</tbody></table></div></div><div class="form-item full-width mt-6"><div class="flex justify-between items-center mb-3"><label class="text-indigo-900 text-lg"><i class="fas fa-map-signs text-indigo-500 mr-2"></i> Ruta de Aprendizaje (Anexo 2)</label><button type="button" class="btn btn-sm btn-outline bg-white border-slate-300 shadow-sm" onclick="window.agregarFilaRutaAprendizaje()"><i class="fas fa-plus text-indigo-600"></i> Fila</button></div><div class="table-wrapper"><table class="ppf-table min-w-[1000px]"><thead><tr><th>Competencia y Nivel Esperado</th><th>Comportamiento Observable</th><th>Diagnóstico</th><th>Resultados</th><th>Experiencia</th><th>Plazo</th><th class="w-12"></th></tr></thead><tbody id="tbody-ruta">${rutaHTML}</tbody></table></div></div><div class="form-item full-width mt-6"><div class="flex justify-between items-center mb-3"><label class="text-indigo-900 text-lg"><i class="fas fa-list-ol text-indigo-500 mr-2"></i> Seguimiento Experiencias (Anexo 2)</label><button type="button" class="btn btn-sm btn-outline bg-white border-slate-300 shadow-sm" onclick="window.agregarFilaSeguimiento()"><i class="fas fa-plus text-indigo-600"></i> Fila</button></div><div class="table-wrapper"><table class="ppf-table min-w-[1000px]"><thead><tr><th>Competencia y Nivel Esperado</th><th>Comportamiento Observable</th><th>Actividad</th><th>Lugar</th><th>Fecha</th><th>Comentarios</th><th class="w-12"></th></tr></thead><tbody id="tbody-seguimiento">${segHTML}</tbody></table></div></div></div></fieldset>
+
+                <fieldset class="modal-edit-section border-t-4 border-amber-500 shadow-sm mt-6"><legend><i class="fas fa-certificate text-amber-500 mr-2"></i> Certificaciones por Nivel (URLs)</legend><div class="form-grid bg-white"><div class="form-item"><label>Certificado Ingreso</label><input type="text" id="ea-cert-ingreso" value="${e(certs.ingreso || '')}" placeholder="URL Google Drive/PDF"></div><div class="form-item"><label>Certificado Básico</label><input type="text" id="ea-cert-basico" value="${e(certs.basico || '')}" placeholder="URL Google Drive/PDF"></div><div class="form-item"><label>Certificado Medio</label><input type="text" id="ea-cert-medio" value="${e(certs.medio || '')}" placeholder="URL Google Drive/PDF"></div><div class="form-item"><label>Certificado IM (Avanzado)</label><input type="text" id="ea-cert-avanzado" value="${e(certs.avanzado || '')}" placeholder="URL Google Drive/PDF"></div><div class="form-item"><label>Certificado IM3</label><input type="text" id="ea-cert-im3" value="${e(certs.im3 || '')}" placeholder="URL Google Drive/PDF"></div><div class="form-item"><label>Certificado IM4</label><input type="text" id="ea-cert-im4" value="${e(certs.im4 || '')}" placeholder="URL Google Drive/PDF"></div></div></fieldset>
+            </div>
+            <div class="edit-tab-pane" id="edit-desempeno">
+                ${enlacesHtmlBlue}
+                <fieldset class="modal-edit-section border-t-4 border-blue-600 shadow-sm"><legend><i class="fas fa-chart-line mr-2 text-blue-600"></i> Formulario de Gestión del Desempeño</legend><div class="form-grid bg-white"><div class="form-item full-width"><div class="flex justify-between items-center mb-3"><label class="text-blue-900 text-lg">Funciones y Tareas</label><button type="button" class="btn btn-sm btn-outline bg-white border-slate-300 shadow-sm" onclick="window.agregarFilaFunciones()"><i class="fas fa-plus text-blue-600"></i> Fila</button></div><div class="table-wrapper"><table class="ppf-table"><thead><tr><th>Función</th><th>Tarea(s)</th><th class="w-12"></th></tr></thead><tbody id="tbody-funciones">${funcHTML}</tbody></table></div></div><div class="form-item full-width mt-6"><div class="flex justify-between items-center mb-3"><label class="text-blue-900 text-lg">Acontecimientos Relevantes</label><button type="button" class="btn btn-sm btn-outline bg-white border-slate-300 shadow-sm" onclick="window.agregarFilaAcont()"><i class="fas fa-plus text-blue-600"></i> Fila</button></div><div class="table-wrapper"><table class="ppf-table min-w-[900px]"><thead><tr><th class="w-1/4">Criterio/Competencia y Nivel</th><th class="w-1/4">Comportamiento Asignado</th><th>Acciones Observadas</th><th class="w-12"></th></tr></thead><tbody id="tbody-acont">${acontHTML}</tbody></table></div></div><div class="form-item full-width mt-6"><div class="flex justify-between items-center mb-3"><label class="text-blue-900 text-lg">Calificación Conductual</label><button type="button" class="btn btn-sm btn-outline bg-white border-slate-300 shadow-sm" onclick="window.agregarFilaCond()"><i class="fas fa-plus text-blue-600"></i> Fila</button></div><div class="table-wrapper"><table class="ppf-table min-w-[1000px]"><thead><tr><th class="w-1/5">Criterio/Competencia y Nivel</th><th class="w-1/4">Comportamiento Observado</th><th class="w-40">Calificación</th><th>Observaciones</th><th class="w-12"></th></tr></thead><tbody id="tbody-cond">${condHTML}</tbody></table></div></div><div class="form-item full-width mt-6"><div class="flex justify-between items-center mb-3"><label class="text-blue-900 text-lg">Entrevista STAR</label><button type="button" class="btn btn-sm btn-outline bg-white border-slate-300 shadow-sm" onclick="window.agregarFilaStar()"><i class="fas fa-plus text-blue-600"></i> Fila</button></div><div class="table-wrapper"><table class="ppf-table min-w-[1100px]"><thead><tr><th class="w-1/5">Competencia Observada y Nivel</th><th class="w-1/4">Comportamiento Observable</th><th class="w-1/5">Situación/Tarea</th><th class="w-1/5">Acción</th><th>Resultado</th><th class="w-12"></th></tr></thead><tbody id="tbody-star">${starHTML}</tbody></table></div></div></div></fieldset>
+            </div>`;
+            document.getElementById('modal-edit-adult-content').innerHTML = h;
+            document.getElementById('modal-editar-adulto').classList.add('active');
+        };
+
+        window.agregarFilaCompetencia = function() { const tr=document.createElement('tr'); tr.innerHTML=`<td class="border p-2 w-1/4"><select class="${clsInp} c-comp mb-2" onchange="window.actualizarNivelesYComportamientos(this)">${window.getCompetenciasOptions('')}</select><select class="${clsInp} c-niv" style="display:none" onchange="window.actualizarComportamientos(this)">${window.getNivelesOptions('')}</select></td><td class="border p-2 w-1/4"><select class="${clsInp} c-beh beh-select"><option value="">Seleccione competencia...</option></select></td><td class="border p-2"><textarea class="${clsInp} c-acc" rows="2"></textarea></td><td class="border p-2"><input type="text" class="${clsInp} c-pla"></td><td class="border p-2 text-center"><button type="button" class="bg-white border border-slate-200 text-red-500 hover:text-red-700 hover:bg-red-50 w-8 h-8 rounded-lg shadow-sm transition" onclick="this.closest('tr').remove()"><i class="fas fa-trash"></i></button></td>`; document.getElementById('tbody-competencias').appendChild(tr); };
+        window.agregarFilaRutaAprendizaje = function() { const tr=document.createElement('tr'); tr.innerHTML=`<td class="border p-2 w-1/4"><select class="${clsInp} r-comp mb-2" onchange="window.actualizarNivelesYComportamientos(this)">${window.getCompetenciasOptions('')}</select><select class="${clsInp} r-niv" style="display:none" onchange="window.actualizarComportamientos(this)">${window.getNivelesOptions('')}</select></td><td class="border p-2 w-1/4"><select class="${clsInp} r-beh beh-select"><option value="">Seleccione competencia...</option></select></td><td class="border p-2"><textarea class="${clsInp} r-diag" rows="2"></textarea></td><td class="border p-2"><textarea class="${clsInp} r-res" rows="2"></textarea></td><td class="border p-2"><textarea class="${clsInp} r-exp" rows="2"></textarea></td><td class="border p-2"><input type="text" class="${clsInp} r-plazo"></td><td class="border p-2 text-center"><button type="button" class="bg-white border border-slate-200 text-red-500 hover:text-red-700 hover:bg-red-50 w-8 h-8 rounded-lg shadow-sm transition" onclick="this.closest('tr').remove()"><i class="fas fa-trash"></i></button></td>`; document.getElementById('tbody-ruta').appendChild(tr); };
+        window.agregarFilaSeguimiento = function() { const tr=document.createElement('tr'); tr.innerHTML=`<td class="border p-2 w-1/4"><select class="${clsInp} s-comp mb-2" onchange="window.actualizarNivelesYComportamientos(this)">${window.getCompetenciasOptions('')}</select><select class="${clsInp} s-niv" style="display:none" onchange="window.actualizarComportamientos(this)">${window.getNivelesOptions('')}</select></td><td class="border p-2 w-1/4"><select class="${clsInp} s-beh beh-select"><option value="">Seleccione competencia...</option></select></td><td class="border p-2"><input type="text" class="${clsInp} s-act"></td><td class="border p-2"><input type="text" class="${clsInp} s-ent"></td><td class="border p-2"><input type="date" class="${clsInp} s-fec"></td><td class="border p-2"><textarea class="${clsInp} s-com" rows="2"></textarea></td><td class="border p-2 text-center"><button type="button" class="bg-white border border-slate-200 text-red-500 hover:text-red-700 hover:bg-red-50 w-8 h-8 rounded-lg shadow-sm transition" onclick="this.closest('tr').remove()"><i class="fas fa-trash"></i></button></td>`; document.getElementById('tbody-seguimiento').appendChild(tr); };
+        window.agregarFilaFunciones = function() { const tr=document.createElement('tr'); tr.innerHTML=`<td class="border p-2"><textarea class="${clsInp} f-fun" rows="2"></textarea></td><td class="border p-2"><textarea class="${clsInp} f-tar" rows="2"></textarea></td><td class="border p-2 text-center"><button type="button" class="bg-white border border-slate-200 text-red-500 hover:text-red-700 hover:bg-red-50 w-8 h-8 rounded-lg shadow-sm transition" onclick="this.closest('tr').remove()"><i class="fas fa-trash"></i></button></td>`; document.getElementById('tbody-funciones').appendChild(tr); };
+        window.agregarFilaAcont = function() { const tr=document.createElement('tr'); const critOpts = window.getCompetenciasOptions(''); tr.innerHTML=`<td class="border p-2 w-1/4"><select class="${clsInp} ac-crit mb-2" onchange="window.actualizarNivelesYComportamientos(this)">${critOpts}</select><select class="${clsInp} ac-niv" style="display:none" onchange="window.actualizarComportamientos(this)">${window.getNivelesOptions('')}</select></td><td class="border p-2 w-1/4"><select class="${clsInp} ac-beh beh-select"><option value="">Seleccione competencia...</option></select></td><td class="border p-2"><textarea class="${clsInp} ac-acc" rows="2"></textarea></td><td class="border p-2 text-center"><button type="button" class="bg-white border border-slate-200 text-red-500 hover:text-red-700 hover:bg-red-50 w-8 h-8 rounded-lg shadow-sm transition" onclick="this.closest('tr').remove()"><i class="fas fa-trash"></i></button></td>`; document.getElementById('tbody-acont').appendChild(tr); };
+        window.agregarFilaCond = function() { const tr=document.createElement('tr'); const critOpts = window.getCompetenciasOptions(''); tr.innerHTML=`<td class="border p-2 w-1/4"><select class="${clsInp} co-crit mb-2" onchange="window.actualizarNivelesYComportamientos(this)">${critOpts}</select><select class="${clsInp} co-niv" style="display:none" onchange="window.actualizarComportamientos(this)">${window.getNivelesOptions('')}</select></td><td class="border p-2 w-1/4"><select class="${clsInp} co-beh beh-select"><option value="">Seleccione competencia...</option></select></td><td class="border p-2 w-32"><select class="${clsInp} co-cal"><option>Nunca</option><option>Casi nunca</option><option>A veces</option><option>Casi siempre</option><option>Siempre</option></select></td><td class="border p-2"><textarea class="${clsInp} co-obs" rows="2"></textarea></td><td class="border p-2 text-center"><button type="button" class="bg-white border border-slate-200 text-red-500 hover:text-red-700 hover:bg-red-50 w-8 h-8 rounded-lg shadow-sm transition" onclick="this.closest('tr').remove()"><i class="fas fa-trash"></i></button></td>`; document.getElementById('tbody-cond').appendChild(tr); };
+        window.agregarFilaStar = function() { const tr=document.createElement('tr'); const critOpts = window.getCompetenciasOptions(''); tr.innerHTML=`<td class="border p-2 w-1/5"><select class="${clsInp} st-crit mb-2" onchange="window.actualizarNivelesYComportamientos(this)">${critOpts}</select><select class="${clsInp} st-niv" style="display:none" onchange="window.actualizarComportamientos(this)">${window.getNivelesOptions('')}</select></td><td class="border p-2 w-1/4"><select class="${clsInp} st-beh beh-select"><option value="">Seleccione competencia...</option></select></td><td class="border p-2"><textarea class="${clsInp} st-sit" rows="2"></textarea></td><td class="border p-2"><textarea class="${clsInp} st-acc" rows="2"></textarea></td><td class="border p-2"><textarea class="${clsInp} st-res" rows="2"></textarea></td><td class="border p-2 text-center"><button type="button" class="bg-white border border-slate-200 text-red-500 hover:text-red-700 hover:bg-red-50 w-8 h-8 rounded-lg shadow-sm transition" onclick="this.closest('tr').remove()"><i class="fas fa-trash"></i></button></td>`; document.getElementById('tbody-star').appendChild(tr); };
+        
+        window.guardarEdicionAdulto = async function(event) {
+            if (!window.currentEditAdultoId) return;
+            const getVal = (tr, sel) => { const el = tr.querySelector(sel); return (el && el.style.display !== 'none') ? el.value.trim() : ''; };
+            const compRows = Array.from(document.querySelectorAll('#tbody-competencias tr')).map(tr => ({ competencia: getVal(tr,'.c-comp'), nivel_comp: getVal(tr,'.c-niv'), comportamiento: getVal(tr,'.c-beh'), accion: getVal(tr,'.c-acc'), plazo: getVal(tr,'.c-pla') })).filter(r => r.competencia);
+            const rutaRows = Array.from(document.querySelectorAll('#tbody-ruta tr')).map(tr => ({ competencia: getVal(tr,'.r-comp'), nivel_comp: getVal(tr,'.r-niv'), comportamiento: getVal(tr,'.r-beh'), diagnostico: getVal(tr,'.r-diag'), resultados: getVal(tr,'.r-res'), experiencia: getVal(tr,'.r-exp'), plazo: getVal(tr,'.r-plazo') })).filter(r => r.competencia);
+            const segRows = Array.from(document.querySelectorAll('#tbody-seguimiento tr')).map(tr => ({ competencia: getVal(tr,'.s-comp'), nivel_comp: getVal(tr,'.s-niv'), comportamiento: getVal(tr,'.s-beh'), actividad: getVal(tr,'.s-act'), entidad: getVal(tr,'.s-ent'), fecha: getVal(tr,'.s-fec'), comentarios: getVal(tr,'.s-com') })).filter(r => r.competencia);
+            const funcRows = Array.from(document.querySelectorAll('#tbody-funciones tr')).map(tr => ({ funcion: getVal(tr,'.f-fun'), tarea: getVal(tr,'.f-tar') })).filter(r => r.funcion);
+            const acontRows = Array.from(document.querySelectorAll('#tbody-acont tr')).map(tr => ({ criterio: getVal(tr,'.ac-crit'), nivel_comp: getVal(tr,'.ac-niv'), comportamiento: getVal(tr,'.ac-beh'), acciones: getVal(tr,'.ac-acc') })).filter(r => r.criterio);
+            const condRows = Array.from(document.querySelectorAll('#tbody-cond tr')).map(tr => ({ criterio: getVal(tr,'.co-crit'), nivel_comp: getVal(tr,'.co-niv'), comportamiento: getVal(tr,'.co-beh'), calificacion: getVal(tr,'.co-cal'), observaciones: getVal(tr,'.co-obs') })).filter(r => r.criterio);
+            const starRows = Array.from(document.querySelectorAll('#tbody-star tr')).map(tr => ({ criterio: getVal(tr,'.st-crit'), nivel_comp: getVal(tr,'.st-niv'), comportamiento: getVal(tr,'.st-beh'), situacion: getVal(tr,'.st-sit'), accion: getVal(tr,'.st-acc'), resultado: getVal(tr,'.st-res') })).filter(r => r.criterio);
+            
+            const certificados_formacion = {
+                ingreso: document.getElementById('ea-cert-ingreso').value.trim(),
+                basico: document.getElementById('ea-cert-basico').value.trim(),
+                medio: document.getElementById('ea-cert-medio').value.trim(),
+                avanzado: document.getElementById('ea-cert-avanzado').value.trim(),
+                im3: document.getElementById('ea-cert-im3').value.trim(),
+                im4: document.getElementById('ea-cert-im4').value.trim()
+            };
+
+            const payload = {
+                nombres: document.getElementById('ea-nombres').value.trim(), apellidos: document.getElementById('ea-apellidos').value.trim(),
+                fecha_nacimiento: document.getElementById('ea-fnac').value || null, nacionalidad: document.getElementById('ea-nac').value.trim(),
+                profesion: document.getElementById('ea-prof').value.trim(), domicilio: document.getElementById('ea-dom').value.trim(),
+                telefono: document.getElementById('ea-tel').value.trim(), email: document.getElementById('ea-email').value.trim(),
+                emergencia_nombre: document.getElementById('ea-em-nom').value.trim(), emergencia_parentesco: document.getElementById('ea-em-par').value.trim(),
+                emergencia_telefono: document.getElementById('ea-em-tel').value.trim(), prevision_salud: document.getElementById('ea-prev').value,
+                isapre_nombre: document.getElementById('ea-isa').value.trim(), grupo_sanguineo: document.getElementById('ea-sangre').value,
+                alergias: document.getElementById('ea-aler').value.split(',').map(s=>s.trim()).filter(s=>s),
+                fase_ciclo_vida: document.getElementById('ea-fase-ciclo').value, etapa_ppf: document.getElementById('ea-etapa-ppf').value,
+                ap_nombre: document.getElementById('ea-ap').value.trim(), apf_nombre: document.getElementById('ea-apf').value.trim(),
+                compromiso_formacion: document.getElementById('ea-c-form').value.trim(), compromiso_unidad: document.getElementById('ea-c-uni').value.trim(),
+                compromiso_asistencia: document.getElementById('ea-c-asis').value.trim(), compromiso_ap: document.getElementById('ea-c-ap').value.trim(),
+                compromiso_ppf: document.getElementById('ea-c-ppf').value.trim(), compromiso_evaluacion: document.getElementById('ea-c-eval').value.trim(),
+                compromiso_otros: document.getElementById('ea-c-otros').value.trim(), ppf_competencias: compRows, ppf_ruta_aprendizaje: rutaRows,
+                ppf_seguimiento: segRows, desempeno_funciones: funcRows, desempeno_acontecimientos: acontRows, desempeno_conductual: condRows,
+                desempeno_star: starRows, unidad_rol: document.getElementById('ea-uni-rol').value.trim(),
+                roles: document.getElementById('ea-cargo').value ? [document.getElementById('ea-cargo').value.trim()] : [],
+                nivel_formacion: document.getElementById('ea-niv-form').value, cuota_pagada: document.getElementById('ea-cuota').checked,
+                certificados_formacion: certificados_formacion
+            };
+            try {
+                let btn = event.currentTarget; btn.dataset.originalText = btn.innerHTML; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sincronizando...'; btn.disabled = true;
+                const { error } = await window.supabaseClient.from('adultos_registros').update(payload).eq('id', window.currentEditAdultoId);
+                if (error) throw error;
+                const index = window.padronAdultos.findIndex(a => a.id === window.currentEditAdultoId);
+                if (index !== -1) { Object.assign(window.padronAdultos[index], payload); window.padronAdultos[index].nombreCompleto = `${payload.nombres} ${payload.apellidos}`; window.renderAdultProfile(window.padronAdultos[index]); }
+                window.cerrarModalEditarAdulto(); window.renderAdultList(); window.mostrarNotificacion('exito', 'Expediente actualizado en la BD.');
+                btn.disabled = false; btn.innerHTML = btn.dataset.originalText;
+
+                // ── Notificaciones por correo (máx 1 vez por dirigente por día, guardado en Supabase) ──
+                const CC_ADMINS = 'responsable@salvadorsanfuentes.org,asistente@salvadorsanfuentes.org,guiasyscouts@salvadorsanfuentes.org';
+                const { data: notifExiste } = await window.supabaseClient
+                    .from('notificaciones_enviadas')
+                    .select('id')
+                    .eq('tipo', 'expediente_adulto')
+                    .eq('referencia_id', String(window.currentEditAdultoId))
+                    .eq('fecha', new Date().toISOString().slice(0,10))
+                    .maybeSingle();
+                if (notifExiste) {
+                    // Ya se notificó hoy — no repetir
+                } else {
+                    await window.supabaseClient.from('notificaciones_enviadas').insert({
+                        tipo: 'expediente_adulto',
+                        referencia_id: String(window.currentEditAdultoId),
+                        fecha: new Date().toISOString().slice(0,10)
+                    }).then(() => {});
+                const nombreCompleto = `${payload.nombres} ${payload.apellidos}`;
+                const fecha = new Date().toLocaleString('es-CL');
+                const htmlBase = (titulo, intro) => `<!DOCTYPE html><html><body style="margin:0;padding:26px;background:#f4f7f9;font-family:Arial,sans-serif"><div style="max-width:520px;margin:auto;background:white;border-radius:13px;overflow:hidden;box-shadow:0 4px 16px rgba(0,0,0,0.08)"><div style="background:linear-gradient(135deg,#0E2586,#1a36a8);padding:20px;text-align:center"><img src="https://i.imgur.com/11u9rUD.png" style="height:42px;margin-bottom:7px"><p style="color:rgba(255,255,255,0.8);font-size:0.8rem;margin:0">Grupo Guías y Scouts Salvador Sanfuentes</p></div><div style="padding:24px;font-size:0.88rem;line-height:1.8;color:#2d3748"><h3 style="color:#0E2586;margin-top:0">${titulo}</h3>${intro}<table style="width:100%;border-collapse:collapse;margin-top:12px"><tr style="background:#f0f4ff"><td style="padding:8px;font-weight:bold">Nombre</td><td style="padding:8px">${nombreCompleto}</td></tr><tr><td style="padding:8px;font-weight:bold">Email</td><td style="padding:8px">${payload.email||'No registrado'}</td></tr><tr style="background:#f0f4ff"><td style="padding:8px;font-weight:bold">Teléfono</td><td style="padding:8px">${payload.telefono||'No registrado'}</td></tr><tr><td style="padding:8px;font-weight:bold">Unidad / Rol</td><td style="padding:8px">${payload.unidad_rol||'No especificado'}</td></tr><tr style="background:#f0f4ff"><td style="padding:8px;font-weight:bold">Nivel formación</td><td style="padding:8px">${payload.nivel_formacion||'No especificado'}</td></tr></table><p style="margin-top:20px;color:#718096;font-size:0.82rem">Actualizado el ${fecha}<br><strong style="color:#0E2586">ERP Scout · Grupo Salvador Sanfuentes</strong></p></div></div><script>if('serviceWorker' in navigator){navigator.serviceWorker.register('/sw.js').catch(()=>{});}</script>
+</body></html>`;
+
+                // 1. Correo al propio dirigente
+                if (payload.email) {
+                    fetch('https://hyixmaxhoxvamoecuars.supabase.co/functions/v1/send-email', {method:'POST',headers:{'Content-Type':'application/json','apikey':'sb_publishable_JW9Y4kz_Wiy6e1E1KdzAyQ_PBbWUf6t'},body:JSON.stringify({
+                        to_email: payload.email,
+                        subject: `✅ Tu expediente ha sido actualizado — ${nombreCompleto}`,
+                        html_content: htmlBase('Expediente actualizado', `<p>Hola <strong>${payload.nombres}</strong>, confirmamos que tu expediente de dirigente ha sido actualizado correctamente en el sistema.</p>`)
+                    })}).catch(() => {});
+                }
+
+                // 2. Correo a los administradores
+                fetch('https://hyixmaxhoxvamoecuars.supabase.co/functions/v1/send-email', {method:'POST',headers:{'Content-Type':'application/json','apikey':'sb_publishable_JW9Y4kz_Wiy6e1E1KdzAyQ_PBbWUf6t'},body:JSON.stringify({
+                    to_email: CC_ADMINS,
+                    subject: `📋 Expediente modificado — ${nombreCompleto}`,
+                    html_content: htmlBase('Expediente de dirigente modificado', `<p>Se ha actualizado el expediente del siguiente dirigente en el sistema ERP Scout.</p>`)
+                })}).catch(() => {});
+                } // fin else throttle
+            } catch (e) { console.error(e); window.mostrarNotificacion('error', 'Error al guardar los datos.'); if(btn) { btn.disabled = false; btn.innerHTML = btn.dataset.originalText; } }
+        };
+
+        // ================= REPORTE PDF MEJORADO =================
+        window.imprimirExpedienteAdulto = function(id) {
+            const a = window.padronAdultos.find(x => x.id === id);
+            if (!a) return;
+            const e = window.escapeHtml;
+            const w = window.open('', '_blank');
+            
+            const formatArray = (arr) => arr && arr.length ? arr.map(item => `<li>${e(item)}</li>`).join('') : '<li>No registrado</li>';
+            
+            const competenciasHtml = (a.ppf_competencias && a.ppf_competencias.length) ? 
+                a.ppf_competencias.map(c => `<tr><td><strong>${e(c.competencia)}</strong><br><small>${e(c.nivel_comp)}</small></td><td>${e(c.comportamiento)}</td><td>${e(c.accion)}</td><td>${e(c.plazo)}</td></tr>`).join('') :
+                '<tr><td colspan="4">No hay competencias registradas</td></tr>';
+            
+            const rutaHtml = (a.ppf_ruta_aprendizaje && a.ppf_ruta_aprendizaje.length) ?
+                a.ppf_ruta_aprendizaje.map(r => `<tr><td><strong>${e(r.competencia)}</strong><br><small>${e(r.nivel_comp)}</small></td><td>${e(r.comportamiento)}</td><td>${e(r.diagnostico)}</td><td>${e(r.resultados)}</td><td>${e(r.experiencia)}</td><td>${e(r.plazo)}</td></tr>`).join('') :
+                '<tr><td colspan="6">No hay ruta de aprendizaje</td></tr>';
+            
+            const seguimientoHtml = (a.ppf_seguimiento && a.ppf_seguimiento.length) ?
+                a.ppf_seguimiento.map(s => `<tr><td><strong>${e(s.competencia)}</strong><br><small>${e(s.nivel_comp)}</small></td><td>${e(s.comportamiento)}</td><td>${e(s.actividad)}</td><td>${e(s.entidad)}</td><td>${e(s.fecha)}</td><td>${e(s.comentarios)}</td></tr>`).join('') :
+                '<tr><td colspan="6">No hay seguimiento</td></tr>';
+            
+            const funcionesHtml = (a.desempeno_funciones && a.desempeno_funciones.length) ?
+                a.desempeno_funciones.map(f => `<tr><td>${e(f.funcion)}</td><td>${e(f.tarea)}</td></tr>`).join('') :
+                '<tr><td colspan="2">Sin funciones definidas</td></tr>';
+            
+            const acontHtml = (a.desempeno_acontecimientos && a.desempeno_acontecimientos.length) ?
+                a.desempeno_acontecimientos.map(ac => `<tr><td><strong>${e(ac.criterio)}</strong><br><small>${e(ac.nivel_comp)}</small></td><td>${e(ac.comportamiento)}</td><td>${e(ac.acciones)}</td></tr>`).join('') :
+                '<tr><td colspan="3">No hay acontecimientos</td></tr>';
+            
+            const conductualHtml = (a.desempeno_conductual && a.desempeno_conductual.length) ?
+                a.desempeno_conductual.map(co => `<tr><td><strong>${e(co.criterio)}</strong><br><small>${e(co.nivel_comp)}</small></td><td>${e(co.comportamiento)}</td><td>${e(co.calificacion)}</td><td>${e(co.observaciones)}</td></tr>`).join('') :
+                '<tr><td colspan="4">Sin evaluación conductual</td></tr>';
+            
+            const starHtml = (a.desempeno_star && a.desempeno_star.length) ?
+                a.desempeno_star.map(st => `<tr><td><strong>${e(st.criterio)}</strong><br><small>${e(st.nivel_comp)}</small></td><td>${e(st.comportamiento)}</td><td>${e(st.situacion)}</td><td>${e(st.accion)}</td><td>${e(st.resultado)}</td></tr>`).join('') :
+                '<tr><td colspan="5">Sin entrevista STAR</td></tr>';
+            
+            const certificadosHtml = `
+                <tr><td>Certificado de Antecedentes</td><td>${a.cert_antecedentes_url ? `<a href="${a.cert_antecedentes_url}" target="_blank">Ver documento</a>` : 'No adjuntado'}</td></tr>
+                <tr><td>Certificado de Inhabilidad (Menores)</td><td>${a.cert_inhabilidad_url ? `<a href="${a.cert_inhabilidad_url}" target="_blank">Ver documento</a>` : 'No adjuntado'}</td></tr>
+                <tr><td>Certificado Inhabilidad Maltrato Relevante</td><td>${a.cert_inhabilidad_relevante_url ? `<a href="${a.cert_inhabilidad_relevante_url}" target="_blank">Ver documento</a>` : 'No adjuntado'}</td></tr>
+            `;
+
+            let badgeImgUrl = 'https://i.imgur.com/75Pkg1G.png';
+            if (a.nivel_formacion === 'Básico') badgeImgUrl = 'https://i.imgur.com/Doq2Vak.png';
+            else if (a.nivel_formacion === 'Medio') badgeImgUrl = 'https://i.imgur.com/z0zOKwF.png';
+            else if (a.nivel_formacion === 'Avanzado') badgeImgUrl = 'https://i.imgur.com/kZhPHVF.jpeg';
+            else if (a.nivel_formacion === 'IM3') badgeImgUrl = 'https://i.imgur.com/IjZ6pzf.jpeg';
+            else if (a.nivel_formacion === 'IM4') badgeImgUrl = 'https://i.imgur.com/AOwrUX8.jpeg';
+
+            const certs = a.certificados_formacion || {};
+            const certsFormacionHtml = `
+                <tr><td>Certificado Etapa Ingreso</td><td>${certs.ingreso ? `<a href="${e(certs.ingreso)}" target="_blank">Ver documento</a>` : 'No adjuntado'}</td></tr>
+                <tr><td>Certificado Nivel Básico</td><td>${certs.basico ? `<a href="${e(certs.basico)}" target="_blank">Ver documento</a>` : 'No adjuntado'}</td></tr>
+                <tr><td>Certificado Nivel Medio</td><td>${certs.medio ? `<a href="${e(certs.medio)}" target="_blank">Ver documento</a>` : 'No adjuntado'}</td></tr>
+                <tr><td>Certificado N. Avanzado (IM)</td><td>${certs.avanzado ? `<a href="${e(certs.avanzado)}" target="_blank">Ver documento</a>` : 'No adjuntado'}</td></tr>
+                <tr><td>Certificado IM3</td><td>${certs.im3 ? `<a href="${e(certs.im3)}" target="_blank">Ver documento</a>` : 'No adjuntado'}</td></tr>
+                <tr><td>Certificado IM4</td><td>${certs.im4 ? `<a href="${e(certs.im4)}" target="_blank">Ver documento</a>` : 'No adjuntado'}</td></tr>
+            `;
+            
+            const doc = `
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <meta charset="UTF-8">
+                <title>Expediente Completo - ${e(a.nombreCompleto)}</title>
+                <style>
+                    body { font-family: 'Poppins', 'Segoe UI', Arial, sans-serif; margin: 0; padding: 30px; color: #1e293b; font-size: 11pt; line-height: 1.4; }
+                    .doc-header { text-align: center; margin-bottom: 25px; border-bottom: 3px solid #1e3a8a; padding-bottom: 15px; }
+                    .doc-header img { max-width: 100px; height: auto; margin-bottom: 10px; }
+                    .doc-header h1 { font-size: 24pt; color: #1e3a8a; margin: 0; font-weight: 800; text-transform: uppercase; }
+                    h2 { font-size: 16pt; color: #1e3a8a; border-bottom: 2px solid #e2e8f0; margin-top: 25px; margin-bottom: 12px; padding-bottom: 4px; }
+                    h3 { font-size: 13pt; color: #334155; margin: 15px 0 8px; }
+                    .foto { text-align: center; margin-bottom: 20px; }
+                    .foto img { max-width: 180px; border-radius: 12px; border: 2px solid #1e3a8a; box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
+                    .datos-personales { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; background: #f8fafc; padding: 15px; border-radius: 12px; margin-bottom: 20px; }
+                    .info-item { background: white; padding: 8px 12px; border-radius: 8px; border-left: 4px solid #3b82f6; }
+                    .info-item strong { display: block; font-size: 9pt; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px; }
+                    .info-item span { font-weight: 600; font-size: 11pt; }
+                    table { width: 100%; border-collapse: collapse; margin: 15px 0; font-size: 10pt; }
+                    th, td { border: 1px solid #cbd5e1; padding: 8px 10px; text-align: left; vertical-align: top; }
+                    th { background: #f1f5f9; font-weight: 700; color: #1e3a8a; }
+                    .certificados-table td:first-child { font-weight: 600; background: #f8fafc; width: 40%; }
+                    .footer { margin-top: 30px; text-align: center; font-size: 8pt; color: #94a3b8; border-top: 1px solid #e2e8f0; padding-top: 15px; }
+                    @media print { body { padding: 0; margin: 0.5cm; } .no-break { page-break-inside: avoid; } }
+                </style>
+                <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#0E2586">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="ERP Scout">
+</head>
+            <body>
+                <div class="doc-header">
+                    <img src="https://i.imgur.com/11u9rUD.png" alt="Logo Grupo Salvador Sanfuentes" onerror="this.src='https://via.placeholder.com/100x100/1e3a8a/ffffff?text=Logo+Grupo'">
+                    <h1>Expediente Institucional</h1>
+                    <p style="margin: 5px 0 0 0; color: #64748b; font-size: 12pt; font-weight: 600;">Grupo Guía y Scouts Salvador Sanfuentes</p>
+                </div>
+                <div class="foto"><img src="${a.foto_url}" alt="Foto del dirigente" onerror="this.src='https://ui-avatars.com/api/?name=${encodeURIComponent(a.nombreCompleto)}&background=1e3a8a&color=fff&bold=true'"></div>
+                
+                <h2>Datos Personales</h2>
+                <div class="datos-personales">
+                    <div class="info-item"><strong>Nombre completo</strong><span>${e(a.nombreCompleto)}</span></div>
+                    <div class="info-item"><strong>RUN</strong><span>${e(a.run)}</span></div>
+                    <div class="info-item"><strong>Fecha Nacimiento</strong><span>${e(a.fecha_nacimiento)} (${a.edad} años)</span></div>
+                    <div class="info-item"><strong>Nacionalidad</strong><span>${e(a.nacionalidad)}</span></div>
+                    <div class="info-item"><strong>Profesión/Oficio</strong><span>${e(a.profesion || 'No especificada')}</span></div>
+                    <div class="info-item"><strong>Teléfono</strong><span>${e(a.telefono)}</span></div>
+                    <div class="info-item"><strong>Email</strong><span>${e(a.email)}</span></div>
+                    <div class="info-item"><strong>Domicilio</strong><span>${e(a.domicilio)}</span></div>
+                    <div class="info-item"><strong>Disponibilidad</strong><span>${e(a.disponibilidad || 'No especificada')}</span></div>
+                </div>
+
+                <h2>Nivel de Formación y Certificaciones</h2>
+                <div style="display: flex; align-items: center; gap: 20px; background: #f8fafc; padding: 15px; border-radius: 12px; margin-bottom: 20px; border: 1px solid #e2e8f0;">
+                    <img src="${badgeImgUrl}" style="width: 80px; height: 80px; object-fit: cover; border-radius: 50%; border: 2px solid #1e3a8a; background: white; padding: 4px;" alt="Insignia Nivel">
+                    <div>
+                        <h3 style="margin: 0 0 5px 0; color: #1e3a8a;">Nivel Actual: ${e(a.nivel_formacion)}</h3>
+                        <p style="margin: 0; font-size: 10pt; color: #64748b;">Ruta de progresión de formación para adultos en el Movimiento Scout.</p>
+                    </div>
+                </div>
+                <table class="certificados-table">${certsFormacionHtml}</table>
+
+                <h2>Ficha Médica y Contacto de Emergencia</h2>
+                <table>
+                    <tr><th>Previsión de Salud</th><td>${e(a.prevision_salud || 'No registra')} ${a.isapre_nombre ? '('+e(a.isapre_nombre)+')' : ''}</td></tr>
+                    <tr><th>Grupo Sanguíneo</th><td>${e(a.grupo_sanguineo || 'Desconocido')}</td></tr>
+                    <tr><th>Alergias / Condiciones</th><td>${a.alergias && a.alergias.length ? a.alergias.map(alg=>e(alg)).join(', ') : 'Ninguna declarada'}</td></tr>
+                    <tr><th>Contacto Emergencia</th><td>${e(a.emergencia_nombre || 'No registra')} (${e(a.emergencia_parentesco || '')})<br>Tel: ${e(a.emergencia_telefono)} ${a.emergencia_email ? ' | Email: '+e(a.emergencia_email) : ''}</td></tr>
+                </table>
+                <h2>Datos Institucionales</h2>
+                <table>
+                    <tr><th>Fase Ciclo de Vida</th><td>${e(a.fase_ciclo_vida || 'Captación/Ingreso')}</td></tr>
+                    <tr><th>Unidad Asignada</th><td>${e(a.unidad_rol)}</td></tr>
+                    <tr><th>Cuota Anual Pagada</th><td>${a.cuota_pagada ? 'Sí' : 'No'}</td></tr>
+                </table>
+                <h2>Documentos VCM</h2>
+                <table class="certificados-table">${certificadosHtml}</table>
+                <h2>Formación y Acuerdos PPF</h2>
+                <table>
+                    <tr><th>Asesor Personal (AP)</th><td>${e(a.ap_nombre || 'No asignado')}</td></tr>
+                    <tr><th>Asesor P. Formación (APF)</th><td>${e(a.apf_nombre || 'No asignado')}</td></tr>
+                    <tr><th>Etapa PPF</th><td>${e(a.etapa_ppf)}</td></tr>
+                    <tr><th>1. Formación Institucional</th><td>${e(a.compromiso_formacion || 'Sin redactar')}</td></tr>
+                    <tr><th>2. Trabajo en la Unidad</th><td>${e(a.compromiso_unidad || 'Sin redactar')}</td></tr>
+                    <tr><th>3. Asistencia a Actividades</th><td>${e(a.compromiso_asistencia || 'Sin redactar')}</td></tr>
+                    <tr><th>4. Relación con el AP</th><td>${e(a.compromiso_ap || 'Sin redactar')}</td></tr>
+                    <tr><th>5. Desarrollo de la PPF</th><td>${e(a.compromiso_ppf || 'Sin redactar')}</td></tr>
+                    <tr><th>6. Evaluación Final</th><td>${e(a.compromiso_evaluacion || 'Sin redactar')}</td></tr>
+                    <tr><th>7. Otros Acuerdos</th><td>${e(a.compromiso_otros || 'Sin registrar')}</td></tr>
+                </table>
+                <h3>Competencias a Desarrollar</h3>
+                <table><thead><tr><th>Competencia (Nivel)</th><th>Comportamiento</th><th>Acciones</th><th>Plazo</th></tr></thead><tbody>${competenciasHtml}</tbody></table>
+                <h3>Ruta de Aprendizaje</h3>
+                <table><thead><tr><th>Competencia (Nivel)</th><th>Comportamiento</th><th>Diagnóstico</th><th>Resultados Esperados</th><th>Experiencia</th><th>Plazo</th></tr></thead><tbody>${rutaHtml}</tbody></table>
+                <h3>Seguimiento de Experiencias</h3>
+                <table><thead><tr><th>Competencia (Nivel)</th><th>Comportamiento</th><th>Actividad</th><th>Entidad/Lugar</th><th>Fecha</th><th>Comentarios</th></tr></thead><tbody>${seguimientoHtml}</tbody></table>
+                <h2>Gestión del Desempeño</h2>
+                <h3>Funciones y Tareas</h3>
+                <table><thead><tr><th>Función</th><th>Tareas</th></tr></thead><tbody>${funcionesHtml}</tbody></table>
+                <h3>Acontecimientos Relevantes</h3>
+                <table><thead><tr><th>Criterio / Competencia (Nivel)</th><th>Comportamiento Asignado</th><th>Acciones Observadas</th></tr></thead><tbody>${acontHtml}</tbody></table>
+                <h3>Calificación Conductual</h3>
+                <table><thead><tr><th>Criterio / Competencia (Nivel)</th><th>Comportamiento Observado</th><th>Calificación</th><th>Observaciones</th></tr></thead><tbody>${conductualHtml}</tbody></table>
+                <h3>Entrevista STAR</h3>
+                <table><thead><tr><th>Competencia (Nivel)</th><th>Comportamiento</th><th>Situación/Tarea</th><th>Acción</th><th>Resultado</th></tr></thead><tbody>${starHtml}</tbody></table>
+                <div class="footer">Documento generado desde ERP Scout - Grupo Guía y Scouts Salvador Sanfuentes<br>Fecha de impresión: ${new Date().toLocaleString('es-CL')}</div>
+            <script>if('serviceWorker' in navigator){navigator.serviceWorker.register('/sw.js').catch(()=>{});}</script>
+</body>
+            </html>`;
+            w.document.write(doc);
+            w.document.close();
+            setTimeout(() => { w.print(); }, 1000);
+        };
+
+        window.onload = () => { window.cargarAdultos(); };
+    </script>
+<script>if('serviceWorker' in navigator){navigator.serviceWorker.register('/sw.js').catch(()=>{});}</script>
+</body>
+</html>

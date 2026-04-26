@@ -1,0 +1,578 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Inventario del Grupo — ERP Scout</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
+
+        /* ── Paleta institucional unificada ── */
+        :root {
+            --azul-profundo: #0E2586;
+            --marron-oscuro: #4E110B;
+            --gris-fondo: #f4f7f9;
+            --gris-claro: #e2e8f0;
+            --blanco: #ffffff;
+            --texto-oscuro: #2d3748;
+            --texto-claro: #718096;
+            --border-color: #cbd5e0;
+            --amarillo: #FFD100;
+            --verde-tropa: #00853F;
+            --rojo-caminantes: #E31837;
+            --azul-pioneros: #0055A5;
+            --success: #2ecc71;
+            --warning: #f39c12;
+            --danger: #e74c3c;
+            --info: #3498db;
+        }
+        *{margin:0;padding:0;box-sizing:border-box;font-family:'Poppins',sans-serif;}
+        body{background:var(--gris-fondo);min-height:100vh;color:var(--texto-oscuro);}
+
+        .topbar{background:linear-gradient(135deg,var(--azul-profundo),#1a36a8);color:white;padding:14px 22px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;}
+        .topbar h1{font-size:1.05rem;font-weight:600;flex:1;}
+        .content{max-width:1180px;margin:0 auto;padding:18px 14px 60px;}
+
+        .stats-row{display:grid;grid-template-columns:repeat(6,1fr);gap:10px;margin-bottom:16px;}
+        .stat{background:var(--blanco);border-radius:11px;padding:12px 14px;text-align:center;box-shadow:0 2px 7px rgba(0,0,0,0.05);border:1px solid var(--gris-claro);}
+        .stat .n{font-size:1.5rem;font-weight:700;line-height:1;color:var(--azul-profundo);}
+        .stat .l{font-size:0.72rem;color:var(--texto-claro);margin-top:2px;}
+        .stat.vd .n{color:var(--success);}
+        .stat.na .n{color:var(--warning);}
+        .stat.r .n{color:var(--danger);}
+        .stat.gr .n{color:var(--texto-claro);}
+        .stat.mo .n{color:var(--rojo-caminantes);}
+
+        .toolbar-row{display:flex;gap:9px;margin-bottom:14px;flex-wrap:wrap;align-items:center;}
+        .toolbar-row input,.toolbar-row select{padding:9px 12px;border:1px solid var(--border-color);border-radius:8px;font-size:0.86rem;outline:none;font-family:inherit;transition:0.18s;background:var(--blanco);color:var(--texto-oscuro);}
+        .toolbar-row input:focus,.toolbar-row select:focus{border-color:var(--azul-profundo);box-shadow:0 0 0 3px rgba(14,37,134,0.1);}
+
+        .btn{padding:9px 16px;border:none;border-radius:8px;font-size:0.85rem;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:6px;transition:0.18s;font-family:inherit;}
+        .btn-p{background:var(--azul-profundo);color:white;}
+        .btn-p:hover{background:#1a36a8;transform:translateY(-1px);box-shadow:0 4px 10px rgba(14,37,134,0.25);}
+        .btn-v{background:var(--success);color:white;}.btn-v:hover{background:#2ecc71;}
+        .btn-r{background:var(--danger);color:white;}.btn-r:hover{background:#d9453a;}
+        .btn-mo{background:var(--rojo-caminantes);color:white;}.btn-mo:hover{background:#b91230;}
+        .btn-topbar{background:rgba(255,255,255,0.15);color:white;border:1px solid rgba(255,255,255,0.25);}
+        .btn-topbar:hover{background:rgba(255,255,255,0.25);}
+        .btn-sm{padding:5px 10px;font-size:0.78rem;}
+
+        .tabla-wrap{background:var(--blanco);border-radius:12px;box-shadow:0 2px 10px rgba(0,0,0,0.06);overflow:hidden;border:1px solid var(--gris-claro);}
+        table{width:100%;border-collapse:collapse;}
+        thead th{background:var(--gris-fondo);padding:10px 14px;text-align:left;font-size:0.74rem;color:var(--texto-claro);text-transform:uppercase;letter-spacing:0.4px;font-weight:700;border-bottom:1px solid var(--gris-claro);white-space:nowrap;}
+        tbody td{padding:10px 14px;font-size:0.85rem;border-bottom:1px solid var(--gris-fondo);vertical-align:middle;color:var(--texto-oscuro);}
+        tbody tr:last-child td{border-bottom:none;}
+        tbody tr:hover{background:#fafbff;}
+        tbody tr.prestado{background:#fef9e7;}
+        tbody tr.prestado:hover{background:#fef3c7;}
+
+        .editable{border:none;background:transparent;font-size:0.85rem;font-family:inherit;width:100%;outline:none;color:var(--texto-oscuro);cursor:text;padding:3px 5px;border-radius:4px;transition:0.14s;}
+        .editable:focus{background:#f0f7ff;box-shadow:inset 0 0 0 1px var(--azul-profundo);}
+        .editable-num{width:80px;}
+
+        select.cel-select{border:none;background:transparent;font-size:0.85rem;font-family:inherit;outline:none;cursor:pointer;padding:3px 5px;border-radius:4px;width:100%;color:var(--texto-oscuro);transition:0.14s;}
+        select.cel-select:focus{background:#f0f7ff;box-shadow:inset 0 0 0 1px var(--azul-profundo);}
+
+        .badge-prestamo{display:inline-block;padding:3px 10px;border-radius:14px;font-size:0.71rem;font-weight:700;background:#fef3c7;color:#78350f;border:1px solid var(--amarillo);cursor:pointer;}
+        .badge-disponible{display:inline-block;padding:3px 10px;border-radius:14px;font-size:0.71rem;font-weight:700;background:rgba(0,133,63,0.1);color:var(--verde-tropa);border:1px solid rgba(0,133,63,0.3);}
+
+        .empty{text-align:center;padding:36px;color:var(--texto-claro);}
+        .empty i{font-size:2rem;margin-bottom:9px;display:block;color:var(--gris-claro);}
+
+        /* Modal */
+        .modal-overlay{display:none;position:fixed;inset:0;background:rgba(14,37,134,0.35);z-index:999;align-items:center;justify-content:center;backdrop-filter:blur(3px);}
+        .modal-overlay.show{display:flex;}
+        .modal-box{background:var(--blanco);border-radius:14px;padding:24px;width:90%;max-width:520px;box-shadow:0 15px 40px rgba(0,0,0,0.2);max-height:88vh;overflow-y:auto;}
+        .modal-box h3{font-size:1.05rem;font-weight:700;color:var(--azul-profundo);margin-bottom:18px;display:flex;align-items:center;gap:8px;}
+        .mfg{display:flex;flex-direction:column;gap:5px;margin-bottom:11px;}
+        .mfg label{font-size:0.79rem;font-weight:600;color:var(--texto-oscuro);}
+        .mfg input,.mfg select,.mfg textarea{padding:9px 12px;border:1px solid var(--border-color);border-radius:8px;font-size:0.88rem;font-family:inherit;outline:none;transition:0.16s;color:var(--texto-oscuro);background:var(--blanco);}
+        .mfg input:focus,.mfg select:focus,.mfg textarea:focus{border-color:var(--azul-profundo);box-shadow:0 0 0 3px rgba(14,37,134,0.1);}
+        .mfg-row{display:grid;grid-template-columns:1fr 1fr;gap:9px;}
+        .modal-btns{display:flex;gap:8px;justify-content:flex-end;margin-top:14px;}
+        .btn-cancel{background:var(--gris-fondo);color:var(--texto-oscuro);border:1px solid var(--border-color);}
+        .btn-cancel:hover{background:var(--gris-claro);}
+
+        .prestamo-info{background:#fef9e7;border:1px solid var(--amarillo);border-radius:9px;padding:10px 13px;font-size:0.82rem;color:#78350f;margin-bottom:12px;display:flex;gap:8px;align-items:flex-start;}
+        .prestamo-info i{color:#d97706;flex-shrink:0;margin-top:2px;}
+
+        @media(max-width:720px){
+            .stats-row{grid-template-columns:repeat(3,1fr);}
+            thead th:nth-child(n+5),tbody td:nth-child(n+5){display:none;}
+            thead th:last-child,tbody td:last-child{display:table-cell;}
+        }
+    </style>
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#0E2586">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="ERP Scout">
+</head>
+<body>
+
+<div class="topbar">
+    <i class="fas fa-boxes-stacked" style="font-size:1.3rem;color:var(--amarillo)"></i>
+    <h1>Inventario del Grupo</h1>
+    <button class="btn btn-p btn-sm" onclick="document.getElementById('modalNuevo').classList.add('show')"><i class="fas fa-plus"></i> Nuevo ítem</button>
+    <button class="btn btn-topbar btn-sm" onclick="exportarCSV()"><i class="fas fa-file-csv"></i> Exportar</button>
+    <button class="btn btn-topbar btn-sm" onclick="cargar()" title="Actualizar"><i class="fas fa-sync-alt"></i></button>
+</div>
+
+<div class="content">
+    <div class="stats-row">
+        <div class="stat"><div class="n" id="stTotal">—</div><div class="l">Ítems</div></div>
+        <div class="stat vd"><div class="n" id="stBueno">—</div><div class="l">Buen estado</div></div>
+        <div class="stat na"><div class="n" id="stDeter">—</div><div class="l">Deteriorados</div></div>
+        <div class="stat r"><div class="n" id="stRep">—</div><div class="l">Reparación</div></div>
+        <div class="stat mo"><div class="n" id="stPrest">—</div><div class="l">Prestados</div></div>
+        <div class="stat gr"><div class="n" id="stValor">—</div><div class="l">Valor total</div></div>
+    </div>
+
+    <div class="toolbar-row">
+        <input type="text" id="buscar" placeholder="Buscar producto, responsable o ubicación..." oninput="filtrar()" style="flex:1;min-width:200px">
+        <select id="filtCat" onchange="filtrar()">
+            <option value="">Todas las categorías</option>
+            <option value="Campamento">Campamento</option>
+            <option value="Cocina">Cocina</option>
+            <option value="Uniformes">Uniformes</option>
+            <option value="Herramientas">Herramientas</option>
+            <option value="Actividades">Actividades</option>
+            <option value="Documentos">Documentos</option>
+            <option value="General">General</option>
+        </select>
+        <select id="filtEst" onchange="filtrar()">
+            <option value="">Todos los estados</option>
+            <option value="bueno">Bueno</option>
+            <option value="deteriorado">Deteriorado</option>
+            <option value="reparacion">En reparación</option>
+            <option value="extraviado">Extraviado</option>
+        </select>
+        <select id="filtUnid" onchange="filtrar()">
+            <option value="">Todas las unidades</option>
+            <option value="Grupo">Grupo</option>
+            <option value="Bandada">Bandada</option>
+            <option value="Manada">Manada</option>
+            <option value="Tropa">Tropa</option>
+            <option value="Compañía">Compañía</option>
+            <option value="Avanzada">Avanzada</option>
+            <option value="Clan">Clan</option>
+        </select>
+        <select id="filtPrest" onchange="filtrar()">
+            <option value="">Todos los préstamos</option>
+            <option value="disponible">Solo disponibles</option>
+            <option value="prestado">Solo prestados</option>
+        </select>
+    </div>
+
+    <div class="tabla-wrap">
+        <table>
+            <thead>
+                <tr>
+                    <th>Producto</th>
+                    <th>Cantidad</th>
+                    <th>Préstamo</th>
+                    <th>Categoría</th>
+                    <th>Unidad</th>
+                    <th>Estado</th>
+                    <th>Responsable</th>
+                    <th>Ubicación</th>
+                    <th>Valor CLP</th>
+                    <th>Acción</th>
+                </tr>
+            </thead>
+            <tbody id="tbody">
+                <tr><td colspan="10"><div class="empty"><i class="fas fa-circle-notch fa-spin"></i>Cargando inventario...</div></td></tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- MODAL NUEVO ÍTEM -->
+<div class="modal-overlay" id="modalNuevo">
+    <div class="modal-box">
+        <h3><i class="fas fa-plus-circle"></i> Agregar ítem al inventario</h3>
+        <div class="mfg"><label>Producto</label><input type="text" id="nProd" placeholder="Ej: Carpa 4 personas, Cuerda 20m, Hacha..."></div>
+        <div class="mfg-row">
+            <div class="mfg"><label>Cantidad disponible</label><input type="number" id="nCantTotal" value="1" min="1"></div>
+            <div class="mfg"><label>Unidad / detalle</label><input type="text" id="nCantTxt" value="unidades" placeholder="Ej: unidades, metros, pares..."></div>
+        </div>
+        <div class="mfg-row">
+            <div class="mfg"><label>Categoría</label>
+                <select id="nCat"><option value="Campamento">Campamento</option><option value="Cocina">Cocina</option><option value="Uniformes">Uniformes</option><option value="Herramientas">Herramientas</option><option value="Actividades">Actividades</option><option value="Documentos">Documentos</option><option value="General" selected>General</option></select>
+            </div>
+            <div class="mfg"><label>Estado</label>
+                <select id="nEstado"><option value="bueno">Bueno</option><option value="deteriorado">Deteriorado</option><option value="reparacion">En reparación</option></select>
+            </div>
+        </div>
+
+        <!-- DISTRIBUCIÓN ENTRE UNIDADES -->
+        <div class="mfg">
+            <label style="display:flex;align-items:center;justify-content:space-between">
+                <span>Distribución entre unidades</span>
+                <span style="font-size:0.72rem;color:var(--texto-claro);font-weight:400">Total: <strong id="nDistTotal" style="color:var(--azul-profundo)">0</strong> / <span id="nDistMax">0</span></span>
+            </label>
+            <div id="nDistBox" style="background:#f8fafc;border:1px solid var(--gris-claro);border-radius:8px;padding:10px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:7px">
+                <label style="font-size:0.78rem;display:flex;align-items:center;gap:5px">Bandada <input type="number" min="0" value="0" class="dist-inp" data-unidad="Bandada" style="width:55px;padding:4px 6px;border:1px solid var(--gris-claro);border-radius:5px"></label>
+                <label style="font-size:0.78rem;display:flex;align-items:center;gap:5px">Manada <input type="number" min="0" value="0" class="dist-inp" data-unidad="Manada" style="width:55px;padding:4px 6px;border:1px solid var(--gris-claro);border-radius:5px"></label>
+                <label style="font-size:0.78rem;display:flex;align-items:center;gap:5px">Tropa <input type="number" min="0" value="0" class="dist-inp" data-unidad="Tropa" style="width:55px;padding:4px 6px;border:1px solid var(--gris-claro);border-radius:5px"></label>
+                <label style="font-size:0.78rem;display:flex;align-items:center;gap:5px">Compañía <input type="number" min="0" value="0" class="dist-inp" data-unidad="Compañía" style="width:55px;padding:4px 6px;border:1px solid var(--gris-claro);border-radius:5px"></label>
+                <label style="font-size:0.78rem;display:flex;align-items:center;gap:5px">Avanzada <input type="number" min="0" value="0" class="dist-inp" data-unidad="Avanzada" style="width:55px;padding:4px 6px;border:1px solid var(--gris-claro);border-radius:5px"></label>
+                <label style="font-size:0.78rem;display:flex;align-items:center;gap:5px">Clan <input type="number" min="0" value="0" class="dist-inp" data-unidad="Clan" style="width:55px;padding:4px 6px;border:1px solid var(--gris-claro);border-radius:5px"></label>
+                <label style="font-size:0.78rem;display:flex;align-items:center;gap:5px;grid-column:span 3">Grupo (general) <input type="number" min="0" value="0" class="dist-inp" data-unidad="Grupo" style="width:70px;padding:4px 6px;border:1px solid var(--gris-claro);border-radius:5px"> <span style="font-size:0.7rem;color:var(--texto-claro);margin-left:auto">Ítems compartidos por todo el grupo</span></label>
+            </div>
+        </div>
+
+        <div class="mfg-row">
+            <div class="mfg"><label>Responsable</label><input type="text" id="nResp" placeholder="Nombre"></div>
+            <div class="mfg"><label>Ubicación</label><input type="text" id="nUbic" placeholder="Bodega, Sala, Caja 3..."></div>
+        </div>
+        <div class="mfg-row">
+            <div class="mfg"><label>Valor CLP</label><input type="number" id="nValor" value="0" min="0"></div>
+            <div class="mfg"><label>Fecha adquisición</label><input type="date" id="nFecha"></div>
+        </div>
+        <div class="modal-btns">
+            <button class="btn btn-cancel btn-sm" onclick="document.getElementById('modalNuevo').classList.remove('show')">Cancelar</button>
+            <button class="btn btn-v btn-sm" onclick="agregarItem()"><i class="fas fa-plus"></i> Agregar</button>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL PRÉSTAMOS ACTIVOS -->
+<div class="modal-overlay" id="modalPrestamos">
+    <div class="modal-box" style="max-width:620px">
+        <h3><i class="fas fa-handshake"></i> Préstamos activos — <span id="prestItemNombre">—</span></h3>
+        <div class="prestamo-info"><i class="fas fa-info-circle"></i><span>Eventos que tienen prestada parte de este ítem. Puedes devolver cada préstamo desde aquí.</span></div>
+        <div id="prestListaBody"><div class="empty"><i class="fas fa-circle-notch fa-spin"></i>Cargando...</div></div>
+        <div class="modal-btns">
+            <button class="btn btn-cancel btn-sm" onclick="document.getElementById('modalPrestamos').classList.remove('show')">Cerrar</button>
+        </div>
+    </div>
+</div>
+
+<script>
+(async()=>{
+    const SURL='https://hyixmaxhoxvamoecuars.supabase.co';
+    const SKEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imh5aXhtYXhob3h2YW1vZWN1YXJzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI3OTg1NDMsImV4cCI6MjA4ODM3NDU0M30.ZLeJIWdip2f00h4TqkZH7eqMX4wpwphaqkJpAa0N0X4';
+    const db=supabase.createClient(SURL,SKEY);
+    let todosItems=[];
+
+    window.cargar=async function(){
+        const{data,error}=await db.from('inventario_grupo').select('*').order('categoria').order('producto');
+        if(error){document.getElementById('tbody').innerHTML=`<tr><td colspan="10"><div class="empty"><i class="fas fa-exclamation-triangle" style="color:var(--danger)"></i>${error.message}</div></td></tr>`;return;}
+        todosItems=(data||[]).map(r=>({...r}));
+        actualizarStats();
+        renderTabla(todosItems);
+    };
+
+    function actualizarStats(){
+        document.getElementById('stTotal').textContent=todosItems.length;
+        document.getElementById('stBueno').textContent=todosItems.filter(i=>i.estado==='bueno').length;
+        document.getElementById('stDeter').textContent=todosItems.filter(i=>i.estado==='deteriorado').length;
+        document.getElementById('stRep').textContent=todosItems.filter(i=>i.estado==='reparacion').length;
+        document.getElementById('stPrest').textContent=todosItems.filter(i=>(i.cantidad_prestada||0)>0).length;
+        const val=todosItems.reduce((s,i)=>s+(parseFloat(i.valor_estimado)||0),0);
+        document.getElementById('stValor').textContent='$'+val.toLocaleString('es-CL');
+    }
+
+    function renderTabla(lista){
+        if(!lista.length){document.getElementById('tbody').innerHTML='<tr><td colspan="10"><div class="empty"><i class="fas fa-box-open"></i>Sin ítems en el inventario.</div></td></tr>';return;}
+        document.getElementById('tbody').innerHTML=lista.map(item=>{
+            const total=item.cantidad_total||1;
+            const prestada=item.cantidad_prestada||0;
+            const disp=total-prestada;
+            const filaCls=prestada>0?'prestado':'';
+            const prestamoBadge=prestada>0
+                ? `<span class="badge-prestamo" onclick="verPrestamos('${item.id}','${esc(item.producto)}')" title="Ver préstamos activos"><i class="fas fa-handshake"></i> ${prestada}/${total} prestada${prestada>1?'s':''}</span>`
+                : `<span class="badge-disponible"><i class="fas fa-check"></i> ${disp} disp.</span>`;
+            return`<tr class="${filaCls}">
+                <td><input class="editable" value="${esc(item.producto||'')}" onchange="update('${item.id}','producto',this.value)"></td>
+                <td>
+                    <div style="display:flex;gap:4px;align-items:center">
+                        <input class="editable editable-num" value="${total}" type="number" min="0" onchange="update('${item.id}','cantidad_total',parseInt(this.value)||0)" title="Cantidad total">
+                        <span style="font-size:0.78rem;color:var(--texto-claro)">${esc(item.cantidad||'')}</span>
+                    </div>
+                </td>
+                <td>${prestamoBadge}</td>
+                <td><select class="cel-select" onchange="update('${item.id}','categoria',this.value)">
+                    ${['Campamento','Cocina','Uniformes','Herramientas','Actividades','Documentos','General'].map(c=>`<option ${item.categoria===c?'selected':''}>${c}</option>`).join('')}
+                </select></td>
+                <td>${renderDistribucion(item)}</td>
+                <td><select class="cel-select" onchange="update('${item.id}','estado',this.value)">
+                    ${['bueno','deteriorado','reparacion','extraviado'].map(e=>`<option value="${e}" ${item.estado===e?'selected':''}>${{bueno:'Bueno',deteriorado:'Deteriorado',reparacion:'En reparación',extraviado:'Extraviado'}[e]}</option>`).join('')}
+                </select></td>
+                <td><input class="editable" value="${esc(item.responsable||'')}" onchange="update('${item.id}','responsable',this.value)"></td>
+                <td><input class="editable" value="${esc(item.ubicacion||'')}" onchange="update('${item.id}','ubicacion',this.value)"></td>
+                <td><input class="editable editable-num" value="${item.valor_estimado||''}" type="number" onchange="update('${item.id}','valor_estimado',parseFloat(this.value)||0)"></td>
+                <td>
+                    ${prestada>0?`<button class="btn btn-mo btn-sm" onclick="verPrestamos('${item.id}','${esc(item.producto)}')" title="Ver préstamos"><i class="fas fa-handshake"></i></button> `:''}
+                    <button class="btn btn-r btn-sm" onclick="eliminar('${item.id}',${prestada})" title="Eliminar"><i class="fas fa-trash"></i></button>
+                </td>
+            </tr>`;
+        }).join('');
+    }
+
+    function esc(s){return String(s||'').replace(/"/g,'&quot;').replace(/</g,'&lt;');}
+
+    // ── Render de la columna "Distribución" con badges por unidad ──
+    const COLORES_UNIDAD = {
+        Bandada: '#4169E1', Manada: '#FFD100', Tropa: '#00853F',
+        Compañía: '#40E0D0', Avanzada: '#8B5CF6', Clan: '#E31837',
+        Caminantes: '#E31837', Grupo: '#0E2586'
+    };
+    function renderDistribucion(item){
+        const dist = textoADistribucion(item.unidad_responsable);
+        const entries = Object.entries(dist).filter(([_, n]) => n !== 0);
+        if(!entries.length){
+            return `<button class="btn btn-sm" style="background:#f1f5f9;color:#64748b;border:1px dashed #cbd5e1;font-size:0.72rem;padding:4px 8px" onclick="abrirEditarDistribucion('${item.id}')"><i class="fas fa-plus"></i> Asignar</button>`;
+        }
+        const badges = entries.map(([u, n]) => {
+            const color = COLORES_UNIDAD[u] || '#64748b';
+            const txtColor = (u==='Manada' || u==='Bandada') ? '#4E110B' : 'white';
+            return `<span style="display:inline-block;padding:2px 7px;border-radius:10px;background:${color};color:${txtColor};font-size:0.7rem;font-weight:700;margin:1px">${n !== null ? n+' · ' : ''}${u}</span>`;
+        }).join('');
+        return `<div style="display:flex;flex-wrap:wrap;gap:2px;align-items:center">
+            ${badges}
+            <button onclick="abrirEditarDistribucion('${item.id}')" title="Editar distribución" style="background:none;border:none;color:#64748b;cursor:pointer;font-size:0.76rem;margin-left:3px"><i class="fas fa-edit"></i></button>
+        </div>`;
+    }
+
+    // ── Modal para editar la distribución de un ítem existente ──
+    window.abrirEditarDistribucion = function(itemId){
+        const item = todosItems.find(i => String(i.id) === String(itemId));
+        if(!item) return;
+        const dist = textoADistribucion(item.unidad_responsable);
+        const total = item.cantidad_total || 1;
+
+        const existente = document.getElementById('modalEditDist');
+        if(existente) existente.remove();
+
+        const modal = document.createElement('div');
+        modal.id = 'modalEditDist';
+        modal.className = 'modal-overlay show';
+        const unidades = ['Bandada','Manada','Tropa','Compañía','Avanzada','Clan','Grupo'];
+        modal.innerHTML = `
+            <div class="modal-box">
+                <h3><i class="fas fa-share-nodes" style="color:var(--azul-claro)"></i> Distribuir "${esc(item.producto)}"</h3>
+                <p style="font-size:0.82rem;color:var(--texto-claro);margin-bottom:13px">Reparte las <strong>${total}</strong> unidades disponibles entre las unidades del grupo:</p>
+                <div id="editDistBox" style="background:#f8fafc;border:1px solid var(--gris-claro);border-radius:8px;padding:12px;display:grid;grid-template-columns:1fr 1fr;gap:9px">
+                    ${unidades.map(u => {
+                        const color = COLORES_UNIDAD[u] || '#64748b';
+                        const val = typeof dist[u] === 'number' ? dist[u] : 0;
+                        return `<label style="display:flex;align-items:center;justify-content:space-between;gap:7px;padding:6px 10px;background:white;border-radius:6px;border-left:3px solid ${color}">
+                            <span style="font-size:0.82rem;font-weight:600">${u}</span>
+                            <input type="number" min="0" value="${val}" class="edit-dist-inp" data-unidad="${u}" style="width:65px;padding:4px 7px;border:1px solid var(--gris-claro);border-radius:5px;text-align:center">
+                        </label>`;
+                    }).join('')}
+                </div>
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-top:11px;font-size:0.82rem;color:var(--texto-claro)">
+                    <span>Total repartido: <strong id="editDistTotal" style="color:var(--azul-profundo)">0</strong> / ${total}</span>
+                    <span id="editDistWarn" style="color:#dc2626;font-weight:600;display:none"><i class="fas fa-exclamation-triangle"></i> Excede el total</span>
+                </div>
+                <div class="modal-btns">
+                    <button class="btn btn-cancel btn-sm" onclick="document.getElementById('modalEditDist').remove()">Cancelar</button>
+                    <button class="btn btn-v btn-sm" onclick="guardarDistribucion('${itemId}')"><i class="fas fa-save"></i> Guardar</button>
+                </div>
+            </div>`;
+        document.body.appendChild(modal);
+
+        const recalc = () => {
+            const inputs = modal.querySelectorAll('.edit-dist-inp');
+            const sum = Array.from(inputs).reduce((s,i) => s + (parseInt(i.value)||0), 0);
+            document.getElementById('editDistTotal').textContent = sum;
+            document.getElementById('editDistWarn').style.display = sum > total ? 'inline' : 'none';
+            document.getElementById('editDistTotal').style.color = sum > total ? '#dc2626' : (sum === total ? '#16a34a' : 'var(--azul-profundo)');
+        };
+        modal.addEventListener('input', recalc);
+        recalc();
+    };
+
+    window.guardarDistribucion = async function(itemId){
+        const modal = document.getElementById('modalEditDist');
+        if(!modal) return;
+        const item = todosItems.find(i => String(i.id) === String(itemId));
+        if(!item) return;
+        const total = item.cantidad_total || 1;
+
+        const dist = {};
+        modal.querySelectorAll('.edit-dist-inp').forEach(inp => {
+            const n = parseInt(inp.value) || 0;
+            if(n > 0) dist[inp.dataset.unidad] = n;
+        });
+        const sum = Object.values(dist).reduce((s,n)=>s+n, 0);
+        if(sum > total){
+            return alert(`La distribución (${sum}) supera la cantidad total disponible (${total}). Ajusta los números.`);
+        }
+
+        const nuevoValor = distribucionATexto(dist) || 'DIST:{}';
+        await db.from('inventario_grupo').update({ unidad_responsable: nuevoValor }).eq('id', itemId);
+        item.unidad_responsable = nuevoValor;
+        modal.remove();
+        filtrar();
+    };
+
+    window.update=async function(id,field,value){
+        await db.from('inventario_grupo').update({[field]:value}).eq('id',id);
+        const item=todosItems.find(i=>String(i.id)===String(id));
+        if(item)item[field]=value;
+        actualizarStats();filtrar();
+    };
+
+    window.eliminar=async function(id,prestada){
+        if(prestada>0){alert('Este ítem tiene préstamos activos. Devuélvelos primero antes de eliminar.');return;}
+        if(!confirm('¿Eliminar este ítem del inventario?'))return;
+        await db.from('inventario_grupo').delete().eq('id',id);
+        todosItems=todosItems.filter(i=>String(i.id)!==String(id));
+        actualizarStats();filtrar();
+    };
+
+    // Helper: leer inputs de distribución
+    function leerDistribucion(){
+        const dist = {};
+        document.querySelectorAll('#nDistBox .dist-inp').forEach(inp => {
+            const n = parseInt(inp.value) || 0;
+            if(n > 0) dist[inp.dataset.unidad] = n;
+        });
+        return dist;
+    }
+    // Helper: serializar a texto legible para unidad_responsable
+    function distribucionATexto(dist){
+        if(!dist || !Object.keys(dist).length) return null;
+        return 'DIST:' + JSON.stringify(dist);
+    }
+    // Helper: leer desde texto guardado (retrocompatible con strings planos)
+    function textoADistribucion(txt){
+        if(!txt) return {};
+        if(txt.startsWith('DIST:')){
+            try { return JSON.parse(txt.slice(5)); } catch(e){ return {}; }
+        }
+        // Formato antiguo: "Tropa" → {Tropa: cantidad_total}
+        return { [txt]: null };
+    }
+
+    // Recalcula el total distribuido y muestra el "Cantidad disponible" como límite
+    function actualizarTotalesDist(){
+        const total = Array.from(document.querySelectorAll('#nDistBox .dist-inp'))
+            .reduce((s,i) => s + (parseInt(i.value)||0), 0);
+        const max = parseInt(document.getElementById('nCantTotal').value) || 0;
+        const elTotal = document.getElementById('nDistTotal');
+        const elMax = document.getElementById('nDistMax');
+        elTotal.textContent = total;
+        elMax.textContent = max;
+        elTotal.style.color = total > max ? '#dc2626' : (total === max ? '#16a34a' : 'var(--azul-profundo)');
+    }
+    // Listener global sobre el box de distribución
+    document.getElementById('nDistBox').addEventListener('input', actualizarTotalesDist);
+    document.getElementById('nCantTotal').addEventListener('input', actualizarTotalesDist);
+
+    window.agregarItem=async function(){
+        const prod=document.getElementById('nProd').value.trim();
+        if(!prod)return alert('El nombre del producto es obligatorio.');
+        const total = parseInt(document.getElementById('nCantTotal').value)||1;
+        const dist = leerDistribucion();
+        const sumDist = Object.values(dist).reduce((s,n)=>s+n, 0);
+
+        // Validación: si se distribuye, la suma no debe superar el total
+        if(sumDist > total){
+            return alert(`La distribución (${sumDist}) supera la cantidad disponible (${total}). Ajusta los números.`);
+        }
+        // Si no hay distribución, se asume "Grupo" por defecto
+        const distribucion = sumDist === 0 ? { Grupo: total } : dist;
+
+        const{data,error}=await db.from('inventario_grupo').insert({
+            producto:prod,
+            cantidad:document.getElementById('nCantTxt').value||'unidades',
+            cantidad_total:total,
+            cantidad_prestada:0,
+            categoria:document.getElementById('nCat').value,
+            unidad_responsable:distribucionATexto(distribucion),
+            estado:document.getElementById('nEstado').value,
+            responsable:document.getElementById('nResp').value.trim()||null,
+            ubicacion:document.getElementById('nUbic').value.trim()||null,
+            valor_estimado:parseFloat(document.getElementById('nValor').value)||null,
+            fecha_adquisicion:document.getElementById('nFecha').value||null
+        }).select().single();
+        if(error)return alert('Error: '+error.message);
+        document.getElementById('modalNuevo').classList.remove('show');
+        document.getElementById('nProd').value='';
+        // Reset distribución
+        document.querySelectorAll('#nDistBox .dist-inp').forEach(i => i.value = 0);
+        actualizarTotalesDist();
+        todosItems.push({...data});
+        actualizarStats();filtrar();
+    };
+
+    window.verPrestamos=async function(itemId,itemNombre){
+        document.getElementById('prestItemNombre').textContent=itemNombre;
+        document.getElementById('modalPrestamos').classList.add('show');
+        const body=document.getElementById('prestListaBody');
+        body.innerHTML='<div class="empty"><i class="fas fa-circle-notch fa-spin"></i>Cargando...</div>';
+
+        const{data:prestamos}=await db.from('inventario').select('id,cantidad_prestada,evento_id').eq('inventario_grupo_id',itemId);
+        if(!prestamos||!prestamos.length){body.innerHTML='<div class="empty"><i class="fas fa-check-circle" style="color:var(--success)"></i>No hay préstamos activos.</div>';return;}
+
+        const evIds=[...new Set(prestamos.map(p=>p.evento_id))];
+        const{data:evs}=await db.from('eventos').select('id,nombre,fecha_inicio').in('id',evIds);
+        const evMap={};(evs||[]).forEach(e=>evMap[e.id]={id:e.id,nombre:e.nombre,fecha_inicio:e.fecha_inicio});
+
+        body.innerHTML=prestamos.map(p=>{
+            const ev=evMap[p.evento_id];
+            const f=ev?.fecha_inicio?new Date(ev.fecha_inicio+'T12:00:00').toLocaleDateString('es-CL',{day:'2-digit',month:'short',year:'numeric'}):'—';
+            return`<div style="display:flex;justify-content:space-between;align-items:center;padding:11px 14px;background:#fef9e7;border-radius:9px;margin-bottom:7px;border:1px solid var(--amarillo)">
+                <div>
+                    <strong style="font-size:0.88rem;color:var(--texto-oscuro)">${ev?.nombre||'Evento'}</strong>
+                    <div style="font-size:0.77rem;color:#78350f;margin-top:2px"><i class="far fa-calendar"></i> ${f} · Cantidad: <strong>${p.cantidad_prestada||0}</strong></div>
+                </div>
+                <button class="btn btn-v btn-sm" onclick="devolverPrestamo('${p.id}','${itemId}',${p.cantidad_prestada||0})"><i class="fas fa-undo"></i> Devolver</button>
+            </div>`;
+        }).join('');
+    };
+
+    window.devolverPrestamo=async function(inventarioEvId,inventarioGrupoId,cant){
+        if(!confirm(`¿Devolver ${cant} unidad(es) al inventario?`))return;
+        await db.from('inventario').delete().eq('id',inventarioEvId);
+        const item=todosItems.find(i=>String(i.id)===String(inventarioGrupoId));
+        if(item){
+            const nuevaPrestada=Math.max(0,(item.cantidad_prestada||0)-cant);
+            await db.from('inventario_grupo').update({cantidad_prestada:nuevaPrestada}).eq('id',inventarioGrupoId);
+            item.cantidad_prestada=nuevaPrestada;
+        }
+        document.getElementById('modalPrestamos').classList.remove('show');
+        await cargar();
+    };
+
+    window.filtrar=function(){
+        const q=document.getElementById('buscar').value.toLowerCase();
+        const cat=document.getElementById('filtCat').value;
+        const est=document.getElementById('filtEst').value;
+        const unid=document.getElementById('filtUnid').value;
+        const prest=document.getElementById('filtPrest').value;
+        renderTabla(todosItems.filter(i=>{
+            const matchQ=!q||(i.producto||'').toLowerCase().includes(q)||(i.responsable||'').toLowerCase().includes(q)||(i.ubicacion||'').toLowerCase().includes(q);
+            const matchC=!cat||i.categoria===cat;
+            const matchE=!est||i.estado===est;
+            const matchU=!unid || Object.keys(textoADistribucion(i.unidad_responsable)).includes(unid);
+            let matchP=true;
+            if(prest==='disponible')matchP=(i.cantidad_prestada||0)===0;
+            else if(prest==='prestado')matchP=(i.cantidad_prestada||0)>0;
+            return matchQ&&matchC&&matchE&&matchU&&matchP;
+        }));
+    };
+
+    window.exportarCSV=function(){
+        const rows=[['Producto','Cantidad total','Prestada','Disponible','Categoría','Unidad','Estado','Responsable','Ubicación','Valor CLP','Fecha Adquisición']];
+        todosItems.forEach(i=>{
+            const total=i.cantidad_total||1,prest=i.cantidad_prestada||0;
+            rows.push([i.producto,total,prest,total-prest,i.categoria,i.unidad_responsable,i.estado,i.responsable||'',i.ubicacion||'',i.valor_estimado||'',i.fecha_adquisicion||'']);
+        });
+        const csv=rows.map(r=>r.map(c=>`"${String(c||'').replace(/"/g,'""')}"`).join(',')).join('\n');
+        const a=document.createElement('a');a.href=URL.createObjectURL(new Blob(['\ufeff'+csv],{type:'text/csv;charset=utf-8;'}));
+        a.download='inventario_grupo.csv';a.click();
+    };
+
+    await cargar();
+})();
+</script>
+<script>if('serviceWorker' in navigator){navigator.serviceWorker.register('/sw.js').catch(()=>{});}</script>
+</body>
+</html>
