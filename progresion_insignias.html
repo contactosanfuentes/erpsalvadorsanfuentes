@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Progresión e Insignias — ERP Scout</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="wa_api.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
+        :root{--azul-profundo:#0E2586;--azul-claro:#3498db;--marron-oscuro:#4E110B;--gris-fondo:#f4f7f9;--gris-claro:#e2e8f0;--blanco:#ffffff;--texto-oscuro:#2d3748;--texto-claro:#718096;--border-color:#cbd5e0;--amarillo:#FFD100;--color-manada:#FFD100;--color-tropa:#00853F;--color-compania:#00853F;--color-pioneros:#0055A5;--color-caminantes:#E31837;--verde:#00853F;--rojo:#E31837;--naranja:#e67e22;--morado:#8b5cf6;--success:#2ecc71;--warning:#f39c12;--danger:#E31837;--info:#3498db;--area-corp:#3498db;--area-crea:#f1c40f;--area-cara:#E31837;--area-afec:#e67e22;--area-soci:#9b59b6;--area-espi:#2ecc71;}
+        *{margin:0;padding:0;box-sizing:border-box;font-family:'Poppins',sans-serif;}
+        body{background:var(--gris-fondo);min-height:100vh;}
+        .topbar{background:var(--azul-profundo);color:white;padding:14px 22px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;}
+        .topbar h1{font-size:1rem;font-weight:600;flex:1;}
+        .topbar p{font-size:0.76rem;opacity:0.7;}
+        .content{max-width:1200px;margin:0 auto;padding:18px 14px 60px;}
+
+        /* Filtros */
+        .filtros{display:flex;gap:10px;margin-bottom:18px;flex-wrap:wrap;align-items:center;}
+        .filtros select,.filtros input{padding:9px 13px;border:2px solid var(--gris-claro);border-radius:9px;font-size:0.88rem;outline:none;font-family:inherit;background:white;transition:0.18s;}
+        .filtros select:focus,.filtros input:focus{border-color:var(--azul-claro);}
+        .btn{padding:9px 18px;border:none;border-radius:9px;font-size:0.86rem;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:6px;transition:0.18s;}
+        .btn-p{background:var(--azul-profundo);color:white;}.btn-p:hover{background:#1a36a8;}
+        .btn-sm{padding:6px 12px;font-size:0.79rem;}
+
+        /* Stats */
+        .stats-row{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:18px;}
+        .stat{background:white;border-radius:11px;padding:13px 15px;text-align:center;box-shadow:0 2px 8px rgba(0,0,0,0.05);}
+        .stat .n{font-size:1.5rem;font-weight:700;line-height:1;}.stat .l{font-size:0.73rem;color:var(--texto-claro);margin-top:2px;}
+        .stat.az .n{color:var(--azul-claro);}.stat.vd .n{color:var(--verde);}.stat.am .n{color:#FFD100;}.stat.na .n{color:var(--naranja);}.stat.mo .n{color:var(--morado);}
+
+        /* Grid de tarjetas */
+        .grid-jovenes{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px;}
+        .jcard{background:white;border-radius:13px;padding:18px;box-shadow:0 2px 10px rgba(0,0,0,0.06);cursor:pointer;transition:0.18s;border:2px solid transparent;}
+        .jcard:hover{border-color:var(--azul-claro);transform:translateY(-2px);box-shadow:0 6px 18px rgba(0,0,0,0.1);}
+        .jcard.selected{border-color:var(--azul-profundo);box-shadow:0 6px 20px rgba(14,37,134,0.15);}
+        .jh{display:flex;align-items:center;gap:12px;margin-bottom:12px;}
+        .av{width:48px;height:48px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1.1rem;font-weight:700;color:white;flex-shrink:0;}
+        .jh-info h3{font-size:0.92rem;font-weight:700;}
+        .jh-info p{font-size:0.78rem;color:var(--texto-claro);}
+        .etapa-badge{display:inline-block;padding:3px 10px;border-radius:18px;font-size:0.73rem;font-weight:700;margin-top:5px;}
+
+        /* Barra de progreso áreas */
+        .areas-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:10px;}
+        .area-bar{display:flex;flex-direction:column;gap:2px;}
+        .area-bar .lbl{font-size:0.7rem;color:var(--texto-claro);display:flex;justify-content:space-between;}
+        .bar-track{height:6px;background:#f0f4f8;border-radius:6px;overflow:hidden;}
+        .bar-fill{height:100%;border-radius:6px;transition:width 0.5s ease;}
+
+        /* Panel detalle */
+        .detalle-panel{background:white;border-radius:13px;padding:22px;box-shadow:0 3px 12px rgba(0,0,0,0.07);margin-top:18px;display:none;}
+        .detalle-panel.show{display:block;}
+        .detalle-header{display:flex;align-items:center;gap:14px;margin-bottom:20px;padding-bottom:16px;border-bottom:1px solid var(--gris-claro);}
+        .detalle-header .av-lg{width:64px;height:64px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1.4rem;font-weight:700;color:white;flex-shrink:0;}
+
+        .tabs-det{display:flex;gap:3px;background:#f0f4f8;border-radius:10px;padding:3px;margin-bottom:18px;}
+        .tab-det{flex:1;padding:8px;border:none;border-radius:7px;font-size:0.82rem;font-weight:500;cursor:pointer;background:transparent;color:var(--texto-claro);transition:0.16s;}
+        .tab-det.act{background:white;color:var(--azul-profundo);font-weight:700;box-shadow:0 2px 7px rgba(0,0,0,0.08);}
+        .tab-pane-det{display:none;}.tab-pane-det.show{display:block;}
+
+        /* Etapas stepper */
+        .etapas-stepper{display:flex;gap:0;overflow-x:auto;margin-bottom:18px;padding-bottom:4px;}
+        .etapa-step{display:flex;flex-direction:column;align-items:center;gap:4px;flex:1;min-width:80px;position:relative;}
+        .etapa-step:not(:last-child)::after{content:'';position:absolute;top:18px;left:50%;width:100%;height:2px;background:var(--gris-claro);z-index:0;}
+        .etapa-step.done::after{background:var(--verde);}
+        .etapa-circle{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:0.9rem;border:2px solid var(--gris-claro);background:white;position:relative;z-index:1;transition:0.2s;}
+        .etapa-step.done .etapa-circle{background:var(--verde);border-color:var(--verde);color:white;}
+        .etapa-step.current .etapa-circle{background:var(--azul-profundo);border-color:var(--azul-profundo);color:white;box-shadow:0 0 0 4px rgba(14,37,134,0.15);}
+        .etapa-lbl{font-size:0.68rem;color:var(--texto-claro);text-align:center;white-space:nowrap;}
+        .etapa-step.current .etapa-lbl{color:var(--azul-profundo);font-weight:700;}
+        .etapa-step.done .etapa-lbl{color:var(--verde);}
+
+        /* Objetivos por área */
+        .areas-detalle{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px;}
+        .area-card{border:1px solid var(--gris-claro);border-radius:10px;padding:14px;}
+        .area-card h4{font-size:0.84rem;font-weight:700;margin-bottom:10px;display:flex;align-items:center;gap:7px;}
+        .obj-item{display:flex;align-items:flex-start;gap:8px;padding:6px 0;border-bottom:1px solid #f0f4f8;font-size:0.8rem;color:var(--texto-oscuro);}
+        .obj-item:last-child{border-bottom:none;}
+        .obj-check{width:18px;height:18px;border-radius:4px;border:2px solid var(--gris-claro);display:flex;align-items:center;justify-content:center;flex-shrink:0;cursor:pointer;transition:0.16s;margin-top:1px;}
+        .obj-check.done{background:var(--verde);border-color:var(--verde);color:white;}
+        .obj-txt{flex:1;line-height:1.4;}
+        .obj-txt.done{text-decoration:line-through;color:var(--texto-claro);}
+
+        /* Especialidades */
+        .esp-grid{display:flex;flex-wrap:wrap;gap:8px;}
+        .esp-tag{background:#f0f7ff;border:1px solid #bfdbfe;border-radius:8px;padding:5px 12px;font-size:0.79rem;font-weight:600;color:var(--azul-claro);display:flex;align-items:center;gap:5px;}
+        .esp-tag i{color:var(--amarillo);}
+        .esp-add{display:flex;gap:8px;margin-top:12px;}
+        .esp-add input{flex:1;padding:8px 11px;border:2px solid var(--gris-claro);border-radius:8px;font-size:0.86rem;outline:none;font-family:inherit;transition:0.16s;}
+        .esp-add input:focus{border-color:var(--azul-claro);}
+
+        .etapa-selector{display:flex;gap:7px;flex-wrap:wrap;margin-top:10px;}
+        .etapa-btn{padding:5px 13px;border-radius:18px;border:2px solid var(--gris-claro);font-size:0.79rem;font-weight:600;cursor:pointer;background:white;color:var(--texto-oscuro);transition:0.16s;}
+        .etapa-btn:hover{border-color:var(--azul-claro);}
+        .etapa-btn.act{background:var(--azul-profundo);color:white;border-color:var(--azul-profundo);}
+
+        .empty{text-align:center;padding:36px;color:var(--texto-claro);}
+        .empty i{font-size:2.5rem;margin-bottom:10px;display:block;}
+        .loading{text-align:center;padding:36px;color:var(--azul-profundo);}
+
+        @media(max-width:600px){.stats-row{grid-template-columns:repeat(3,1fr);}.areas-grid{grid-template-columns:1fr;}}
+    </style>
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#0E2586">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="ERP Scout">
+</head>
+<body>
+<div class="topbar">
+    <i class="fas fa-star" style="font-size:1.3rem;color:var(--amarillo)"></i>
+    <div style="flex:1"><h1>Progresión e Insignias</h1><p id="topbarSub">Cargando jóvenes...</p></div>
+    <button class="btn btn-p btn-sm" onclick="recargar()"><i class="fas fa-sync-alt"></i> Actualizar</button>
+</div>
+<div class="content">
+
+    <!-- Filtros -->
+    <div class="filtros">
+        <input type="text" id="buscar" placeholder="Buscar por nombre o RUN..." oninput="filtrar()" style="min-width:200px">
+        <select id="filtroUnidad" onchange="filtrar()">
+            <option value="">Todas las unidades</option>
+            <option value="bandada">Bandada</option>
+            <option value="manada">Manada</option>
+            <option value="tropa">Tropa</option>
+            <option value="compañía">Compañía</option>
+            <option value="avanzada">Avanzada</option>
+            <option value="clan">Clan</option>
+            <option value="caminante">Caminantes</option>
+        </select>
+        <select id="filtroEtapa" onchange="filtrar()">
+            <option value="">Todas las etapas</option>
+            <option value="Promesa">Promesa</option>
+            <option value="Acción">Acción</option>
+            <option value="Aventura">Aventura</option>
+            <option value="Servicio">Servicio</option>
+            <option value="Especialista">Especialista</option>
+        </select>
+    </div>
+
+    <!-- Stats -->
+    <div class="stats-row" id="statsRow">
+        <div class="stat az"><div class="n" id="stTotal">—</div><div class="l">Jóvenes</div></div>
+        <div class="stat vd"><div class="n" id="stConProg">—</div><div class="l">Con progresión</div></div>
+        <div class="stat am"><div class="n" id="stEsp">—</div><div class="l">Especialidades</div></div>
+        <div class="stat na"><div class="n" id="stSinProg">—</div><div class="l">Sin progresión</div></div>
+        <div class="stat mo"><div class="n" id="stPromedio">—</div><div class="l">% Promedio</div></div>
+    </div>
+
+    <!-- Grid de jóvenes -->
+    <div class="grid-jovenes" id="gridJovenes">
+        <div class="loading"><i class="fas fa-circle-notch fa-spin" style="font-size:2rem;margin-bottom:10px;display:block"></i>Cargando desde Supabase...</div>
+    </div>
+
+    <!-- Panel de detalle al seleccionar un joven -->
+    <div class="detalle-panel" id="detallePanel">
+        <div class="detalle-header">
+            <div class="av-lg" id="detAv" style="background:#3498db">JS</div>
+            <div style="flex:1">
+                <h2 id="detNombre" style="font-size:1.15rem;font-weight:700"></h2>
+                <p id="detSub" style="font-size:0.83rem;color:var(--texto-claro);margin-top:3px"></p>
+            </div>
+            <button onclick="cerrarDetalle()" style="background:none;border:none;font-size:1.3rem;cursor:pointer;color:var(--texto-claro)"><i class="fas fa-times"></i></button>
+        </div>
+
+        <!-- Stepper etapas -->
+        <div class="etapas-stepper" id="etapaStepper"></div>
+
+        <div class="tabs-det">
+            <button class="tab-det act" onclick="cambiarTabDet('objetivos',this)"><i class="fas fa-bullseye"></i> Objetivos</button>
+            <button class="tab-det" onclick="cambiarTabDet('especialidades',this)"><i class="fas fa-star"></i> Especialidades</button>
+            <button class="tab-det" onclick="cambiarTabDet('etapa',this)"><i class="fas fa-graduation-cap"></i> Cambiar etapa</button>
+        </div>
+
+        <div class="tab-pane-det show" id="tpObjetivos">
+            <div class="areas-detalle" id="areasDetalle"></div>
+        </div>
+
+        <div class="tab-pane-det" id="tpEspecialidades">
+            <div class="esp-grid" id="espGrid"></div>
+            <div class="esp-add">
+                <input type="text" id="nuevaEsp" placeholder="Nombre de la especialidad...">
+                <button class="btn btn-p btn-sm" onclick="agregarEsp()"><i class="fas fa-plus"></i> Agregar</button>
+            </div>
+        </div>
+
+        <div class="tab-pane-det" id="tpEtapa">
+            <p style="font-size:0.85rem;color:var(--texto-claro);margin-bottom:10px">Selecciona la etapa de progresión actual del joven:</p>
+            <div class="etapa-selector" id="etapaSelector"></div>
+            <p style="font-size:0.78rem;color:var(--texto-claro);margin-top:12px"><i class="fas fa-info-circle"></i> El cambio se guardará en <code>progresion_jovenes.etapa_actual</code></p>
+        </div>
+    </div>
+
+</div>
+<script>
+(async()=>{
+    const SURL='https://hyixmaxhoxvamoecuars.supabase.co';
+    const SKEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imh5aXhtYXhob3h2YW1vZWN1YXJzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI3OTg1NDMsImV4cCI6MjA4ODM3NDU0M30.ZLeJIWdip2f00h4TqkZH7eqMX4wpwphaqkJpAa0N0X4';
+    const _accessToken = new URLSearchParams(window.location.search).get('token');
+    const _opts = _accessToken ? { global: { headers: { Authorization: `Bearer ${_accessToken}` } } } : {};
+    const db=supabase.createClient(SURL,SKEY,_opts);
+
+    const COLORES={Manada:'#FFD100',Tropa:'#2ecc71','Compañía':'#2ecc71',Avanzada:'#3498db',Clan:'#E31837',Bandada:'#f39c12'};
+    const ETAPAS_POR_RAMA={
+        Manada:['Lobezno','Lobezno II','Lobezno III'],
+        Tropa:['Promesa','Acción','Aventura','Servicio','Especialista'],
+        'Compañía':['Promesa','Acción','Aventura','Servicio','Especialista'],
+        Avanzada:['Pionero','Caminante','Rover'],
+        Clan:['Caminante','Rover','Guía Mayor']
+    };
+    const AREAS=[
+        {k:'corporalidad',n:'Corporalidad',ic:'fa-running',c:'#3498db'},
+        {k:'creatividad',n:'Creatividad',ic:'fa-palette',c:'#f39c12'},
+        {k:'caracter',n:'Carácter',ic:'fa-shield-alt',c:'#E31837'},
+        {k:'afectividad',n:'Afectividad',ic:'fa-heart',c:'#e91e63'},
+        {k:'sociabilidad',n:'Sociabilidad',ic:'fa-users',c:'#2ecc71'},
+        {k:'espiritualidad',n:'Espiritualidad',ic:'fa-dove',c:'#8b5cf6'}
+    ];
+
+    let todosJovenes=[], progresiones={}, jovenActivo=null;
+
+    async function cargar(){
+        // Lee mmbb_registrations (tabla real de jóvenes)
+        const{data:jov}=await db.from('mmbb_registrations').select('id,nombres,apellidos,run,unidad,foto_url').order('apellidos');
+        // Lee progresion_jovenes (tabla real de progresión)
+        const{data:prog}=await db.from('progresion_jovenes').select('*');
+        todosJovenes=jov||[];
+        progresiones={};
+        (prog||[]).forEach(p=>progresiones[p.joven_id]=p);
+        document.getElementById('topbarSub').textContent=`${todosJovenes.length} jóvenes · ${Object.keys(progresiones).length} con progresión registrada`;
+        actualizarStats();
+        renderGrid(todosJovenes);
+    }
+
+    function actualizarStats(){
+        const t=todosJovenes.length;
+        const cp=Object.keys(progresiones).length;
+        const esp=Object.values(progresiones).reduce((s,p)=>s+((p.especialidades||[]).length),0);
+        const pcts=todosJovenes.map(j=>{const p=progresiones[j.id];return calcPct(p);});
+        const prom=pcts.length?Math.round(pcts.reduce((a,b)=>a+b,0)/pcts.length):0;
+        document.getElementById('stTotal').textContent=t;
+        document.getElementById('stConProg').textContent=cp;
+        document.getElementById('stEsp').textContent=esp;
+        document.getElementById('stSinProg').textContent=t-cp;
+        document.getElementById('stPromedio').textContent=prom+'%';
+    }
+
+    function calcPct(prog){
+        if(!prog)return 0;
+        const obj=getObjetivos(prog);
+        let total=0,done=0;
+        AREAS.forEach(a=>{const arr=obj[a.k]||[];total+=arr.length;done+=arr.filter(o=>o.logrado).length;});
+        return total?Math.round(done/total*100):0;
+    }
+
+    function getObjetivos(prog){
+        if(!prog)return {};
+        return (prog.territorios?.objetivos) || prog.semillero?.objetivos || {corporalidad:[],creatividad:[],caracter:[],afectividad:[],sociabilidad:[],espiritualidad:[]};
+    }
+
+    function renderGrid(lista){
+        const grid=document.getElementById('gridJovenes');
+        if(!lista.length){grid.innerHTML='<div class="empty" style="grid-column:1/-1"><i class="fas fa-users-slash"></i>No se encontraron jóvenes.</div>';return;}
+        grid.innerHTML=lista.map(j=>{
+            const prog=progresiones[j.id];
+            const pct=calcPct(prog);
+            const etapa=prog?.etapa_actual||'Sin etapa';
+            const color=COLORES[j.unidad]||'#3498db';
+            const inic=[(j.nombres||'')[0],(j.apellidos||'')[0]].join('').toUpperCase();
+            const areasHTML=AREAS.map(a=>{
+                const obj=getObjetivos(prog);
+                const arr=obj[a.k]||[];
+                const done=arr.filter(o=>o.logrado).length;
+                const total=arr.length;
+                const apct=total?Math.round(done/total*100):0;
+                return`<div class="area-bar"><div class="lbl"><span>${a.n}</span><span>${apct}%</span></div><div class="bar-track"><div class="bar-fill" style="width:${apct}%;background:${a.c}"></div></div></div>`;
+            }).join('');
+            return`<div class="jcard" id="card-${j.id}" onclick="seleccionarJoven('${j.id}')">
+                <div class="jh">
+                    <div class="av" style="background:${color}">${j.foto_url?`<img src="${j.foto_url}" style="width:100%;height:100%;object-fit:cover;border-radius:50%">`:`${inic}`}</div>
+                    <div class="jh-info">
+                        <h3>${j.nombres} ${j.apellidos}</h3>
+                        <p>${j.unidad||'—'} · ${j.run||'—'}</p>
+                        <span class="etapa-badge" style="background:${color}22;color:${color}">${etapa}</span>
+                    </div>
+                </div>
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+                    <span style="font-size:0.78rem;color:var(--texto-claro)">Progreso general</span>
+                    <span style="font-size:0.82rem;font-weight:700;color:${pct>=60?'var(--verde)':pct>=30?'var(--naranja)':'var(--rojo)'}">${pct}%</span>
+                </div>
+                <div class="areas-grid">${areasHTML}</div>
+            </div>`;
+        }).join('');
+    }
+
+    window.filtrar=function(){
+        const q=document.getElementById('buscar').value.toLowerCase();
+        const u=document.getElementById('filtroUnidad').value.toLowerCase();
+        const e=document.getElementById('filtroEtapa').value.toLowerCase();
+        const lista=todosJovenes.filter(j=>{
+            const nombre=`${j.nombres} ${j.apellidos}`.toLowerCase();
+            const unidadLower=(j.unidad||'').toLowerCase();
+            const matchQ=!q||nombre.includes(q)||(j.run||'').toLowerCase().includes(q);
+            const matchU=!u||unidadLower.includes(u);
+            const prog=progresiones[j.id];
+            const etapaLower=(prog?.etapa_actual||'').toLowerCase();
+            const matchE=!e||etapaLower.includes(e);
+            return matchQ&&matchU&&matchE;
+        });
+        renderGrid(lista);
+    };
+
+    window.seleccionarJoven=function(id){
+        document.querySelectorAll('.jcard').forEach(c=>c.classList.remove('selected'));
+        const card=document.getElementById(`card-${id}`);if(card)card.classList.add('selected');
+        const j=todosJovenes.find(x=>String(x.id)===String(id));
+        if(!j)return;
+        jovenActivo=j;
+        const prog=progresiones[j.id];
+        const color=COLORES[j.unidad]||'#3498db';
+        const inic=[(j.nombres||'')[0],(j.apellidos||'')[0]].join('').toUpperCase();
+        const panel=document.getElementById('detallePanel');
+        document.getElementById('detAv').style.background=color;
+        document.getElementById('detAv').innerHTML=j.foto_url?`<img src="${j.foto_url}" style="width:100%;height:100%;object-fit:cover;border-radius:50%">`:`${inic}`;
+        document.getElementById('detNombre').textContent=`${j.nombres} ${j.apellidos}`;
+        document.getElementById('detSub').textContent=`${j.unidad||'—'} · ${j.run||'—'} · Etapa: ${prog?.etapa_actual||'Sin etapa'}`;
+        renderStepper(j,prog);
+        renderObjetivos(j,prog);
+        renderEspecialidades(prog);
+        renderEtapaSelector(j,prog);
+        panel.classList.add('show');
+        panel.scrollIntoView({behavior:'smooth',block:'start'});
+    };
+
+    function renderStepper(j,prog){
+        const etapas=ETAPAS_POR_RAMA[j.unidad]||['Promesa','Acción','Aventura','Servicio','Especialista'];
+        const actual=prog?.etapa_actual||'';
+        const idx=etapas.indexOf(actual);
+        document.getElementById('etapaStepper').innerHTML=etapas.map((e,i)=>{
+            let cls=i<idx?'done':i===idx?'current':'';
+            const icon=i<idx?'fa-check':i===idx?'fa-star':'fa-circle';
+            return`<div class="etapa-step ${cls}"><div class="etapa-circle"><i class="fas ${icon}"></i></div><div class="etapa-lbl">${e}</div></div>`;
+        }).join('');
+    }
+
+    function renderObjetivos(j,prog){
+        const obj=getObjetivos(prog);
+        document.getElementById('areasDetalle').innerHTML=AREAS.map(a=>{
+            const arr=obj[a.k]||[];
+            const done=arr.filter(o=>o.logrado).length;
+            const objHTML=arr.length?arr.map((o,i)=>`
+                <div class="obj-item">
+                    <div class="obj-check ${o.logrado?'done':''}" onclick="toggleObjetivo('${j.id}','${a.k}',${i})">
+                        ${o.logrado?'<i class="fas fa-check" style="font-size:0.6rem"></i>':''}
+                    </div>
+                    <div class="obj-txt ${o.logrado?'done':''}">${o.texto||o.descripcion||o}</div>
+                </div>`).join(''):`<p style="font-size:0.8rem;color:var(--texto-claro);padding:8px 0">Sin objetivos registrados en esta área.</p>`;
+            return`<div class="area-card">
+                <h4 style="color:${a.c}"><i class="fas ${a.ic}"></i>${a.n} <span style="font-size:0.72rem;color:var(--texto-claro);font-weight:400;margin-left:auto">${done}/${arr.length}</span></h4>
+                ${objHTML}
+            </div>`;
+        }).join('');
+    }
+
+    function renderEspecialidades(prog){
+        const esps=prog?.especialidades||[];
+        document.getElementById('espGrid').innerHTML=esps.length?esps.map((e,i)=>{
+            const nombre=typeof e==='string'?e:(e.nombre||'Especialidad');
+            return`<div class="esp-tag"><i class="fas fa-star"></i>${nombre}<span onclick="eliminarEsp(${i})" style="cursor:pointer;margin-left:5px;opacity:0.5;font-size:0.9rem">×</span></div>`;
+        }).join(''):`<p style="font-size:0.83rem;color:var(--texto-claro)">Sin especialidades registradas.</p>`;
+    }
+
+    function renderEtapaSelector(j,prog){
+        const etapas=ETAPAS_POR_RAMA[j.unidad]||['Promesa','Acción','Aventura','Servicio','Especialista'];
+        const actual=prog?.etapa_actual||'';
+        document.getElementById('etapaSelector').innerHTML=etapas.map(e=>
+            `<button class="etapa-btn ${actual===e?'act':''}" onclick="cambiarEtapa('${e}')">${e}</button>`
+        ).join('');
+    }
+
+    window.cambiarTabDet=function(tab,el){
+        document.querySelectorAll('.tab-det').forEach(t=>t.classList.remove('act'));el.classList.add('act');
+        ['tpObjetivos','tpEspecialidades','tpEtapa'].forEach(id=>document.getElementById(id).classList.remove('show'));
+        document.getElementById('tp'+tab.charAt(0).toUpperCase()+tab.slice(1)).classList.add('show');
+    };
+
+    window.toggleObjetivo=async function(jId,area,idx){
+        const prog=progresiones[jId]||{joven_id:jId};
+        const obj=getObjetivos(prog);
+        if(!obj[area]||!obj[area][idx])return;
+        obj[area][idx].logrado=!obj[area][idx].logrado;
+        // Actualiza progresion_jovenes manteniendo la estructura existente
+        const payload={joven_id:jId};
+        if(prog.territorios){payload.territorios={...prog.territorios,objetivos:obj};}
+        else{payload.semillero={...prog.semillero,objetivos:obj};}
+        await db.from('progresion_jovenes').upsert(payload,{onConflict:'joven_id'});
+        progresiones[jId]={...prog,...payload};
+        renderObjetivos(jovenActivo,progresiones[jId]);
+        renderGrid(todosJovenes.filter(j=>true));// re-render sutil
+    };
+
+    window.cambiarEtapa=async function(etapa){
+        if(!jovenActivo)return;
+        const prog=progresiones[jovenActivo.id]||{};
+        await db.from('progresion_jovenes').upsert({joven_id:jovenActivo.id,...prog,etapa_actual:etapa},{onConflict:'joven_id'});
+        progresiones[jovenActivo.id]={...prog,joven_id:jovenActivo.id,etapa_actual:etapa};
+        document.getElementById('detSub').textContent=`${jovenActivo.unidad||'—'} · ${jovenActivo.run||'—'} · Etapa: ${etapa}`;
+        renderStepper(jovenActivo,progresiones[jovenActivo.id]);
+        renderEtapaSelector(jovenActivo,progresiones[jovenActivo.id]);
+        actualizarStats();
+        filtrar();
+    };
+
+    window.agregarEsp=async function(){
+        const nombre=document.getElementById('nuevaEsp').value.trim();if(!nombre)return;
+        const prog=progresiones[jovenActivo.id]||{joven_id:jovenActivo.id};
+        const esps=[...(prog.especialidades||[]),{nombre,fecha:new Date().toISOString().split('T')[0]}];
+        await db.from('progresion_jovenes').upsert({...prog,joven_id:jovenActivo.id,especialidades:esps},{onConflict:'joven_id'});
+        progresiones[jovenActivo.id]={...prog,especialidades:esps};
+        document.getElementById('nuevaEsp').value='';
+        renderEspecialidades(progresiones[jovenActivo.id]);
+        actualizarStats();
+    };
+
+    window.eliminarEsp=async function(idx){
+        const prog=progresiones[jovenActivo.id]||{};
+        const esps=(prog.especialidades||[]).filter((_,i)=>i!==idx);
+        await db.from('progresion_jovenes').upsert({...prog,joven_id:jovenActivo.id,especialidades:esps},{onConflict:'joven_id'});
+        progresiones[jovenActivo.id]={...prog,especialidades:esps};
+        renderEspecialidades(progresiones[jovenActivo.id]);
+        actualizarStats();
+    };
+
+    window.cerrarDetalle=function(){document.getElementById('detallePanel').classList.remove('show');document.querySelectorAll('.jcard').forEach(c=>c.classList.remove('selected'));jovenActivo=null;};
+    window.recargar=async function(){document.getElementById('gridJovenes').innerHTML='<div class="loading"><i class="fas fa-circle-notch fa-spin" style="font-size:2rem;margin-bottom:10px;display:block"></i>Recargando...</div>';await cargar();};
+
+    await cargar();
+})();
+</script>
+<script>if('serviceWorker' in navigator){navigator.serviceWorker.register('/sw.js').catch(function(){});}</script>
+</body>
+</html>

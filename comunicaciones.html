@@ -1,0 +1,789 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Comunicaciones — ERP Scout</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="wa_api.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
+        :root{--azul-profundo:#0E2586;--azul-claro:#3498db;--marron-oscuro:#4E110B;--gris-fondo:#f4f7f9;--gris-claro:#e2e8f0;--blanco:#ffffff;--texto-oscuro:#2d3748;--texto-claro:#718096;--border-color:#cbd5e0;--amarillo:#FFD100;--color-manada:#FFD100;--color-tropa:#00853F;--color-compania:#00853F;--color-pioneros:#0055A5;--color-caminantes:#E31837;--verde:#00853F;--rojo:#E31837;--naranja:#e67e22;--morado:#8b5cf6;--success:#2ecc71;--warning:#f39c12;--danger:#E31837;--info:#3498db;--area-corp:#3498db;--area-crea:#f1c40f;--area-cara:#E31837;--area-afec:#e67e22;--area-soci:#9b59b6;--area-espi:#2ecc71;}
+        *{margin:0;padding:0;box-sizing:border-box;font-family:'Poppins',sans-serif;}
+        body{background:var(--gris-fondo);min-height:100vh;}
+        .topbar{background:var(--azul-profundo);color:white;padding:13px 20px;display:flex;align-items:center;gap:11px;}
+        .topbar i{font-size:1.3rem;color:var(--amarillo);}
+        .topbar h1{font-size:1rem;font-weight:600;}
+        .topbar p{font-size:0.77rem;opacity:0.72;margin-top:1px;}
+        .layout{display:grid;grid-template-columns:290px 1fr;gap:16px;max-width:1100px;margin:18px auto;padding:0 14px 60px;}
+        .card{background:white;border-radius:12px;padding:18px 20px;box-shadow:0 2px 10px rgba(0,0,0,0.06);}
+        .card h2{font-size:0.92rem;font-weight:600;color:var(--azul-profundo);margin-bottom:12px;display:flex;align-items:center;gap:7px;}
+        .st-row{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px;}
+        .st{background:white;border-radius:10px;padding:11px 12px;text-align:center;box-shadow:0 2px 7px rgba(0,0,0,0.05);}
+        .st .n{font-size:1.4rem;font-weight:700;}.st .l{font-size:0.74rem;color:var(--texto-claro);margin-top:1px;}
+        .st.az .n{color:var(--azul-claro);}.st.vd .n{color:var(--verde);}.st.mo .n{color:#8b5cf6;}
+        .ri{display:flex;align-items:center;gap:8px;padding:8px 11px;border:2px solid var(--gris-claro);border-radius:8px;cursor:pointer;transition:0.16s;margin-bottom:7px;}
+        .ri:hover{border-color:var(--azul-claro);background:#f0f7ff;}.ri.sel{border-color:var(--azul-profundo);background:#eef3ff;}
+        .ri input{accent-color:var(--azul-profundo);}.ri label{cursor:pointer;font-size:0.84rem;font-weight:500;}
+        .ri .sub{font-size:0.73rem;color:var(--texto-claro);font-weight:400;}
+        .fu{margin-bottom:12px;}.fu label{font-size:0.79rem;font-weight:600;display:block;margin-bottom:6px;}
+        .chips{display:flex;flex-wrap:wrap;gap:4px;}
+        .chip{padding:3px 11px;border-radius:16px;font-size:0.77rem;font-weight:600;cursor:pointer;border:2px solid transparent;transition:0.16s;background:#f1f5f9;color:var(--texto-oscuro);}
+        .chip.act{border-color:var(--azul-profundo);background:#eef3ff;color:var(--azul-profundo);}
+        .cp{background:var(--gris-fondo);border-radius:8px;padding:9px 12px;font-size:0.84rem;display:flex;align-items:center;gap:7px;margin-top:8px;}
+        .cp strong{color:var(--azul-profundo);font-size:1rem;}
+        .fg{display:flex;flex-direction:column;gap:4px;margin-bottom:11px;}
+        .fg label{font-size:0.79rem;font-weight:600;}
+        .fg input,.fg select,.fg textarea{padding:9px 12px;border:2px solid var(--gris-claro);border-radius:8px;font-size:0.88rem;font-family:'Poppins',sans-serif;outline:none;transition:0.16s;}
+        .fg input:focus,.fg select:focus,.fg textarea:focus{border-color:var(--azul-claro);}
+        .fg textarea{resize:vertical;min-height:90px;}
+        .toolbar{display:flex;gap:3px;padding:6px;background:#f8fafc;border:2px solid var(--gris-claro);border-bottom:none;border-radius:8px 8px 0 0;flex-wrap:wrap;}
+        .tb{width:28px;height:28px;border:none;background:transparent;border-radius:5px;cursor:pointer;font-size:0.8rem;color:var(--texto-oscuro);display:flex;align-items:center;justify-content:center;transition:0.13s;}
+        .tb:hover{background:#e2e8f0;}
+        #editor{min-height:200px;border:2px solid var(--gris-claro);border-top:none;border-radius:0 0 8px 8px;padding:12px;outline:none;font-size:0.88rem;line-height:1.7;font-family:'Poppins',sans-serif;}
+        #editor:focus{border-color:var(--azul-claro);}
+        #editor:empty::before{content:'Escribe aquí tu mensaje...';color:var(--texto-claro);pointer-events:none;}
+        .vb{background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:10px 12px;margin-top:10px;}
+        .vb p{font-size:0.77rem;color:#1e40af;font-weight:600;margin-bottom:6px;}
+        .vl{display:flex;flex-wrap:wrap;gap:4px;}
+        .vt{background:white;border:1px solid #bfdbfe;border-radius:5px;padding:3px 8px;font-size:0.74rem;font-family:monospace;cursor:pointer;color:#1d4ed8;transition:0.13s;}
+        .vt:hover{background:#dbeafe;}
+        .prev-em{background:#f8fafc;border:2px dashed var(--gris-claro);border-radius:9px;padding:14px;margin-top:10px;}
+        .emh{background:linear-gradient(135deg,var(--azul-profundo),#1a36a8);padding:16px 20px;border-radius:7px 7px 0 0;color:white;}
+        .emh h3{font-size:0.93rem;}.emh p{font-size:0.76rem;opacity:0.75;margin-top:2px;}
+        .emb{background:white;padding:18px 20px;border-radius:0 0 7px 7px;font-size:0.86rem;line-height:1.7;min-height:50px;}
+        .prog{display:none;border:2px solid var(--gris-claro);border-radius:9px;padding:14px;margin-top:10px;}
+        .prog.show{display:block;}
+        .pb-wrap{height:8px;background:var(--gris-fondo);border-radius:8px;overflow:hidden;margin:7px 0;}
+        .pb{height:100%;background:linear-gradient(90deg,var(--verde),#2ecc71);transition:width 0.28s;}
+        .plog{max-height:120px;overflow-y:auto;font-size:0.77rem;color:var(--texto-claro);font-family:monospace;line-height:1.65;margin-top:5px;}
+        .hi{border:1px solid var(--gris-claro);border-radius:8px;padding:10px 12px;margin-bottom:7px;}
+        .hi h4{font-size:0.84rem;font-weight:600;margin-bottom:3px;}
+        .hi .meta{font-size:0.74rem;color:var(--texto-claro);display:flex;gap:9px;flex-wrap:wrap;}
+        .btns{display:flex;gap:7px;margin-top:12px;}
+        .btn{padding:9px 18px;border:none;border-radius:8px;font-size:0.86rem;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:6px;transition:0.16s;}
+        .btn-p{background:var(--azul-profundo);color:white;}.btn-p:hover{background:#1a36a8;transform:translateY(-1px);box-shadow:0 4px 10px rgba(14,37,134,0.25);}
+        .btn-p:disabled{opacity:0.6;cursor:not-allowed;transform:none;box-shadow:none;}
+        .btn-s{background:var(--gris-fondo);color:var(--texto-oscuro);border:1px solid var(--gris-claro);}.btn-s:hover{border-color:var(--azul-claro);}
+        .alert{padding:9px 12px;border-radius:7px;font-size:0.83rem;margin-bottom:9px;display:flex;align-items:center;gap:7px;}
+        .alert.ok{background:#f0fdf4;border:1px solid #86efac;color:#166534;}
+        .alert.err{background:#fff5f5;border:1px solid #fca5a5;color:#991b1b;}
+        .btn-wa{background:#25D366;color:white;}.btn-wa:hover{background:#128C7E;transform:translateY(-1px);box-shadow:0 4px 10px rgba(37,211,102,0.35);}
+        .btn-wa:disabled{opacity:0.6;cursor:not-allowed;transform:none;box-shadow:none;}
+        .wa-badge{background:#25D366;color:white;font-size:0.68rem;padding:1px 6px;border-radius:10px;font-weight:700;margin-left:4px;vertical-align:middle;}
+        @media(max-width:680px){.layout{grid-template-columns:1fr;}.st-row{grid-template-columns:1fr 1fr;}}
+    </style>
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#0E2586">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="ERP Scout">
+</head>
+<body>
+<div class="topbar"><i class="fas fa-envelope-open-text"></i><div><h1>Comunicaciones</h1></div></div>
+<div class="layout">
+    <div>
+        <div class="st-row">
+            <div class="st az"><div class="n" id="stJ">—</div><div class="l">Jóvenes</div></div>
+            <div class="st vd"><div class="n" id="stA">—</div><div class="l">Adultos</div></div>
+            <div class="st mo"><div class="n" id="stE">—</div><div class="l">Emails</div></div>
+        </div>
+        <div class="st" style="margin-bottom:8px;background:linear-gradient(135deg,#f0fdf4,#dcfce7);border:1px solid #86efac;display:flex;align-items:center;gap:10px;padding:11px 14px">
+            <i class="fab fa-whatsapp" style="color:#25D366;font-size:1.4rem"></i>
+            <div><div class="n" id="stWA" style="color:#166534;font-size:1.1rem">—</div><div class="l">Con WhatsApp</div></div>
+            <button onclick="document.getElementById('waConfigPanel').style.display='block'" style="margin-left:auto;background:none;border:1px solid #86efac;border-radius:6px;padding:3px 8px;font-size:0.72rem;cursor:pointer;color:#166534;font-weight:600" title="Configurar plantilla de WhatsApp Business"><i class="fas fa-cog"></i></button>
+        </div>
+        <div class="card" style="margin-bottom:12px">
+            <h2><i class="fas fa-users" style="color:var(--azul-claro)"></i> Destinatarios</h2>
+            <div class="ri sel" onclick="sd(this,'todos')" title="Envía a todos los miembros del grupo: jóvenes (vía apoderado titular) + adultos registrados"><input type="radio" name="d" checked><div><label>Todo el grupo</label></div></div>
+            <div class="ri" onclick="sd(this,'jovenes')" title="Envía solo a los apoderados titulares de los jóvenes del grupo"><input type="radio" name="d"><div><label>Solo jóvenes (apoderados)</label></div></div>
+            <div class="ri" onclick="sd(this,'adultos')" title="Envía solo a los adultos / dirigentes / staff registrados"><input type="radio" name="d"><div><label>Solo adultos / dirigentes</label></div></div>
+            <div class="ri" onclick="sd(this,'evento')" title="Envía a los inscritos en un evento específico (jóvenes, adultos o ambos)"><input type="radio" name="d"><div><label>Inscritos en evento</label></div></div>
+            <div class="fu" id="fuUnidad" style="display:none;margin-top:9px"><label>Filtrar por unidad</label>
+                <div class="chips">
+                    <div class="chip act" onclick="sc(this,'todas')">Todas</div>
+                    <div class="chip" onclick="sc(this,'Bandada')">Bandada</div>
+                    <div class="chip" onclick="sc(this,'Manada')">Manada</div>
+                    <div class="chip" onclick="sc(this,'Tropa')">Tropa</div>
+                    <div class="chip" onclick="sc(this,'Compañía')">Compañía</div>
+                    <div class="chip" onclick="sc(this,'Avanzada')">Avanzada</div>
+                    <div class="chip" onclick="sc(this,'Clan')">Clan</div>
+                </div>
+            </div>
+            <div id="gEv" style="display:none;margin-top:9px">
+                <div class="fg"><label>Evento</label><select id="selEv" onchange="calcDest()"><option value="">— Selecciona —</option></select></div>
+                <label style="font-size:0.79rem;font-weight:600;color:var(--texto-oscuro);margin-bottom:5px;display:block">¿A quiénes del evento?</label>
+                <div class="chips" id="chipsEvento">
+                    <div class="chip act" onclick="se(this,'ambos')" title="Jóvenes + Adultos inscritos">Ambos</div>
+                    <div class="chip" onclick="se(this,'jovenes')" title="Solo jóvenes inscritos">Solo jóvenes</div>
+                    <div class="chip" onclick="se(this,'adultos')" title="Solo adultos / staff inscritos">Solo adultos</div>
+                </div>
+            </div>
+            <div class="cp"><i class="fas fa-user-check" style="color:var(--azul-claro)"></i>Enviará a <strong id="cnt">—</strong> contactos</div>
+        </div>
+        <div class="card">
+            <h2><i class="fas fa-history" style="color:var(--azul-claro)"></i> Enviados recientes</h2>
+            <div id="histList"><div style="text-align:center;padding:12px;color:var(--texto-claro);font-size:0.82rem"><i class="fas fa-circle-notch fa-spin"></i> Cargando...</div></div>
+        </div>
+    </div>
+    <div class="card">
+        <h2><i class="fas fa-pen-to-square" style="color:var(--azul-claro)"></i> Redactar circular</h2>
+        <div id="alertR"></div>
+        <div class="fg"><label>Asunto</label><input type="text" id="asunto" placeholder="Ej: Reunión del sábado — información importante" oninput="upPreview()"></div>
+        <div class="fg"><label>Saludo</label>
+            <select id="saludo">
+                <option>Estimado/a {nombre},</option><option>Hola {nombre},</option>
+                <option>Querida familia scout,</option><option>Estimadas familias,</option><option>Hola a todos,</option>
+            </select>
+        </div>
+        <div class="fg"><label>Mensaje</label>
+            <div class="toolbar">
+                <button class="tb" onclick="f('bold')"><i class="fas fa-bold"></i></button>
+                <button class="tb" onclick="f('italic')"><i class="fas fa-italic"></i></button>
+                <button class="tb" onclick="f('underline')"><i class="fas fa-underline"></i></button>
+                <button class="tb" onclick="f('insertUnorderedList')"><i class="fas fa-list-ul"></i></button>
+                <button class="tb" onclick="f('insertOrderedList')"><i class="fas fa-list-ol"></i></button>
+                <button class="tb" onclick="f('justifyCenter')"><i class="fas fa-align-center"></i></button>
+            </div>
+            <div id="editor" contenteditable="true" oninput="upPreview()"></div>
+        </div>
+        <div class="vb"><p><i class="fas fa-code"></i> Variables (clic para insertar)</p>
+            <div class="vl">
+                <span class="vt" onclick="iv('{nombre}')">&#123;nombre&#125;</span>
+                <span class="vt" onclick="iv('{unidad}')">&#123;unidad&#125;</span>
+                <span class="vt" onclick="iv('{fecha}')">&#123;fecha&#125;</span>
+            </div>
+        </div>
+
+        <!-- ── ADJUNTOS ── -->
+        <div class="fg" style="margin-top:11px">
+            <label><i class="fas fa-paperclip"></i> Adjuntos</label>
+            <div style="display:flex;gap:7px;flex-wrap:wrap">
+                <label class="btn btn-s" style="cursor:pointer;font-weight:600" title="Inserta imágenes en el cuerpo del correo">
+                    <i class="fas fa-image"></i> Insertar imagen
+                    <input type="file" accept="image/*" multiple style="display:none" onchange="insertarImagenes(event)">
+                </label>
+                <label class="btn btn-s" style="cursor:pointer;font-weight:600" title="Sube archivos (PDF, Word, Excel...) — se agregan como enlaces de descarga al final del correo">
+                    <i class="fas fa-file-arrow-up"></i> Adjuntar archivo
+                    <input type="file" multiple style="display:none" onchange="adjuntarArchivos(event)">
+                </label>
+            </div>
+            <div id="adjuntosLista" style="margin-top:8px;display:flex;flex-wrap:wrap;gap:6px"></div>
+            <p style="font-size:0.71rem;color:var(--texto-claro);margin-top:5px"><i class="fas fa-info-circle"></i> Las imágenes se comprimen automáticamente (máx 1280px, calidad 72%). Archivos grandes se suben al bucket como enlaces de descarga.</p>
+        </div>
+        <div class="fg" style="margin-top:11px"><label>Firma</label><input type="text" id="firma" value="Grupo Guías y Scouts Salvador Sanfuentes"></div>
+        <div class="prev-em">
+            <div class="emh"><h3 id="pAs">Sin asunto</h3><p>Para: <span id="pCnt">—</span> destinatarios</p></div>
+            <div class="emb" id="pBd"><span style="color:var(--texto-claro)">El mensaje aparecerá aquí...</span></div>
+        </div>
+        <div class="prog" id="prog"><p style="font-size:0.84rem;font-weight:600;margin-bottom:4px">Enviando...</p>
+            <div class="pb-wrap"><div class="pb" id="pb" style="width:0%"></div></div>
+            <div class="plog" id="plog"></div>
+        </div>
+        <div class="btns">
+            <button class="btn btn-p" id="btnEnv" onclick="enviar()"><i class="fas fa-paper-plane"></i> Enviar por correo</button>
+            <button class="btn btn-wa" id="btnWA" onclick="enviarWhatsApp()"><i class="fab fa-whatsapp"></i> Enviar por WhatsApp</button>
+            <button class="btn" id="btnAmbos" onclick="enviarAmbos()" style="background:linear-gradient(135deg,#0E2586,#25D366);color:white;font-weight:600"><i class="fas fa-share-alt"></i> Enviar correo + WhatsApp</button>
+            <button class="btn btn-s" onclick="limpiar()"><i class="fas fa-trash"></i> Limpiar</button>
+        </div>
+
+        <!-- ── PROGRESO WHATSAPP ── -->
+        <div class="prog" id="progWA" style="display:none">
+            <p style="font-size:0.84rem;font-weight:600;margin-bottom:4px;color:#25D366"><i class="fab fa-whatsapp"></i> Enviando por WhatsApp...</p>
+            <div class="pb-wrap"><div class="pb" id="pbWA" style="width:0%;background:linear-gradient(90deg,#25D366,#128C7E)"></div></div>
+            <div class="plog" id="plogWA"></div>
+        </div>
+
+        <!-- ── CONFIGURACIÓN WHATSAPP ── -->
+        <div id="waConfigPanel" style="display:none;margin-top:14px;background:#f0fdf4;border:2px solid #86efac;border-radius:11px;padding:16px 18px">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+                <h3 style="font-size:0.9rem;font-weight:700;color:#166534;display:flex;align-items:center;gap:7px"><i class="fab fa-whatsapp" style="color:#25D366;font-size:1.1rem"></i> Configuración WhatsApp Business</h3>
+                <button onclick="document.getElementById('waConfigPanel').style.display='none'" style="background:none;border:none;cursor:pointer;color:#64748b;font-size:1.1rem">✕</button>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:9px">
+                <div class="fg"><label style="color:#166534">Nombre de plantilla</label><input type="text" id="waTplName" placeholder="ej: comunicado_grupo" style="border-color:#86efac"></div>
+                <div class="fg"><label style="color:#166534">Idioma de plantilla</label>
+                    <select id="waTplLang" style="border-color:#86efac;padding:9px 12px;border:2px solid #86efac;border-radius:8px;font-size:0.88rem;font-family:'Poppins',sans-serif;outline:none">
+                        <option value="es">es — Español</option>
+                        <option value="es_MX">es_MX — Español (México)</option>
+                        <option value="en_US">en_US — English</option>
+                    </select>
+                </div>
+            </div>
+            <div class="fg" style="margin-top:2px"><label style="color:#166534;font-size:0.78rem">Variables de la plantilla (usa {nombre}, {unidad}, {fecha} o texto fijo separados por coma)</label>
+                <input type="text" id="waTplVars" placeholder="ej: {nombre},{unidad},Ver comunicado en tu correo" style="border-color:#86efac">
+                <p style="font-size:0.7rem;color:#4b7a56;margin-top:3px"><i class="fas fa-info-circle"></i> Cada valor separado por coma = una variable {{1}}, {{2}}, {{3}}... de tu plantilla de Meta</p>
+            </div>
+            <button class="btn" onclick="guardarConfigWA()" style="background:#25D366;color:white;margin-top:4px;font-size:0.82rem"><i class="fas fa-save"></i> Guardar configuración</button>
+        </div>
+    </div>
+</div>
+<script>
+(async()=>{
+    const URL='https://hyixmaxhoxvamoecuars.supabase.co';
+    const KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imh5aXhtYXhob3h2YW1vZWN1YXJzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI3OTg1NDMsImV4cCI6MjA4ODM3NDU0M30.ZLeJIWdip2f00h4TqkZH7eqMX4wpwphaqkJpAa0N0X4';
+    const EJ_KEY='sdJuTji-tJ4-ZO2pk',EJ_SVC='service_o5o77ra',EJ_TPL='template_22s3v9c';
+    const _accessToken = new URLSearchParams(window.location.search).get('token');
+    const _opts = _accessToken ? { global: { headers: { Authorization: `Bearer ${_accessToken}` } } } : {};
+    const db=supabase.createClient(URL,KEY,_opts);
+    let tipo='todos',unidad='todas',subEv='ambos',contactos=[],jovenes=[],adultos=[],eventos=[];
+    let archivosAdjuntos=[]; // {nombre, url, size, mime}
+
+    async function init(){
+        // Lee tabla "mmbb_registrations" (jóvenes del sistema)
+        const{data:j}=await db.from('mmbb_registrations').select('nombres,apellidos,unidad,apoderado_titular_email').order('apellidos');
+        // Lee tabla "adultos_registros" (dirigentes del sistema)
+        const{data:a}=await db.from('adultos_registros').select('nombres,apellidos,email,unidad_rol').order('apellidos');
+        // Lee tabla "eventos" (misma del sistema)
+        const{data:e}=await db.from('eventos').select('id,nombre').order('creado_en',{ascending:false});
+        jovenes=j||[];adultos=a||[];eventos=e||[];
+        document.getElementById('stJ').textContent=jovenes.length;
+        document.getElementById('stA').textContent=adultos.length;
+        const sel=document.getElementById('selEv');
+        eventos.forEach(ev=>{const o=document.createElement('option');o.value=ev.id;o.textContent=ev.nombre;sel.appendChild(o);});
+        sel.onchange=calcDest;
+        calcDest();cargarHistorial();
+    }
+
+    window.calcDest=async function(){
+        contactos=[];
+        const matchUnidad = (valor) => {
+            if(unidad === 'todas') return true;
+            return (valor || '').toLowerCase().includes(unidad.toLowerCase());
+        };
+        if(tipo==='todos'){
+            jovenes.forEach(j=>{if(j.apoderado_titular_email)contactos.push({nombre:`${j.nombres} ${j.apellidos}`,email:j.apoderado_titular_email,unidad:j.unidad});});
+            adultos.forEach(a=>{if(a.email)contactos.push({nombre:`${a.nombres} ${a.apellidos}`,email:a.email,unidad:a.unidad_rol});});
+        }else if(tipo==='jovenes'){
+            const p = jovenes.filter(j => matchUnidad(j.unidad));
+            p.forEach(j=>{if(j.apoderado_titular_email)contactos.push({nombre:`${j.nombres} ${j.apellidos}`,email:j.apoderado_titular_email,unidad:j.unidad});});
+        }else if(tipo==='adultos'){
+            adultos.forEach(a=>{if(a.email)contactos.push({nombre:`${a.nombres} ${a.apellidos}`,email:a.email,unidad:a.unidad_rol});});
+        }else if(tipo==='evento'){
+            const eid=document.getElementById('selEv').value;
+            if(eid){
+                // Jóvenes inscritos al evento (tabla "jovenes" por evento_id)
+                if(subEv === 'ambos' || subEv === 'jovenes'){
+                    const{data:jEv}=await db.from('jovenes').select('nombre_patrulla,email').eq('evento_id',eid);
+                    (jEv||[]).filter(r=>r.email).forEach(r=>contactos.push({nombre:r.nombre_patrulla||'Patrulla',email:r.email,unidad:'Evento'}));
+                }
+                // Adultos inscritos al evento (tabla "adultos" por evento_id)
+                if(subEv === 'ambos' || subEv === 'adultos'){
+                    const{data:aEv}=await db.from('adultos').select('nombre,email,rol').eq('evento_id',eid);
+                    (aEv||[]).filter(r=>r.email).forEach(r=>contactos.push({nombre:r.nombre||'Adulto',email:r.email,unidad:r.rol||'Staff'}));
+                }
+            }
+        }
+        const v=contactos.filter(c=>/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(c.email)).length;
+        document.getElementById('cnt').textContent=v;
+        document.getElementById('stE').textContent=v;
+        document.getElementById('pCnt').textContent=v;
+    };
+
+    // Handler para chips de subtipo evento
+    window.se = function(el, st){
+        document.querySelectorAll('#chipsEvento .chip').forEach(c => c.classList.remove('act'));
+        el.classList.add('act');
+        subEv = st;
+        calcDest();
+    };
+
+    window.sd=function(el,t){document.querySelectorAll('.ri').forEach(r=>r.classList.remove('sel'));el.classList.add('sel');el.querySelector('input').checked=true;tipo=t;document.getElementById('fuUnidad').style.display=t==='jovenes'?'block':'none';document.getElementById('gEv').style.display=t==='evento'?'block':'none';calcDest();};
+    window.sc=function(el,u){document.querySelectorAll('.chips .chip').forEach(c=>c.classList.remove('act'));el.classList.add('act');unidad=u;calcDest();};
+    window.f=function(cmd){document.execCommand(cmd,false,null);document.getElementById('editor').focus();};
+    window.iv=function(v){document.getElementById('editor').focus();document.execCommand('insertText',false,v);upPreview();};
+    window.upPreview=function(){const a=document.getElementById('asunto').value||'Sin asunto';document.getElementById('pAs').textContent=a;const b=document.getElementById('editor').innerHTML;const ej=b.replace(/\{nombre\}/g,'Ejemplo').replace(/\{unidad\}/g,'Tropa').replace(/\{fecha\}/g,new Date().toLocaleDateString('es-CL'));document.getElementById('pBd').innerHTML=ej||'<span style="color:var(--texto-claro)">El mensaje aparecerá aquí...</span>';};
+
+    // ── COMPRESIÓN DE IMÁGENES EN EL NAVEGADOR ──
+    // Redimensiona y re-comprime a JPEG para bajar drásticamente el peso
+    async function comprimirImagen(file, opts = {}) {
+        const {
+            maxWidth = 1200,
+            maxHeight = 1200,
+            quality = 0.7,
+            mimeOut = 'image/jpeg'
+        } = opts;
+
+        // Cargar imagen en memoria (FileReader primero, más compatible)
+        const dataUrl = await new Promise((res, rej) => {
+            const reader = new FileReader();
+            reader.onload = () => res(reader.result);
+            reader.onerror = () => rej(new Error('No se pudo leer el archivo'));
+            reader.readAsDataURL(file);
+        });
+        const img = await new Promise((res, rej) => {
+            const i = new Image();
+            i.onload = () => res(i);
+            i.onerror = () => rej(new Error('No se pudo cargar la imagen'));
+            i.src = dataUrl;
+        });
+
+        // Calcular nuevas dimensiones respetando proporción
+        let { width, height } = img;
+        if (width > maxWidth || height > maxHeight) {
+            const ratio = Math.min(maxWidth / width, maxHeight / height);
+            width = Math.round(width * ratio);
+            height = Math.round(height * ratio);
+        }
+
+        // Dibujar en canvas y exportar
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        if (mimeOut === 'image/jpeg') {
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(0, 0, width, height);
+        }
+        ctx.drawImage(img, 0, 0, width, height);
+        // FileReader no requiere revoke
+
+        const blob = await new Promise(res => canvas.toBlob(res, mimeOut, quality));
+        if (!blob) throw new Error('Fallo al comprimir la imagen');
+        return { blob, width, height };
+    }
+
+    // ── INSERTAR IMÁGENES ──
+    // Email tiene límite de ~50KB por payload. Para evitar error 413,
+    // las imágenes SIEMPRE se suben al bucket y se insertan como URL pública.
+    window.insertarImagenes = async function(e){
+        const files = Array.from(e.target.files || []);
+        for(const file of files){
+            if(!file.type.startsWith('image/')) continue;
+            const sizeOriginal = file.size;
+
+            try{
+                // Comprimir
+                const { blob } = await comprimirImagen(file, {
+                    maxWidth: 1200,
+                    maxHeight: 1200,
+                    quality: 0.7
+                });
+                const sizeFinal = blob.size;
+                const reduccion = Math.round((1 - sizeFinal/sizeOriginal) * 100);
+
+                // SIEMPRE subir al bucket (evita error 413 de EmailJS)
+                const fileOptimizado = new File(
+                    [blob],
+                    file.name.replace(/\.[^.]+$/, '') + '.jpg',
+                    { type: 'image/jpeg' }
+                );
+                const urlPublica = await subirArchivoABucket(fileOptimizado);
+
+                const img = `<img src="${urlPublica}" alt="${file.name}" style="max-width:100%;height:auto;border-radius:8px;margin:8px 0">`;
+                document.getElementById('editor').focus();
+                document.execCommand('insertHTML', false, img);
+                upPreview();
+
+                const fmtKB = (n) => n < 1024*1024 ? (n/1024).toFixed(0)+' KB' : (n/1024/1024).toFixed(1)+' MB';
+                alerta(`📷 "${file.name}": ${fmtKB(sizeOriginal)} → ${fmtKB(sizeFinal)} (−${reduccion}%) · subida al bucket`, 'ok');
+            } catch(err){
+                alerta('Error con imagen ' + file.name + ': ' + err.message, 'err');
+            }
+        }
+        e.target.value = '';
+    };
+
+    // ── ADJUNTAR ARCHIVOS: se suben al bucket y se agregan como enlaces al final del correo ──
+    window.adjuntarArchivos = async function(e){
+        const files = Array.from(e.target.files || []);
+        for(const file of files){
+            if(file.size > 25 * 1024 * 1024){ // 25 MB límite razonable
+                alerta(`"${file.name}" supera los 25 MB y no se adjuntará.`, 'err');
+                continue;
+            }
+            try{
+                const url = await subirArchivoABucket(file);
+                archivosAdjuntos.push({nombre: file.name, url, size: file.size, mime: file.type});
+                renderAdjuntosLista();
+            } catch(err){
+                alerta('Error al subir "' + file.name + '": ' + err.message, 'err');
+            }
+        }
+        e.target.value = '';
+    };
+
+    async function subirArchivoABucket(file){
+        // Sube al bucket "comunicaciones" (crear público en Supabase si no existe) — fallback al bucket "fotos"
+        const ext = file.name.split('.').pop();
+        const nombreLimpio = file.name.replace(/\.[^.]+$/,'').replace(/[^\w-]/g,'_').slice(0,40);
+        const path = `comunicaciones/${Date.now()}_${nombreLimpio}.${ext}`;
+        let resp = await db.storage.from('comunicaciones').upload(path, file, {upsert: true});
+        let bucket = 'comunicaciones';
+        if(resp.error){
+            // Fallback al bucket "fotos" existente
+            resp = await db.storage.from('fotos').upload(path, file, {upsert: true});
+            bucket = 'fotos';
+            if(resp.error) throw resp.error;
+        }
+        const {data: urlData} = db.storage.from(bucket).getPublicUrl(path);
+        return urlData.publicUrl;
+    }
+
+    function renderAdjuntosLista(){
+        const cont = document.getElementById('adjuntosLista');
+        if(!archivosAdjuntos.length){ cont.innerHTML = ''; return; }
+        const formatSize = (b) => b < 1024*1024 ? (b/1024).toFixed(0)+' KB' : (b/1024/1024).toFixed(1)+' MB';
+        cont.innerHTML = archivosAdjuntos.map((f,i) => {
+            const icono = f.mime?.includes('pdf') ? 'fa-file-pdf' : f.mime?.includes('word')||f.mime?.includes('document') ? 'fa-file-word' : f.mime?.includes('sheet')||f.mime?.includes('excel') ? 'fa-file-excel' : f.mime?.includes('image') ? 'fa-file-image' : 'fa-file';
+            return `<div style="background:#f1f5f9;border:1px solid var(--gris-claro);padding:5px 10px;border-radius:8px;font-size:0.78rem;display:flex;align-items:center;gap:6px">
+                <i class="fas ${icono}" style="color:var(--azul-claro)"></i>
+                <a href="${f.url}" target="_blank" style="color:var(--texto-oscuro);text-decoration:none;max-width:160px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${f.nombre}</a>
+                <span style="color:var(--texto-claro);font-size:0.7rem">${formatSize(f.size)}</span>
+                <i class="fas fa-times" style="cursor:pointer;color:#64748b;margin-left:4px" onclick="quitarAdjunto(${i})"></i>
+            </div>`;
+        }).join('');
+    }
+
+    window.quitarAdjunto = function(i){
+        archivosAdjuntos.splice(i, 1);
+        renderAdjuntosLista();
+    };
+
+    window.enviar=async function(){
+        const asunto=document.getElementById('asunto').value.trim();
+        const body=document.getElementById('editor').innerHTML.trim();
+        const firma=document.getElementById('firma').value.trim();
+        const saludo=document.getElementById('saludo').value;
+        if(!asunto)return alerta('Escribe un asunto.','err');
+        if(!body||body==='<br>')return alerta('Escribe el mensaje.','err');
+        const validos=contactos.filter(c=>/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(c.email));
+        if(!validos.length)return alerta('No hay destinatarios con email válido.','err');
+
+        // ── Validar que el cuerpo no tenga imágenes base64 (causan error 413 en EmailJS) ──
+        // Si las hay, las sube automáticamente al bucket y reemplaza los src
+        const editor = document.getElementById('editor');
+        const imgsBase64 = editor.querySelectorAll('img[src^="data:image"]');
+        if(imgsBase64.length){
+            alerta(`Optimizando ${imgsBase64.length} imagen(es) base64 para evitar error de tamaño...`, 'ok');
+            for(const img of imgsBase64){
+                try {
+                    const resp = await fetch(img.src);
+                    const blob = await resp.blob();
+                    const file = new File([blob], `img_${Date.now()}.jpg`, { type: blob.type || 'image/jpeg' });
+                    // Comprimir si aún es grande
+                    let subirBlob = blob;
+                    if(blob.size > 80 * 1024){
+                        const c = await comprimirImagen(file, { maxWidth: 1000, maxHeight: 1000, quality: 0.65 });
+                        subirBlob = c.blob;
+                    }
+                    const subirFile = new File([subirBlob], `img_${Date.now()}.jpg`, { type: 'image/jpeg' });
+                    const urlPublica = await subirArchivoABucket(subirFile);
+                    img.src = urlPublica;
+                } catch(e){
+                    console.warn('No se pudo convertir imagen base64:', e);
+                }
+            }
+        }
+
+        // Re-leer el body ya con imágenes convertidas a URLs
+        const bodyFinal = editor.innerHTML.trim();
+
+        // Validación final de tamaño
+        const tamEstimado = new Blob([bodyFinal]).size;
+        if(tamEstimado > 40 * 1024){
+            if(!confirm(`El cuerpo del correo pesa ${(tamEstimado/1024).toFixed(0)} KB. EmailJS permite hasta ~50 KB; puede fallar el envío.\n\n¿Intentar enviar de todos modos?`)) return;
+        }
+
+        if(!confirm(`¿Enviar a ${validos.length} destinatarios?`))return;
+        const btn=document.getElementById('btnEnv');btn.disabled=true;
+        document.getElementById('prog').classList.add('show');
+        const log=document.getElementById('plog'),bar=document.getElementById('pb');
+        log.innerHTML='';let ok=0,err=0;const total=validos.length;
+        for(const c of validos){
+            const bp=bodyFinal.replace(/\{nombre\}/g,c.nombre.split(' ')[0]).replace(/\{unidad\}/g,c.unidad||'').replace(/\{fecha\}/g,new Date().toLocaleDateString('es-CL'));
+            const sp=saludo.replace('{nombre}',c.nombre.split(' ')[0]);
+
+            // Bloque de adjuntos como enlaces de descarga
+            let bloqueAdjuntos = '';
+            if(archivosAdjuntos.length){
+                bloqueAdjuntos = `<div style="margin-top:24px;padding:14px;background:#f8fafc;border-left:4px solid #0E2586;border-radius:6px">
+                    <p style="margin:0 0 10px;font-size:0.82rem;font-weight:700;color:#0E2586;text-transform:uppercase;letter-spacing:0.5px"><i style="margin-right:5px">📎</i>Archivos adjuntos</p>
+                    ${archivosAdjuntos.map(f => `<a href="${f.url}" style="display:flex;align-items:center;gap:10px;padding:9px 12px;background:white;border:1px solid #e2e8f0;border-radius:6px;margin-bottom:5px;text-decoration:none;color:#2d3748;font-size:0.84rem"><span style="background:#0E2586;color:white;width:28px;height:28px;border-radius:5px;display:inline-flex;align-items:center;justify-content:center;font-weight:700;font-size:0.7rem">↓</span><span style="flex:1">${f.nombre}</span><span style="color:#718096;font-size:0.74rem">Descargar</span></a>`).join('')}
+                </div>`;
+            }
+
+            const html=`<!DOCTYPE html><html><body style="margin:0;padding:26px;background:#f4f7f9;font-family:Poppins,sans-serif"><div style="max-width:500px;margin:auto;background:white;border-radius:13px;overflow:hidden;box-shadow:0 4px 16px rgba(0,0,0,0.08)"><div style="background:linear-gradient(135deg,#0E2586,#1a36a8);padding:20px;text-align:center"><img src="https://i.imgur.com/11u9rUD.png" style="height:42px;margin-bottom:7px"><p style="color:rgba(255,255,255,0.8);font-size:0.8rem;margin:0">Grupo Guías y Scouts Salvador Sanfuentes</p></div><div style="padding:24px;font-size:0.88rem;line-height:1.8;color:#2d3748"><p><strong>${sp}</strong></p><br>${bp}${bloqueAdjuntos}<p style="margin-top:20px;color:#718096;font-size:0.82rem">Saludos,<br><strong style="color:#0E2586">${firma}</strong></p></div><div style="background:#f8fafc;padding:10px 20px;font-size:0.74rem;color:#718096;text-align:center;border-top:1px solid #e2e8f0">Enviado con ERP Scout · Grupo Salvador Sanfuentes</div></div></body></html>`;
+            try{await fetch('https://hyixmaxhoxvamoecuars.supabase.co/functions/v1/send-email',{method:'POST',headers:{'Content-Type':'application/json','apikey':'sb_publishable_JW9Y4kz_Wiy6e1E1KdzAyQ_PBbWUf6t'},body:JSON.stringify({to_email:c.email,subject:asunto,html_content:html})});ok++;log.innerHTML+=`<span style="color:var(--verde)">✓ ${c.nombre} (${c.email})</span><br>`;}
+            catch(e){err++;log.innerHTML+=`<span style="color:var(--rojo)">✗ ${c.nombre} — ${e.text||'Error'}</span><br>`;}
+            bar.style.width=Math.round((ok+err)/total*100)+'%';log.scrollTop=log.scrollHeight;
+            await new Promise(r=>setTimeout(r,350));
+        }
+        btn.disabled=false;alerta(`Completado: ${ok} enviados${err?`, ${err} con error`:'`'}.`,'ok');
+        await db.from('comunicaciones').insert({ asunto, canal: 'email', total_enviados: ok, total_errores: err, destinatarios_count: total }).catch(()=>{});
+        cargarHistorial();
+    };
+
+    async function cargarHistorial(){
+        const el=document.getElementById('histList');
+        let data = [];
+        try {
+            const resp = await db.from('comunicaciones').select('*').order('enviado_en',{ascending:false}).limit(5);
+            if(!resp.error) data = resp.data || [];
+        } catch(e) {
+            // Tabla no existe — no mostrar historial
+        }
+        if(!data?.length){el.innerHTML='<p style="font-size:0.8rem;color:var(--texto-claro);text-align:center;padding:7px">Sin envíos anteriores.</p>';return;}
+        el.innerHTML=data.map(c=>{const f=new Date(c.enviado_en).toLocaleDateString('es-CL',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'});return`<div class="hi"><h4>${c.asunto}</h4><div class="meta"><span>${f}</span><span style="color:var(--verde)"><i class="fas fa-check"></i> ${c.total_enviados||0}</span>${c.total_errores?`<span style="color:var(--rojo)"><i class="fas fa-times"></i> ${c.total_errores}</span>`:''}</div></div>`;}).join('');
+    }
+
+    function alerta(msg,tipo){const el=document.getElementById('alertR');el.innerHTML=`<div class="alert ${tipo}"><i class="fas fa-${tipo==='err'?'circle-exclamation':'check-circle'}"></i>${msg}</div>`;setTimeout(()=>el.innerHTML='',6000);}
+    // ════════════════════════════════════════════════
+    // ── WHATSAPP BUSINESS API ──
+    // Phone Number ID: 1152721121253729
+    // WABA ID: 3507365259439446
+    // Número: +56 9 3533 0101
+    // ════════════════════════════════════════════════
+    const WA_PHONE_NUMBER_ID = '1152721121253729';
+    // ⚠ IMPORTANTE: Este token es temporal (24h). Cuando tengas el token permanente
+    // de tu System User de Meta, reemplaza este valor.
+    // Obtenerlo: Meta Business Suite → Configuración → System Users → Generar token
+    // Permisos necesarios: whatsapp_business_messaging + whatsapp_business_management
+    const WA_TOKEN = 'EAAVZASorLPI8BRRNLxF9Dt3Utn6UJYNWWMupuZANZCZBpvZA4Hv6FLfZBKeABGfsCticww5nAnssWylUZAz4KeHpk4Qv5ZAb0YZBdAuwcyQQjMwLraCZAeLFIcSQpaIi7nTanKBImNEBPPL5omaOemO2DHhZByrHY4hRsNoq3sv2IuQQVdLu5aYyqNKKVzfJ7Pff91ZAvODmd58T9hleAzBlTE1UZCDmHMvZBVz2QPoBvqvqZAUf6PQSp30IAjcCUjXZBcgCUOj6o0ChNrSFijqgiISdQHUFewZDZD';
+
+    // Configuración de plantilla (guardada en localStorage)
+    let waConfig = {
+        tplName: localStorage.getItem('wa_tpl_name') || '',
+        tplLang: localStorage.getItem('wa_tpl_lang') || 'es',
+        tplVars: localStorage.getItem('wa_tpl_vars') || '{nombre}'
+    };
+
+    // Sincronizar campos del panel
+    function syncWAFields(){
+        if(document.getElementById('waTplName')) document.getElementById('waTplName').value = waConfig.tplName;
+        if(document.getElementById('waTplLang')) document.getElementById('waTplLang').value = waConfig.tplLang;
+        if(document.getElementById('waTplVars')) document.getElementById('waTplVars').value = waConfig.tplVars;
+    }
+
+    window.guardarConfigWA = function(){
+        waConfig.tplName = document.getElementById('waTplName').value.trim();
+        waConfig.tplLang = document.getElementById('waTplLang').value;
+        waConfig.tplVars = document.getElementById('waTplVars').value.trim();
+        localStorage.setItem('wa_tpl_name', waConfig.tplName);
+        localStorage.setItem('wa_tpl_lang', waConfig.tplLang);
+        localStorage.setItem('wa_tpl_vars', waConfig.tplVars);
+        document.getElementById('waConfigPanel').style.display = 'none';
+        alerta('✅ Configuración de WhatsApp guardada.', 'ok');
+        calcDest();
+    };
+
+    // Normalizar teléfono a formato E.164 (+56XXXXXXXXX)
+    function normalizarTelefono(tel){
+        if(!tel) return null;
+        // Limpiar todo lo que no sea dígito
+        const digits = tel.replace(/\D/g, '');
+        // Si ya tiene código de país
+        if(digits.startsWith('569') && digits.length === 11) return '+' + digits;
+        if(digits.startsWith('56') && digits.length === 11) return '+' + digits;
+        // Teléfono chileno sin código: 9XXXXXXXX (9 dígitos)
+        if(digits.startsWith('9') && digits.length === 9) return '+56' + digits;
+        // 8 dígitos (fijo) → agregar 56
+        if(digits.length === 8) return '+562' + digits;
+        // Si tiene código de otro país
+        if(digits.length >= 10) return '+' + digits;
+        return null;
+    }
+
+    // Reemplazar variables del template con datos del contacto
+    function resolverVars(plantillaVars, contacto){
+        return plantillaVars.split(',').map(v => {
+            const t = v.trim();
+            return t
+                .replace(/\{nombre\}/g, contacto.nombre ? contacto.nombre.split(' ')[0] : '')
+                .replace(/\{unidad\}/g, contacto.unidad || '')
+                .replace(/\{fecha\}/g, new Date().toLocaleDateString('es-CL'));
+        });
+    }
+
+    // Enviar WhatsApp usando WA.enviar() de wa_api.js → Supabase wa-proxy
+    async function enviarMensajeWA(telefono, vars){
+        if(!waConfig.tplName){
+            throw new Error('No hay plantilla configurada. Haz clic en ⚙ para configurar.');
+        }
+        const nombre = vars[0] || '';
+        const cuerpo = vars.slice(1).join(' ') || '';
+        const res = await WA.enviar(telefono, nombre, cuerpo);
+        if(!res.ok) throw new Error(res.error || 'Error al enviar WhatsApp');
+        return res;
+    }
+
+    // Obtener teléfono del contacto desde las tablas Supabase
+    async function obtenerTelefonoContacto(contacto){
+        // Buscar en adultos_registros por email
+        try {
+            const {data:a} = await db.from('adultos_registros').select('telefono').eq('email', contacto.email).maybeSingle();
+            if(a?.telefono) return normalizarTelefono(a.telefono);
+        } catch(e){}
+        // Buscar en mmbb_registrations por email de apoderado
+        try {
+            const {data:j} = await db.from('mmbb_registrations').select('apoderado_titular_telefono').eq('apoderado_titular_email', contacto.email).maybeSingle();
+            if(j?.apoderado_titular_telefono) return normalizarTelefono(j.apoderado_titular_telefono);
+        } catch(e){}
+        return null;
+    }
+
+    window.enviarWhatsApp = async function(){
+        // Validaciones previas
+        if(WA_TOKEN === 'TU_TOKEN_PERMANENTE_AQUI'){
+            document.getElementById('waConfigPanel').style.display = 'block';
+            syncWAFields();
+            alerta('⚠ Configura tu token de WhatsApp Business primero.', 'err');
+            return;
+        }
+        if(!waConfig.tplName){
+            document.getElementById('waConfigPanel').style.display = 'block';
+            syncWAFields();
+            alerta('⚠ Configura el nombre de la plantilla de Meta primero.', 'err');
+            return;
+        }
+        const validos = contactos.filter(c => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(c.email));
+        if(!validos.length) return alerta('No hay destinatarios seleccionados.', 'err');
+
+        if(!confirm(`¿Enviar mensaje de WhatsApp a hasta ${validos.length} contactos?\n\nSe usará la plantilla "${waConfig.tplName}".\n\nNota: Solo se enviará a quienes tengan teléfono registrado.`)) return;
+
+        const btnWA = document.getElementById('btnWA');
+        btnWA.disabled = true;
+        const progEl = document.getElementById('progWA');
+        progEl.style.display = 'block';
+        const logWA = document.getElementById('plogWA');
+        const barWA = document.getElementById('pbWA');
+        logWA.innerHTML = '';
+        let ok = 0, err = 0, sinTel = 0;
+        const total = validos.length;
+
+        for(const [i, contacto] of validos.entries()){
+            const telefono = await obtenerTelefonoContacto(contacto);
+            if(!telefono){
+                sinTel++;
+                logWA.innerHTML += `<span style="color:#f59e0b">⊘ ${contacto.nombre} — sin teléfono registrado</span><br>`;
+                barWA.style.width = Math.round((i+1)/total*100) + '%';
+                logWA.scrollTop = logWA.scrollHeight;
+                continue;
+            }
+            const vars = resolverVars(waConfig.tplVars, contacto);
+            try {
+                await enviarMensajeWA(telefono, vars);
+                ok++;
+                logWA.innerHTML += `<span style="color:#25D366">✓ ${contacto.nombre} (${telefono})</span><br>`;
+            } catch(e) {
+                err++;
+                logWA.innerHTML += `<span style="color:var(--rojo)">✗ ${contacto.nombre} — ${e.message}</span><br>`;
+            }
+            barWA.style.width = Math.round((i+1)/total*100) + '%';
+            logWA.scrollTop = logWA.scrollHeight;
+            await new Promise(r => setTimeout(r, 200)); // Throttle para no superar límite de Meta
+        }
+
+        btnWA.disabled = false;
+        const resumen = `WhatsApp: ${ok} enviados${err ? `, ${err} con error` : ''}${sinTel ? `, ${sinTel} sin teléfono` : ''}.`;
+        alerta(resumen, ok > 0 ? 'ok' : 'err');
+        await db.from('comunicaciones').insert({ asunto: document.getElementById('asunto').value.trim(), canal: 'whatsapp', total_enviados: ok, total_errores: err, total_sin_contacto: sinTel, destinatarios_count: validos.length }).catch(()=>{});
+        cargarHistorial();
+    };
+
+    // ── ENVIAR AMBOS: email + WhatsApp con el mismo comunicado ──
+    window.enviarAmbos = async function(){
+        const asunto = document.getElementById('asunto').value.trim();
+        const body = document.getElementById('editor').innerHTML.trim();
+        if(!asunto) return alerta('Escribe un asunto.', 'err');
+        if(!body || body === '<br>') return alerta('Escribe el mensaje.', 'err');
+        const validos = contactos.filter(c => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(c.email));
+        if(!validos.length) return alerta('No hay destinatarios seleccionados.', 'err');
+        if(!confirm(`¿Enviar por correo + WhatsApp a ${validos.length} destinatarios?\n\nCorreo: a todos con email válido.\nWhatsApp: solo a quienes tengan teléfono registrado.`)) return;
+
+        const btnAmbos = document.getElementById('btnAmbos');
+        const btnEnv = document.getElementById('btnEnv');
+        const btnWA = document.getElementById('btnWA');
+        btnAmbos.disabled = btnEnv.disabled = btnWA.disabled = true;
+
+        const firma = document.getElementById('firma').value.trim();
+        const saludo = document.getElementById('saludo').value;
+
+        // Texto plano del editor para WhatsApp (sin HTML)
+        const textoPlano = document.getElementById('editor').innerText.trim()
+            .replace(/\n{3,}/g, '\n\n')
+            .slice(0, 800);
+
+        let okEmail = 0, errEmail = 0, okWA = 0, errWA = 0, sinTel = 0;
+
+        document.getElementById('prog').classList.add('show');
+        const log = document.getElementById('plog');
+        const bar = document.getElementById('pb');
+        log.innerHTML = '';
+
+        for(const [i, c] of validos.entries()){
+            const nombreCorto = c.nombre.split(' ')[0];
+
+            // ── 1. Email ──
+            const bp = body.replace(/\{nombre\}/g, nombreCorto).replace(/\{unidad\}/g, c.unidad||'').replace(/\{fecha\}/g, new Date().toLocaleDateString('es-CL'));
+            const sp = saludo.replace('{nombre}', nombreCorto);
+            const html = `<!DOCTYPE html><html><body style="margin:0;padding:26px;background:#f4f7f9;font-family:Poppins,sans-serif"><div style="max-width:500px;margin:auto;background:white;border-radius:13px;overflow:hidden;box-shadow:0 4px 16px rgba(0,0,0,0.08)"><div style="background:linear-gradient(135deg,#0E2586,#1a36a8);padding:20px;text-align:center"><img src="https://i.imgur.com/11u9rUD.png" style="height:42px;margin-bottom:7px"><p style="color:rgba(255,255,255,0.8);font-size:0.8rem;margin:0">Grupo Guías y Scouts Salvador Sanfuentes</p></div><div style="padding:24px;font-size:0.88rem;line-height:1.8;color:#2d3748"><p><strong>${sp}</strong></p><br>${bp}<p style="margin-top:20px;color:#718096;font-size:0.82rem">Saludos,<br><strong style="color:#0E2586">${firma}</strong></p></div><div style="background:#f8fafc;padding:10px 20px;font-size:0.74rem;color:#718096;text-align:center;border-top:1px solid #e2e8f0">Enviado con ERP Scout · Grupo Salvador Sanfuentes</div></div></body></html>`;
+            try {
+                await fetch('https://hyixmaxhoxvamoecuars.supabase.co/functions/v1/send-email', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({to_email: c.email, subject: asunto, html_content: html})});
+                okEmail++;
+                log.innerHTML += `<span style="color:var(--verde)">✉ ${c.nombre} — correo ✓</span><br>`;
+            } catch(e) {
+                errEmail++;
+                log.innerHTML += `<span style="color:var(--rojo)">✉ ${c.nombre} — correo ✗</span><br>`;
+            }
+
+            // ── 2. WhatsApp ──
+            const telefono = await obtenerTelefonoContacto(c);
+            if(!telefono){
+                sinTel++;
+                log.innerHTML += `<span style="color:#f59e0b">📱 ${c.nombre} — sin teléfono</span><br>`;
+            } else {
+                const cuerpoWA = textoPlano.replace(/\{nombre\}/g, nombreCorto).replace(/\{unidad\}/g, c.unidad||'');
+                const res = await WA.enviar(telefono, nombreCorto, cuerpoWA);
+                if(res.ok){ okWA++; log.innerHTML += `<span style="color:#25D366">📱 ${c.nombre} — WhatsApp ✓</span><br>`; }
+                else { errWA++; log.innerHTML += `<span style="color:var(--rojo)">📱 ${c.nombre} — WhatsApp ✗ ${res.error||''}</span><br>`; }
+            }
+
+            bar.style.width = Math.round((i+1)/validos.length*100) + '%';
+            log.scrollTop = log.scrollHeight;
+            await new Promise(r => setTimeout(r, 350));
+        }
+
+        btnAmbos.disabled = btnEnv.disabled = btnWA.disabled = false;
+        alerta(`Completado — Correo: ${okEmail} enviados${errEmail ? `, ${errEmail} errores` : ''} | WhatsApp: ${okWA} enviados${errWA ? `, ${errWA} errores` : ''}${sinTel ? `, ${sinTel} sin teléfono` : ''}.`, 'ok');
+        await db.from('comunicaciones').insert({ asunto: document.getElementById('asunto').value.trim(), canal: 'ambos', total_enviados: okEmail + okWA, total_errores: errEmail + errWA, total_sin_contacto: sinTel, destinatarios_count: validos.length }).catch(()=>{});
+        cargarHistorial();
+    };
+
+    // Calcular cuántos contactos tienen WhatsApp (teléfono registrado) — se actualiza asíncronamente
+    async function actualizarContadorWA(){
+        const validos = contactos.filter(c => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(c.email));
+        // Estimación rápida: contar teléfonos en tabla adultos_registros
+        let conTel = 0;
+        try {
+            const {count} = await db.from('adultos_registros').select('*', {count:'exact', head:true}).not('telefono', 'is', null);
+            conTel += (count || 0);
+        } catch(e){}
+        try {
+            const {count} = await db.from('mmbb_registrations').select('*', {count:'exact', head:true}).not('apoderado_titular_telefono', 'is', null);
+            conTel += (count || 0);
+        } catch(e){}
+        document.getElementById('stWA').textContent = conTel;
+    }
+
+    // ════ Fin WhatsApp ════
+
+    window.limpiar=function(){
+        document.getElementById('asunto').value='';
+        document.getElementById('editor').innerHTML='';
+        document.getElementById('alertR').innerHTML='';
+        document.getElementById('prog').classList.remove('show');
+        document.getElementById('progWA').style.display='none';
+        archivosAdjuntos=[];
+        renderAdjuntosLista();
+        upPreview();
+    };
+
+    syncWAFields();
+    actualizarContadorWA();
+    await init();
+})();
+</script>
+<script>if('serviceWorker' in navigator){navigator.serviceWorker.register('/sw.js').catch(function(){});}</script>
+</body>
+</html>

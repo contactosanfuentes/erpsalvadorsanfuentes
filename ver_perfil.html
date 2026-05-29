@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Perfil del Joven — Salvador Sanfuentes</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}body{font-family:'DM Sans',sans-serif;background:#f1f5f9;min-height:100vh;padding:20px}
+.container{max-width:700px;margin:0 auto}
+.card{background:white;border-radius:16px;overflow:hidden;box-shadow:0 4px 15px rgba(0,0,0,0.08);margin-bottom:16px}
+.header-card{background:linear-gradient(135deg,#0E2586,#1e3a8a);padding:30px;text-align:center;color:white}
+.header-card img.logo{height:50px;margin-bottom:8px}
+.header-card img.foto{width:90px;height:90px;border-radius:50%;border:4px solid rgba(255,255,255,0.9);object-fit:cover;margin:12px auto;display:block}
+.header-card h1{font-size:1.3rem;font-weight:800;margin-bottom:4px}
+.header-card .badge{background:rgba(255,255,255,0.2);display:inline-block;padding:4px 14px;border-radius:8px;font-size:0.78rem;font-weight:600}
+.content{padding:24px}
+.info-row{display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid #f1f5f9;font-size:0.88rem}
+.info-row:last-child{border:none}
+.info-label{color:#64748b;font-weight:600}
+.info-value{color:#1e293b;font-weight:700;text-align:right}
+.section-title{font-size:0.82rem;font-weight:800;color:#0E2586;text-transform:uppercase;letter-spacing:1px;margin:20px 0 12px;padding-top:12px;border-top:2px solid #e2e8f0}
+.etapa-badge{display:inline-flex;align-items:center;gap:8px;background:#f0fdf4;border:1px solid #bbf7d0;padding:8px 16px;border-radius:10px;font-weight:700;color:#166534}
+.etapa-badge img{width:28px;height:28px;object-fit:contain}
+.proyecto-card{background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:12px;margin-bottom:8px}
+.proyecto-card h4{font-size:0.88rem;font-weight:700;margin-bottom:4px}
+.proyecto-card p{font-size:0.78rem;color:#64748b}
+.aviso{background:#fef3c7;border:1px solid #fde68a;border-radius:10px;padding:16px;text-align:center;font-size:0.85rem;color:#92400e}
+.readonly-banner{background:#E31837;color:white;text-align:center;padding:8px;font-size:0.75rem;font-weight:700;letter-spacing:0.5px}
+.error-page{display:flex;align-items:center;justify-content:center;min-height:80vh;text-align:center}
+.error-page h2{font-size:1.5rem;color:#dc2626;margin-bottom:8px}
+.error-page p{color:#64748b}
+.footer{text-align:center;padding:16px;font-size:0.72rem;color:#94a3b8}
+</style>
+</head>
+<body>
+<div class="container" id="main-container">
+<div class="readonly-banner"><i class="fas fa-lock"></i> VISTA DE SOLO LECTURA — Este enlace es temporal y de uso limitado</div>
+<div id="loading" style="text-align:center;padding:60px;"><i class="fas fa-spinner fa-spin" style="font-size:2rem;color:#0E2586;"></i><p style="margin-top:12px;color:#64748b;">Verificando acceso...</p></div>
+<div id="perfil-content" style="display:none;"></div>
+<div id="error-content" class="error-page" style="display:none;"><div><h2><i class="fas fa-shield-alt"></i></h2><h2>Enlace no válido</h2><p>Este enlace ha expirado, ya fue utilizado, o no es válido.<br>Solicita uno nuevo a tu dirigente.</p></div></div>
+</div>
+
+<script>
+const SUPABASE_URL='https://hyixmaxhoxvamoecuars.supabase.co';
+const SUPABASE_ANON_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imh5aXhtYXhob3h2YW1vZWN1YXJzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI3OTg1NDMsImV4cCI6MjA4ODM3NDU0M30.ZLeJIWdip2f00h4TqkZH7eqMX4wpwphaqkJpAa0N0X4';
+const sb=supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
+
+const LOGOS_UNIDADES={'Bandada':'https://i.imgur.com/1aGKetX.png','Manada':'https://i.imgur.com/0bZQNJs.png','Tropa':'https://i.imgur.com/2M19fp0.png','Compañía':'https://i.imgur.com/eoG0c2D.png','Avanzada':'https://i.imgur.com/06YpoWy.png','Clan':'https://i.imgur.com/abtMi0i.png'};
+const ETAPAS_IMG={'Pichón':'https://i.imgur.com/FV5CyzO.png','Aprendiz':'https://i.imgur.com/w25teqR.png','Golondrina':'https://i.imgur.com/lWYBuN6.png','Grulla':'https://i.imgur.com/fYYS3yd.png','Cóndor':'https://i.imgur.com/bP7Fp69.png','Abeja':'https://i.imgur.com/v5aQ6KP.png','Lobato':'https://i.imgur.com/FbfZ3Pk.png','Lobato Rastreador':'https://i.imgur.com/L1H1XWT.png','Lobato Cazador':'https://i.imgur.com/VzVYNvK.png','Scout':'https://i.imgur.com/Cy4qx8B.png','Scout Aventurero':'https://i.imgur.com/f6VNlkF.png','Brújula':'https://i.imgur.com/HEgRHgy.png','Guía':'https://i.imgur.com/p7sFHCp.png','Guía Mayor':'https://i.imgur.com/QJDZfJ7.png','Estrella del Sur':'https://i.imgur.com/R4g8eFt.png','Pionero':'https://i.imgur.com/YYBQ5Rq.png','Horizonte':'https://i.imgur.com/oQSA0sB.png','Bienvenida':'https://i.imgur.com/dYr6dIU.png','Fuego':'https://i.imgur.com/IEr3Kms.png','Antorcha':'https://i.imgur.com/JxK1RZ8.png'};
+
+async function init(){
+const params=new URLSearchParams(window.location.search);
+const token=params.get('token');
+if(!token){showError();return}
+
+try{
+// Verificar token
+const{data:tk,error:tkErr}=await sb.from('tokens_perfil').select('*').eq('token',token).maybeSingle();
+if(tkErr||!tk){showError();return}
+if(tk.usado){showError();return}
+if(new Date(tk.expira_en)<new Date()){showError();return}
+
+// Marcar como usado
+await sb.from('tokens_perfil').update({usado:true}).eq('id',tk.id);
+
+// Cargar datos del joven
+const{data:j}=await sb.from('mmbb_registrations').select('*').eq('id',tk.joven_id).single();
+if(!j){showError();return}
+
+// Cargar progresión
+const{data:prog}=await sb.from('progresion_jovenes').select('*').eq('joven_id',j.id).maybeSingle();
+
+renderPerfil(j,prog);
+}catch(e){console.error(e);showError()}}
+
+function showError(){document.getElementById('loading').style.display='none';document.getElementById('error-content').style.display='flex'}
+
+function esc(s){const d=document.createElement('div');d.textContent=s||'';return d.innerHTML}
+
+function getRama(unidad){if(!unidad)return'';const u=unidad.toLowerCase();if(u.includes('bandada'))return'Bandada';if(u.includes('manada'))return'Manada';if(u.includes('tropa'))return'Tropa';if(u.includes('compañía')||u.includes('compania'))return'Compañía';if(u.includes('avanzada')||u.includes('pionero'))return'Avanzada';if(u.includes('clan')||u.includes('caminante'))return'Clan';return''}
+
+function renderPerfil(j,prog){
+const rama=getRama(j.unidad);
+const logoRama=LOGOS_UNIDADES[rama]||'';
+const camino=prog?.camino||{};
+const etapa=prog?.etapa_actual||'Sin registrar';
+// Full progresion data for especialidades/competencias
+if (!prog) prog = {};
+const etapaImg=ETAPAS_IMG[etapa]||'';
+const edad=j.fecha_nacimiento?Math.floor((new Date()-new Date(j.fecha_nacimiento))/31557600000):'?';
+
+let html=`
+<div class="card">
+<div class="header-card">
+<img class="logo" src="https://i.imgur.com/11u9rUD.png" alt="Logo">
+<img class="foto" src="${esc(j.foto_url||'https://ui-avatars.com/api/?name='+encodeURIComponent(j.nombres)+'&background=0E2586&color=fff&bold=true')}" alt="Foto">
+<h1>${esc(j.nombres)} ${esc(j.apellidos)}</h1>
+<div class="badge">${logoRama?'<img src="'+logoRama+'" style="height:16px;vertical-align:-2px;margin-right:4px;">':''}${esc(j.unidad||'Sin unidad')} ${rama?' · Rama '+rama:''}</div>
+</div>
+<div class="content">
+<div class="info-row"><span class="info-label">RUN</span><span class="info-value">${esc(j.run)}</span></div>
+<div class="info-row"><span class="info-label">Edad</span><span class="info-value">${edad} años</span></div>
+<div class="info-row"><span class="info-label">Fecha de nacimiento</span><span class="info-value">${j.fecha_nacimiento||'No registrada'}</span></div>
+<div class="info-row"><span class="info-label">Género</span><span class="info-value">${esc(j.genero||'No registrado')}</span></div>
+
+<div class="section-title"><i class="fas fa-chart-line" style="margin-right:6px;"></i> Progresión Personal</div>
+<div class="etapa-badge">${etapaImg?'<img src="'+etapaImg+'">':''}<span>Etapa actual: ${esc(etapa)}</span></div>
+
+${j.apoderado_titular_nombre?`
+<div class="section-title"><i class="fas fa-user-friends" style="margin-right:6px;"></i> Apoderado Titular</div>
+<div class="info-row"><span class="info-label">Nombre</span><span class="info-value">${esc(j.apoderado_titular_nombre)}</span></div>
+${j.apoderado_titular_telefono?`<div class="info-row"><span class="info-label">Teléfono</span><span class="info-value">${esc(j.apoderado_titular_telefono)}</span></div>`:''}
+`:''}`;
+
+// Especialidades
+const especialidades = prog?.especialidades || [];
+if (especialidades.length) {
+    html += '<div class="section-title"><i class="fas fa-medal" style="margin-right:6px;"></i> Especialidades Certificadas (' + especialidades.length + ')</div>';
+    html += '<div style="display:flex;flex-wrap:wrap;gap:8px;">';
+    especialidades.forEach(esp => {
+        const nombre = esp.nombre || esp;
+        const cat = esp.categoria || '';
+        html += '<div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;padding:8px 14px;display:flex;align-items:center;gap:8px;">' +
+            (esp.imagen ? '<img src="' + esc(esp.imagen) + '" style="width:28px;height:28px;object-fit:contain;">' : '<i class="fas fa-award" style="color:#10b981;font-size:1.1rem;"></i>') +
+            '<div><p style="font-size:0.82rem;font-weight:700;color:#166534;margin:0;">' + esc(typeof nombre === 'string' ? nombre : JSON.stringify(nombre)) + '</p>' +
+            (cat ? '<p style="font-size:0.68rem;color:#64748b;margin:0;">' + esc(cat) + '</p>' : '') +
+            '</div></div>';
+    });
+    html += '</div>';
+}
+
+// Competencias Mayores
+const competencias = prog?.competencias_mayores || (prog?.territorios?.competencias_mayores) || [];
+if (competencias.length) {
+    html += '<div class="section-title"><i class="fas fa-trophy" style="margin-right:6px;"></i> Competencias Alcanzadas (' + competencias.length + ')</div>';
+    html += '<div style="display:flex;flex-wrap:wrap;gap:8px;">';
+    competencias.forEach(comp => {
+        const nombre = comp.nombre || comp;
+        html += '<div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:10px;padding:8px 14px;display:flex;align-items:center;gap:8px;">' +
+            '<i class="fas fa-trophy" style="color:#3b82f6;font-size:1rem;"></i>' +
+            '<div><p style="font-size:0.82rem;font-weight:700;color:#1e40af;margin:0;">' + esc(typeof nombre === 'string' ? nombre : JSON.stringify(nombre)) + '</p>' +
+            (comp.proyecto ? '<p style="font-size:0.68rem;color:#64748b;margin:0;">Proyecto: ' + esc(comp.proyecto) + '</p>' : '') +
+            '</div></div>';
+    });
+    html += '</div>';
+}
+
+// Actividades de Tropa (si aplica)
+const actTropa = prog?.actividades_tropa || (prog?.territorios?.actividades_tropa) || [];
+if (actTropa.length) {
+    html += '<div class="section-title"><i class="fas fa-tasks" style="margin-right:6px;"></i> Actividades Completadas (' + actTropa.length + ')</div>';
+    html += '<div style="display:flex;flex-wrap:wrap;gap:6px;">';
+    actTropa.forEach(act => {
+        const nombre = act.nombre || act;
+        html += '<span style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:5px 12px;font-size:0.78rem;font-weight:600;color:#475569;">' + esc(typeof nombre === 'string' ? nombre : JSON.stringify(nombre)) + '</span>';
+    });
+    html += '</div>';
+}
+
+// Proyectos
+const proyectos=camino.proyectos_colectivos||[];
+if(proyectos.length){
+html+=`<div class="section-title"><i class="fas fa-project-diagram" style="margin-right:6px;"></i> Proyectos (${proyectos.length})</div>`;
+proyectos.forEach(p=>{
+const sc={'Finalizado':'#10b981','En curso':'#3b82f6','Planificación':'#f59e0b','Evaluación':'#8b5cf6'};
+html+=`<div class="proyecto-card"><h4>${esc(p.nombre)} <span style="background:${(sc[p.estado]||'#f59e0b')}20;color:${sc[p.estado]||'#f59e0b'};padding:2px 8px;border-radius:6px;font-size:0.7rem;font-weight:700;">${esc(p.estado||'Planificación')}</span></h4><p><i class="fas fa-leaf"></i> ${esc(p.campoAccion||'')}${p.inicio?' · '+p.inicio:''}</p>${p.objetivo?'<p style="margin-top:4px;color:#475569;">'+esc(p.objetivo)+'</p>':''}</div>`})}
+
+// Manifiesto
+if(camino.proyectoPersonal){
+html+=`<div class="section-title"><i class="fas fa-compass" style="margin-right:6px;"></i> Manifiesto Personal</div><p style="font-size:0.88rem;color:#475569;line-height:1.6;background:#f8fafc;border-radius:10px;padding:14px;border:1px solid #e2e8f0;">${esc(camino.proyectoPersonal)}</p>`}
+
+html+=`</div></div>
+<div class="aviso"><i class="fas fa-info-circle" style="margin-right:6px;"></i> Este enlace fue de un solo uso y ya no podrá ser accedido nuevamente. La información aquí mostrada corresponde al momento en que se generó la notificación.</div>
+<div class="footer">Grupo Guías y Scouts Salvador Sanfuentes · Sistema de Gestión Educativa · ${new Date().getFullYear()}</div>`;
+
+document.getElementById('loading').style.display='none';
+document.getElementById('perfil-content').innerHTML=html;
+document.getElementById('perfil-content').style.display='block'}
+
+init();
+</script>
+</body>
+</html>

@@ -1,0 +1,673 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Portal Caminante | Salvador Sanfuentes</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}body{font-family:'DM Sans',sans-serif;background:#f1f5f9;color:#1e293b;min-height:100vh}
+.login-screen{display:flex;align-items:center;justify-content:center;min-height:100vh;padding:20px;background:linear-gradient(135deg,#0f172a,#1e293b)}
+.login-card{background:white;border-radius:20px;padding:40px;max-width:420px;width:100%;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,0.15)}
+.login-card img{height:60px;margin-bottom:16px}
+.login-card h1{font-size:1.5rem;font-weight:800;margin-bottom:4px;color:#E31837}
+.login-card p{color:#64748b;font-size:0.85rem;margin-bottom:24px}
+.form-group{text-align:left;margin-bottom:16px}
+.form-group label{display:block;font-size:0.75rem;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px}
+.form-group input{width:100%;border:2px solid #e2e8f0;border-radius:10px;padding:12px 16px;font-size:0.95rem;font-weight:600;outline:none;transition:border-color 0.2s}
+.form-group input:focus{border-color:#E31837}
+.btn-login{width:100%;background:#E31837;color:white;border:none;border-radius:10px;padding:14px;font-size:1rem;font-weight:700;cursor:pointer}
+.btn-login:disabled{opacity:0.5;cursor:not-allowed}
+.error-msg{background:#fef2f2;border:1px solid #fecaca;color:#dc2626;padding:10px;border-radius:8px;font-size:0.82rem;font-weight:600;margin-bottom:16px;display:none}
+.portal-screen{display:none;max-width:900px;margin:0 auto;padding:20px}
+.portal-header{display:flex;align-items:center;gap:16px;padding:16px 20px;background:white;border-radius:16px;margin-bottom:20px;box-shadow:0 1px 3px rgba(0,0,0,0.08);flex-wrap:wrap}
+.portal-header img{width:50px;height:50px;border-radius:50%;border:3px solid #E31837;object-fit:cover}
+.portal-header h2{font-size:1.1rem;font-weight:800}
+.badge{background:#fef2f2;color:#E31837;padding:4px 12px;border-radius:8px;font-size:0.75rem;font-weight:700}
+.btn-logout{margin-left:auto;background:#f1f5f9;border:1px solid #e2e8f0;color:#64748b;padding:8px 16px;border-radius:8px;cursor:pointer;font-weight:600;font-size:0.8rem}
+.section-card{background:white;border-radius:16px;padding:24px;margin-bottom:20px;box-shadow:0 1px 3px rgba(0,0,0,0.08)}
+.section-card h3{font-size:1rem;font-weight:800;margin-bottom:4px}
+.section-card .subtitle{font-size:0.78rem;color:#64748b;margin-bottom:16px}
+.btn-primary-portal{background:#E31837;color:white;border:none;border-radius:10px;padding:10px 24px;font-weight:700;cursor:pointer;font-size:0.88rem}
+.toast{position:fixed;top:20px;right:20px;padding:12px 20px;border-radius:10px;font-weight:700;font-size:0.85rem;z-index:9999;display:none;box-shadow:0 4px 20px rgba(0,0,0,0.15);color:white}
+.toast.ok{background:#10b981}.toast.err{background:#ef4444}.toast.info{background:#3b82f6}
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:9000;display:none;align-items:center;justify-content:center;padding:16px}
+.modal-overlay.active{display:flex}
+.modal-box{background:white;border-radius:16px;max-height:90vh;overflow-y:auto;width:100%;box-shadow:0 25px 50px rgba(0,0,0,0.2)}
+.search-results{max-height:150px;overflow-y:auto;border:1px solid #e2e8f0;border-radius:8px;background:white}
+.search-results div:hover{background:#f1f5f9}
+.proyecto-card-portal{background:white;border:1px solid #e2e8f0;border-radius:12px;margin-bottom:12px;overflow:hidden}
+.proyecto-header-portal{padding:14px 16px;display:flex;justify-content:space-between;align-items:center;cursor:pointer;gap:8px;flex-wrap:wrap}
+.proyecto-header-portal:hover{background:#f8fafc}
+.proyecto-body-portal{padding:0 16px 16px;display:none}
+.proyecto-body-portal.open{display:block}
+.pv-card{border:1px solid #e2e8f0;border-radius:12px;padding:14px 16px;margin-bottom:10px;background:#f8fafc}
+@media(max-width:600px){.login-card{padding:28px 20px}.portal-header{gap:10px}.btn-logout{margin-left:0;width:100%;text-align:center;margin-top:8px}}
+</style>
+</head>
+<body>
+<div id="toast" class="toast"></div>
+
+<!-- LOGIN -->
+<div class="login-screen" id="login-screen">
+<div class="login-card">
+<img src="https://i.imgur.com/11u9rUD.png" alt="Logo">
+<h1>Portal del Caminante</h1>
+<p>Accede con tu RUT para gestionar tu Proyecto de Vida y proyectos de intervención.</p>
+<div id="error-box" class="error-msg"></div>
+<div class="form-group"><label>RUT</label><input type="text" id="input-rut" placeholder="Ej: 22865919-3" maxlength="15" autofocus></div>
+<div class="form-group"><label>Clave de acceso</label><input type="password" id="input-clave" placeholder="Últimos 4 dígitos de tu RUT"></div>
+<button class="btn-login" id="btn-ingresar" onclick="verificarAcceso()"><i class="fas fa-sign-in-alt"></i> Ingresar</button>
+<p style="margin-top:16px;font-size:0.72rem;color:#94a3b8;">Clave por defecto: últimos 4 dígitos de tu RUT.</p>
+</div>
+</div>
+
+<!-- PORTAL -->
+<div class="portal-screen" id="portal-screen">
+<div class="portal-header">
+<img id="portal-foto" src="" alt=""><div><h2 id="portal-nombre"></h2><span class="badge"><i class="fas fa-fire"></i> <span id="portal-unidad">Caminante</span></span></div>
+<button class="btn-logout" onclick="cerrarSesion()"><i class="fas fa-sign-out-alt"></i> Cerrar Sesión</button>
+</div>
+
+<!-- MANIFIESTO -->
+<div class="section-card">
+<h3><i class="fas fa-compass" style="color:#E31837;margin-right:8px;"></i> Mi Manifiesto Personal</h3>
+<p class="subtitle">¿Hacia dónde encamino mi vida y mi vocación?</p>
+<textarea id="portal-manifiesto" rows="4" class="w-full border-2 border-gray-200 rounded-xl p-4 text-sm focus:border-red-400 outline-none font-medium" placeholder="Escribe tu proyecto de vida, metas, misión personal..."></textarea>
+<div class="flex gap-2 mt-3 flex-wrap">
+<label class="bg-red-50 text-red-700 border border-red-200 rounded-lg px-3 py-1.5 text-xs font-bold cursor-pointer hover:bg-red-100"><i class="fas fa-image mr-1"></i> Imagen <input type="file" accept="image/*" multiple style="display:none" onchange="subirAdjunto('imagen',this)"></label>
+<label class="bg-purple-50 text-purple-700 border border-purple-200 rounded-lg px-3 py-1.5 text-xs font-bold cursor-pointer hover:bg-purple-100"><i class="fas fa-microphone mr-1"></i> Audio <input type="file" accept="audio/*" style="display:none" onchange="subirAdjunto('audio',this)"></label>
+</div>
+<div id="portal-adjuntos" class="flex flex-wrap gap-2 mt-2"></div>
+<div class="text-right mt-3"><button class="btn-primary-portal" onclick="guardarManifiesto()"><i class="fas fa-save"></i> Guardar</button></div>
+</div>
+
+<!-- MIS PROYECTOS -->
+<div class="section-card">
+<h3><i class="fas fa-project-diagram" style="color:#E31837;margin-right:8px;"></i> Mis Proyectos</h3>
+<p class="subtitle">Crea y gestiona proyectos con el mismo formulario del sistema principal.</p>
+<button onclick="abrirModalProyecto()" class="btn-primary-portal mb-4"><i class="fas fa-plus-circle"></i> Crear Nuevo Proyecto</button>
+<div id="portal-proyectos"></div>
+</div>
+
+<!-- EXPLORAR PROYECTOS -->
+<div class="section-card">
+<h3><i class="fas fa-rocket" style="color:#8b5cf6;margin-right:8px;"></i> Explorar Proyectos Vigentes</h3>
+<p class="subtitle">Proyectos activos de Avanzada y Clan.</p>
+<div id="portal-proyectos-vigentes"></div>
+</div>
+</div>
+
+<!-- MODAL PROYECTO (réplica exacta del sistema interno) -->
+<div id="modal-proyecto-portal" class="modal-overlay">
+<div class="modal-box" style="max-width:850px;padding:0;">
+<div class="bg-gradient-to-r from-indigo-700 to-red-700 px-8 py-5 sticky top-0 z-10 flex justify-between items-center" style="border-radius:16px 16px 0 0;">
+<div><h3 style="margin:0;color:white;font-size:1.1rem;font-weight:800;"><i class="fas fa-project-diagram mr-2"></i> <span id="mp-title">Estructuración de Proyecto</span></h3><p class="text-indigo-200 text-xs font-medium mt-1">Formulario de proyectos adaptado a la pedagogía scout.</p></div>
+<button onclick="cerrarModalProy()" class="text-white/70 hover:text-white text-2xl"><i class="fas fa-times"></i></button>
+</div>
+<div style="padding:24px;" id="mp-body">
+<input type="hidden" id="mp-edit-id" value="">
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-5">
+<div class="md:col-span-2"><label class="font-extrabold text-xs text-gray-700 uppercase tracking-wide block mb-1">Nombre Oficial del Proyecto *</label><input type="text" id="mp-nombre" class="w-full border-2 border-gray-200 rounded-lg p-2.5 focus:border-indigo-400 outline-none font-bold text-gray-800" placeholder="Ej: Operativo Reforestación Cerro Renca"></div>
+<div class="md:col-span-2"><label class="font-extrabold text-xs text-gray-700 uppercase tracking-wide block mb-1">Objetivo General (SMART) *</label><textarea id="mp-objetivo" rows="2" class="w-full border-2 border-gray-200 rounded-lg p-2.5 focus:border-indigo-400 outline-none font-medium text-gray-800" placeholder="Meta específica, medible y alcanzable..."></textarea></div>
+<div><label class="font-extrabold text-xs text-gray-700 uppercase tracking-wide block mb-1">Área / Campo Estratégico *</label>
+<select id="mp-campo" class="w-full border-2 border-gray-200 rounded-lg p-2.5 focus:border-indigo-400 outline-none font-bold text-indigo-800 bg-indigo-50" onchange="document.getElementById('mp-campo-otro').style.display=this.value==='Otros'?'block':'none'">
+<option value="Servicio">Intervención de Servicio / Comunitaria</option><option value="Trabajo">Mundo del Trabajo / Emprendimiento</option><option value="Viaje">Viaje / Inmersión Cultural</option><option value="Naturaleza">Naturaleza / Sustentabilidad (ODS)</option><option value="Cultura y Artes">Cultura y Artes (Pioneros)</option><option value="Innovación / Técnica">Innovación / Técnica (Pioneros)</option><option value="Otros">Otros (especificar)</option>
+</select><input type="text" id="mp-campo-otro" style="display:none;" class="w-full border-2 border-indigo-200 rounded-lg p-2.5 mt-2 focus:border-indigo-400 outline-none font-bold text-indigo-800" placeholder="Especifica..."></div>
+<div class="flex gap-3"><div class="flex-1"><label class="font-extrabold text-xs text-gray-700 uppercase tracking-wide block mb-1">Inicio *</label><input type="date" id="mp-inicio" class="w-full border-2 border-gray-200 rounded-lg p-2.5 focus:border-indigo-400 outline-none font-medium"></div><div class="flex-1"><label class="font-extrabold text-xs text-gray-700 uppercase tracking-wide block mb-1">Término</label><input type="date" id="mp-termino" class="w-full border-2 border-gray-200 rounded-lg p-2.5 focus:border-indigo-400 outline-none font-medium"></div></div>
+</div>
+
+<!-- ORGANIGRAMA -->
+<div class="bg-gray-50 border border-gray-200 rounded-xl p-5 mb-5">
+<h4 class="font-extrabold text-gray-800 mb-3 border-b border-gray-200 pb-2 uppercase tracking-wide text-sm"><i class="fas fa-sitemap mr-1"></i> Organigrama y Responsables por Área</h4>
+<div id="mp-responsables" class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4"></div>
+</div>
+
+<!-- PARTICIPANTES -->
+<div class="bg-gray-50 border border-gray-200 rounded-xl p-5 mb-5">
+<h4 class="font-extrabold text-gray-800 mb-3 border-b border-gray-200 pb-2 uppercase tracking-wide text-sm"><i class="fas fa-users mr-1"></i> Ficha de Participantes y Voluntarios</h4>
+<div class="flex gap-2 mb-3"><input type="text" id="mp-buscar-part" placeholder="Buscar por RUN o Apellidos..." class="flex-1 border border-gray-300 rounded-lg p-2.5 outline-none focus:border-indigo-400 font-medium text-sm"><button onclick="mpBuscarParticipante()" class="bg-indigo-600 hover:bg-indigo-700 text-white border-none rounded-lg px-5 py-2 font-bold text-sm cursor-pointer shadow"><i class="fas fa-search"></i> Buscar</button></div>
+<div id="mp-resultados-part" class="search-results hidden mb-3"></div>
+<div id="mp-participantes-list" class="grid grid-cols-1 sm:grid-cols-2 gap-2"></div>
+</div>
+
+<!-- EVIDENCIAS -->
+<div class="bg-gray-50 border border-gray-200 rounded-xl p-5 mb-5">
+<h4 class="font-extrabold text-gray-800 mb-3 border-b border-gray-200 pb-2 uppercase tracking-wide text-sm"><i class="fas fa-paperclip mr-1"></i> Evidencias del Proyecto</h4>
+<div class="flex gap-2 mb-3"><input type="file" id="mp-evidencia-file" multiple class="flex-1 border border-gray-300 rounded-lg p-2.5 outline-none focus:border-indigo-400 font-medium text-sm"><button onclick="mpSubirEvidencia()" class="bg-indigo-600 hover:bg-indigo-700 text-white border-none rounded-lg px-5 py-2 font-bold text-sm cursor-pointer shadow"><i class="fas fa-upload"></i> Subir</button></div>
+<div id="mp-evidencias-list" class="flex flex-wrap gap-2"></div>
+</div>
+
+<!-- FICHA EXTENDIDA -->
+<div class="bg-amber-50 border border-amber-200 rounded-xl p-5 mb-5">
+<label class="flex items-center gap-3 cursor-pointer"><input type="checkbox" id="mp-toggle-ficha" onchange="document.getElementById('mp-ficha-ext').style.display=this.checked?'block':'none'" class="w-5 h-5 accent-amber-600 cursor-pointer"><span class="font-extrabold text-amber-900 uppercase tracking-wide text-sm"><i class="fas fa-clipboard-list mr-1"></i> Activar Ficha Extendida (Caminantes)</span></label>
+<div id="mp-ficha-ext" style="display:none;" class="mt-5">
+
+<!-- 1. Identificación -->
+<div class="bg-white border border-amber-100 rounded-xl p-5 mb-4 shadow-sm">
+<h4 class="font-extrabold text-amber-900 text-sm uppercase tracking-wide mb-3 border-b border-amber-100 pb-2"><i class="fas fa-tag mr-1"></i> 1. Identificación y Contexto</h4>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+<div class="md:col-span-2"><label class="font-bold text-xs text-gray-700 block mb-1">Justificación</label><textarea id="mp-justificacion" rows="2" class="w-full border border-gray-200 rounded-lg p-2.5 text-sm focus:border-amber-400 outline-none" placeholder="¿Por qué es necesario este proyecto?"></textarea></div>
+<div><label class="font-bold text-xs text-gray-700 block mb-1">Beneficiarios Directos</label><input type="text" id="mp-beneficiarios" class="w-full border border-gray-200 rounded-lg p-2.5 text-sm focus:border-amber-400 outline-none" placeholder="Ej: 50 familias"></div>
+<div><label class="font-bold text-xs text-gray-700 block mb-1">Lugar de Ejecución</label><input type="text" id="mp-lugar" class="w-full border border-gray-200 rounded-lg p-2.5 text-sm focus:border-amber-400 outline-none" placeholder="Ej: Cerro San Cristóbal"></div>
+</div></div>
+
+<!-- 2. Campos de Acción -->
+<div class="bg-white border border-amber-100 rounded-xl p-5 mb-4 shadow-sm">
+<h4 class="font-extrabold text-amber-900 text-sm uppercase tracking-wide mb-3 border-b border-amber-100 pb-2"><i class="fas fa-compass mr-1"></i> 2. Campos de Acción Prioritarios</h4>
+<div id="mp-campos-list"></div>
+<button onclick="mpAddDynRow('mp-campos-list','Campo de acción')" class="text-amber-700 text-xs font-bold mt-1"><i class="fas fa-plus mr-1"></i> Agregar</button>
+</div>
+
+<!-- 3. Objetivos Específicos -->
+<div class="bg-white border border-amber-100 rounded-xl p-5 mb-4 shadow-sm">
+<h4 class="font-extrabold text-amber-900 text-sm uppercase tracking-wide mb-3 border-b border-amber-100 pb-2"><i class="fas fa-bullseye mr-1"></i> 3. Objetivos Específicos</h4>
+<div id="mp-objetivos-list"></div>
+<button onclick="mpAddDynRow('mp-objetivos-list','Objetivo específico')" class="text-amber-700 text-xs font-bold mt-1"><i class="fas fa-plus mr-1"></i> Agregar</button>
+</div>
+
+<!-- 4. Plan de Acción -->
+<div class="bg-white border border-amber-100 rounded-xl p-5 mb-4 shadow-sm">
+<h4 class="font-extrabold text-amber-900 text-sm uppercase tracking-wide mb-3 border-b border-amber-100 pb-2"><i class="fas fa-tasks mr-1"></i> 4. Plan de Acción</h4>
+<div class="overflow-x-auto"><div class="grid grid-cols-5 gap-1 font-bold text-xs text-amber-900 mb-2 min-w-[600px] bg-amber-100 rounded-lg p-2"><span>Acción</span><span>Recursos</span><span>Responsable</span><span>Cronograma</span><span></span></div>
+<div id="mp-acciones-list" class="min-w-[600px]"></div></div>
+<button onclick="mpAddAccionRow()" class="text-amber-700 text-xs font-bold mt-2"><i class="fas fa-plus mr-1"></i> Agregar fila</button>
+</div>
+
+<!-- 5. Presupuesto -->
+<div class="bg-white border border-amber-100 rounded-xl p-5 mb-4 shadow-sm">
+<h4 class="font-extrabold text-amber-900 text-sm uppercase tracking-wide mb-3 border-b border-amber-100 pb-2"><i class="fas fa-coins mr-1"></i> 5. Presupuesto Estimado</h4>
+<div class="overflow-x-auto"><div class="grid grid-cols-5 gap-1 font-bold text-xs text-amber-900 mb-2 min-w-[500px] bg-amber-100 rounded-lg p-2"><span>Concepto</span><span>Cant.</span><span>C. Unit.</span><span>Subtotal</span><span></span></div>
+<div id="mp-ppto-list" class="min-w-[500px]"></div></div>
+<div class="flex justify-between items-center mt-2"><button onclick="mpAddPptoRow()" class="text-amber-700 text-xs font-bold"><i class="fas fa-plus mr-1"></i> Agregar</button><span id="mp-ppto-total" class="font-extrabold text-amber-900 text-sm">Total: $0</span></div>
+</div>
+
+<!-- 6. Indicadores -->
+<div class="bg-white border border-amber-100 rounded-xl p-5 mb-4 shadow-sm">
+<h4 class="font-extrabold text-amber-900 text-sm uppercase tracking-wide mb-3 border-b border-amber-100 pb-2"><i class="fas fa-chart-bar mr-1"></i> 6. Indicadores de Evaluación</h4>
+<div id="mp-indicadores-list"></div>
+<button onclick="mpAddIndRow()" class="text-amber-700 text-xs font-bold mt-1"><i class="fas fa-plus mr-1"></i> Agregar</button>
+</div>
+
+<!-- 7. Árbol del Problema -->
+<div class="rounded-xl overflow-hidden mb-4 shadow-sm" style="border:2px solid #92400e;">
+<div class="bg-amber-800 text-white px-5 py-3"><h4 class="font-extrabold text-sm uppercase tracking-wide"><i class="fas fa-tree mr-2 text-amber-300"></i> 7. Árbol del Problema</h4></div>
+<div style="position:relative;background:linear-gradient(180deg,#87CEEB 0%,#87CEEB 30%,#c1e6c1 30%,#8fbc8f 50%,#6b4423 50%,#5a3a1a 100%);padding:20px;min-height:400px;display:flex;flex-direction:column;align-items:center;gap:0;">
+<div style="background:rgba(254,243,199,0.95);border:2px solid #f59e0b;border-radius:16px;padding:14px;width:100%;max-width:600px;text-align:center;">
+<p class="font-extrabold text-xs text-amber-900 uppercase tracking-wider mb-2"><i class="fas fa-cloud-sun"></i> Consecuencias / Efectos</p>
+<div id="mp-arbol-cons"></div>
+<button onclick="mpAddArbolRow('mp-arbol-cons','Consecuencia','border-amber-300')" class="text-amber-800 text-xs font-bold mt-1"><i class="fas fa-plus"></i> Agregar</button>
+</div>
+<div style="width:6px;height:16px;background:#5a3a1a;border-radius:3px;"></div>
+<div style="background:linear-gradient(135deg,#dc2626,#b91c1c);border:3px solid #7f1d1d;border-radius:16px;padding:16px;width:100%;max-width:500px;text-align:center;box-shadow:0 4px 15px rgba(185,28,28,0.3);">
+<p class="font-extrabold text-xs text-red-200 uppercase tracking-wider mb-2">🎯 Problema Central</p>
+<textarea id="mp-arbol-central" rows="2" class="w-full bg-white/90 border-2 border-red-300 rounded-lg p-3 text-sm font-bold text-red-900 focus:border-white outline-none" placeholder="¿Cuál es el problema central?"></textarea>
+</div>
+<div style="width:6px;height:16px;background:#5a3a1a;border-radius:3px;"></div>
+<div style="background:rgba(209,250,229,0.95);border:2px solid #10b981;border-radius:16px;padding:14px;width:100%;max-width:600px;text-align:center;">
+<p class="font-extrabold text-xs text-green-900 uppercase tracking-wider mb-2"><i class="fas fa-seedling"></i> Causas / Raíces</p>
+<div id="mp-arbol-causas"></div>
+<button onclick="mpAddArbolRow('mp-arbol-causas','Causa','border-green-300')" class="text-green-800 text-xs font-bold mt-1"><i class="fas fa-plus"></i> Agregar</button>
+</div>
+</div></div>
+
+</div></div>
+
+<!-- Crear evento -->
+<div class="bg-orange-50 border border-orange-200 rounded-xl p-4 mb-5">
+<label class="flex items-center gap-3 cursor-pointer"><input type="checkbox" id="mp-crear-evento" class="w-5 h-5 accent-orange-600 cursor-pointer"><span class="font-extrabold text-orange-900 text-sm"><i class="fas fa-calendar-plus mr-1"></i> Crear un Evento a partir de este Proyecto</span></label>
+<p class="text-xs text-orange-700 mt-2 ml-8">Se creará un evento con los datos del proyecto, participantes y responsables.</p>
+</div>
+
+<div class="flex gap-4 pt-5 border-t border-gray-200">
+<button onclick="cerrarModalProy()" class="flex-1 py-3 border-2 border-gray-200 rounded-lg font-bold text-gray-600 bg-white cursor-pointer text-base">Cancelar</button>
+<button onclick="mpGuardarProyecto()" class="flex-1 py-3 bg-indigo-600 hover:bg-indigo-700 text-white border-none rounded-lg font-bold cursor-pointer text-base shadow-lg"><i class="fas fa-save mr-1"></i> Guardar y Distribuir</button>
+</div>
+</div></div></div>
+
+<script>
+const SUPABASE_URL='https://hyixmaxhoxvamoecuars.supabase.co';
+const SUPABASE_ANON_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imh5aXhtYXhob3h2YW1vZWN1YXJzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI3OTg1NDMsImV4cCI6MjA4ODM3NDU0M30.ZLeJIWdip2f00h4TqkZH7eqMX4wpwphaqkJpAa0N0X4';
+const sb=supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
+let currentJoven=null,camino=null;
+let mpResponsables={},mpParticipantes=[],mpEvidencias=[];
+const AREAS_RESP=['Coordinador General','Finanzas / Tesorería','Logística y Equipos','Comunicaciones y RRPP','Programa y Actividades','Gestión de Riesgos','Salud y Primeros Auxilios','Operaciones'];
+function areaKey(a){return a.replace(/[^a-zA-Z0-9]/g,'');}
+
+function toast(m,t='ok'){const el=document.getElementById('toast');el.textContent=m;el.className='toast '+t;el.style.display='block';setTimeout(()=>el.style.display='none',3500)}
+function esc(s){const d=document.createElement('div');d.textContent=s||'';return d.innerHTML}
+function formatRut(v){return v.replace(/[\.\-\s]/g,'').trim().toUpperCase()}
+
+document.getElementById('input-rut').addEventListener('keyup',e=>{if(e.key==='Enter')document.getElementById('input-clave').focus()});
+document.getElementById('input-clave').addEventListener('keyup',e=>{if(e.key==='Enter')verificarAcceso()});
+
+// ══════════ AUTH ══════════
+async function verificarAcceso(){
+const rut=formatRut(document.getElementById('input-rut').value),clave=document.getElementById('input-clave').value.trim(),err=document.getElementById('error-box');
+err.style.display='none';if(!rut||!clave){err.textContent='Ingresa tu RUT y clave.';err.style.display='block';return}
+document.getElementById('btn-ingresar').disabled=true;
+try{const{data,error}=await sb.from('mmbb_registrations').select('*').ilike('run',rut).limit(1);if(error)throw error;if(!data||!data.length){err.textContent='RUT no encontrado.';err.style.display='block';return}
+const j=data[0];const rutD=rut.replace(/[^0-9]/g,'');if(clave!==(j.portal_clave||rutD.slice(-4))){err.textContent='Clave incorrecta.';err.style.display='block';return}
+currentJoven=j;const{data:pg}=await sb.from('progresion_jovenes').select('*').eq('joven_id',j.id).maybeSingle();
+if(pg){camino=pg.camino||{}}else{camino={};await sb.from('progresion_jovenes').insert({joven_id:j.id,camino})}
+if(!camino.proyectoPersonal)camino.proyectoPersonal='';if(!camino.adjuntos_manifiesto)camino.adjuntos_manifiesto=[];if(!camino.proyectos_colectivos)camino.proyectos_colectivos=[];
+mostrarPortal()}catch(e){err.textContent='Error: '+e.message;err.style.display='block'}finally{document.getElementById('btn-ingresar').disabled=false}}
+
+async function guardarCamino(){try{const{error}=await sb.from('progresion_jovenes').upsert({joven_id:currentJoven.id,camino},{onConflict:'joven_id'});if(error)throw error;return true}catch(e){toast('Error: '+e.message,'err');return false}}
+
+function mostrarPortal(){document.getElementById('login-screen').style.display='none';document.getElementById('portal-screen').style.display='block';
+document.getElementById('portal-foto').src=currentJoven.foto_url||'https://ui-avatars.com/api/?name='+encodeURIComponent(currentJoven.nombres)+'&background=E31837&color=fff&bold=true';
+document.getElementById('portal-nombre').textContent=currentJoven.nombres+' '+currentJoven.apellidos;
+document.getElementById('portal-unidad').textContent=currentJoven.unidad||'Caminante';
+document.getElementById('portal-manifiesto').value=camino.proyectoPersonal||'';
+renderAdjuntos();renderProyectos();cargarProyectosVigentes()}
+
+// ══════════ MANIFIESTO ══════════
+async function guardarManifiesto(){camino.proyectoPersonal=document.getElementById('portal-manifiesto').value;if(await guardarCamino())toast('Manifiesto guardado.')}
+function renderAdjuntos(){const c=document.getElementById('portal-adjuntos');c.innerHTML='';(camino.adjuntos_manifiesto||[]).forEach(a=>{if(a.tipo==='imagen')c.innerHTML+=`<a href="${esc(a.url)}" target="_blank"><img src="${esc(a.url)}" style="width:50px;height:50px;object-fit:cover;border-radius:8px;border:2px solid #fca5a5;"></a>`;else c.innerHTML+=`<a href="${esc(a.url)}" target="_blank" class="bg-purple-50 text-purple-700 px-3 py-1.5 rounded-lg text-xs font-bold border border-purple-200"><i class="fas fa-play mr-1"></i>${esc(a.nombre||'Audio')}</a>`})}
+async function subirAdjunto(tipo,input){const files=input.files;if(!files.length)return;toast('Subiendo...','info');try{for(const f of files){if(f.size>10*1024*1024){toast(f.name+' >10MB','err');continue}const ext=f.name.split('.').pop().toLowerCase();const path=`manifiesto/${currentJoven.id}_${Date.now()}.${ext}`;const{error}=await sb.storage.from('fotos').upload(path,f,{upsert:true});if(error)throw error;const{data}=sb.storage.from('fotos').getPublicUrl(path);camino.adjuntos_manifiesto.push({tipo,url:data.publicUrl,nombre:f.name})}await guardarCamino();renderAdjuntos();toast('Adjunto guardado.')}catch(e){toast('Error: '+e.message,'err')}input.value=''}
+
+// ══════════ MODAL PROYECTO ══════════
+function abrirModalProyecto(editIdx){
+mpResponsables={};mpParticipantes=[];mpEvidencias=[];
+document.getElementById('mp-edit-id').value='';document.getElementById('mp-nombre').value='';document.getElementById('mp-objetivo').value='';
+document.getElementById('mp-campo').value='Servicio';document.getElementById('mp-campo-otro').style.display='none';document.getElementById('mp-campo-otro').value='';
+document.getElementById('mp-inicio').value='';document.getElementById('mp-termino').value='';
+document.getElementById('mp-toggle-ficha').checked=false;document.getElementById('mp-ficha-ext').style.display='none';
+document.getElementById('mp-justificacion').value='';document.getElementById('mp-beneficiarios').value='';document.getElementById('mp-lugar').value='';
+document.getElementById('mp-arbol-central').value='';document.getElementById('mp-crear-evento').checked=false;
+document.getElementById('mp-title').textContent='Nuevo Proyecto';
+// Init dynamic lists
+['mp-campos-list','mp-objetivos-list','mp-acciones-list','mp-ppto-list','mp-indicadores-list','mp-arbol-cons','mp-arbol-causas'].forEach(id=>document.getElementById(id).innerHTML='');
+for(let i=0;i<2;i++){mpAddDynRow('mp-campos-list','Campo de acción');mpAddDynRow('mp-objetivos-list','Objetivo específico');mpAddAccionRow();mpAddPptoRow();mpAddArbolRow('mp-arbol-cons','Consecuencia','border-amber-300');mpAddArbolRow('mp-arbol-causas','Causa','border-green-300')}
+mpAddIndRow();mpAddIndRow();
+// Init responsables
+const rc=document.getElementById('mp-responsables');rc.innerHTML='';
+AREAS_RESP.forEach(area=>{rc.innerHTML+=`<div class="mb-3"><label class="font-bold text-xs text-gray-600 uppercase tracking-wide block mb-1">${area}</label><div style="position:relative;"><input type="text" placeholder="Buscar por nombre o RUN..." class="w-full border border-gray-300 rounded-lg p-2 text-sm outline-none focus:border-indigo-400" oninput="mpBuscarResp(this,'${area}')"><div class="resp-result-${areaKey(area)}" style="position:absolute;top:100%;left:0;right:0;z-index:9999;"></div></div><div id="mp-resp-sel-${areaKey(area)}" class="mt-1"></div></div>`});
+
+if(editIdx!==undefined){
+const p=camino.proyectos_colectivos[editIdx];if(!p)return;
+document.getElementById('mp-edit-id').value=String(p.id);document.getElementById('mp-nombre').value=p.nombre||'';
+document.getElementById('mp-objetivo').value=p.objetivo||'';
+const campoVal=['Servicio','Trabajo','Viaje','Naturaleza','Cultura y Artes','Innovación / Técnica'].includes(p.campoAccion)?p.campoAccion:'Otros';
+document.getElementById('mp-campo').value=campoVal;if(campoVal==='Otros'){document.getElementById('mp-campo-otro').style.display='block';document.getElementById('mp-campo-otro').value=p.campoAccion||''}
+document.getElementById('mp-inicio').value=p.inicio||'';document.getElementById('mp-termino').value=p.termino||'';
+document.getElementById('mp-title').textContent='Editar Proyecto';
+mpParticipantes=[...(p.participantes||[])];mpResponsables={...(p.responsables||{})};mpEvidencias=[...(p.evidencias||[])];
+renderMpParticipantes();renderMpEvidencias();renderMpResponsables();
+if(p.justificacion||p.beneficiarios||p.lugar||p.objetivosEspecificos||p.planAccion||p.presupuestoEstimado||p.indicadores||p.arbolProblema){
+document.getElementById('mp-toggle-ficha').checked=true;document.getElementById('mp-ficha-ext').style.display='block';
+document.getElementById('mp-justificacion').value=p.justificacion||'';document.getElementById('mp-beneficiarios').value=p.beneficiarios||'';document.getElementById('mp-lugar').value=p.lugar||'';
+['mp-campos-list','mp-objetivos-list','mp-acciones-list','mp-ppto-list','mp-indicadores-list','mp-arbol-cons','mp-arbol-causas'].forEach(id=>document.getElementById(id).innerHTML='');
+(p.camposAccionPrioritarios||[]).forEach(v=>{mpAddDynRow('mp-campos-list','Campo');document.getElementById('mp-campos-list').lastElementChild.querySelector('input').value=v});
+(p.objetivosEspecificos||[]).forEach(v=>{mpAddDynRow('mp-objetivos-list','Objetivo');document.getElementById('mp-objetivos-list').lastElementChild.querySelector('input').value=v});
+(p.planAccion||[]).forEach(a=>{mpAddAccionRow();const r=document.getElementById('mp-acciones-list').lastElementChild;r.querySelectorAll('input')[0].value=a.accion||'';r.querySelectorAll('input')[1].value=a.recurso||'';r.querySelectorAll('input')[2].value=a.responsable||'';r.querySelectorAll('input')[3].value=a.cronograma||''});
+(p.presupuestoEstimado||[]).forEach(i=>{mpAddPptoRow();const r=document.getElementById('mp-ppto-list').lastElementChild;r.querySelectorAll('input')[0].value=i.concepto||'';r.querySelectorAll('input')[1].value=i.cantidad||'';r.querySelectorAll('input')[2].value=i.costoUnitario||'';mpCalcPpto()});
+(p.indicadores||[]).forEach(i=>{mpAddIndRow();const r=document.getElementById('mp-indicadores-list').lastElementChild;r.querySelectorAll('input')[0].value=i.descripcion||'';r.querySelectorAll('input')[1].value=i.meta||''});
+if(p.arbolProblema){document.getElementById('mp-arbol-central').value=p.arbolProblema.problemaCentral||'';
+document.getElementById('mp-arbol-cons').innerHTML='';(p.arbolProblema.consecuencias||[]).forEach(v=>{mpAddArbolRow('mp-arbol-cons','Cons','border-amber-300');document.getElementById('mp-arbol-cons').lastElementChild.querySelector('input').value=v});
+document.getElementById('mp-arbol-causas').innerHTML='';(p.arbolProblema.causas||[]).forEach(v=>{mpAddArbolRow('mp-arbol-causas','Causa','border-green-300');document.getElementById('mp-arbol-causas').lastElementChild.querySelector('input').value=v})}
+}}
+document.getElementById('modal-proyecto-portal').classList.add('active')}
+
+function cerrarModalProy(){document.getElementById('modal-proyecto-portal').classList.remove('active')}
+
+// Dynamic rows
+function mpAddDynRow(cid,ph){document.getElementById(cid).insertAdjacentHTML('beforeend',`<div class="flex gap-2 mb-2 items-center"><input type="text" class="flex-1 border border-gray-200 rounded-lg p-2 text-sm focus:border-amber-400 outline-none" placeholder="${ph}..."><button onclick="this.parentElement.remove()" class="text-red-400 hover:text-red-600 text-sm px-2"><i class="fas fa-times"></i></button></div>`)}
+function mpAddAccionRow(){document.getElementById('mp-acciones-list').insertAdjacentHTML('beforeend',`<div class="grid grid-cols-5 gap-1 mb-1.5"><input type="text" class="border border-gray-200 rounded p-1.5 text-sm" placeholder="Acción..."><input type="text" class="border border-gray-200 rounded p-1.5 text-sm" placeholder="Recursos..."><input type="text" class="border border-gray-200 rounded p-1.5 text-sm" placeholder="Responsable..."><input type="text" class="border border-gray-200 rounded p-1.5 text-sm" placeholder="Cronograma..."><button onclick="this.parentElement.remove()" class="text-red-400 hover:text-red-600 text-sm"><i class="fas fa-times"></i></button></div>`)}
+function mpAddPptoRow(){document.getElementById('mp-ppto-list').insertAdjacentHTML('beforeend',`<div class="grid grid-cols-5 gap-1 mb-1.5 items-center"><input type="text" class="border border-gray-200 rounded p-1.5 text-sm" placeholder="Concepto..."><input type="number" class="border border-gray-200 rounded p-1.5 text-sm text-center" placeholder="0" oninput="mpCalcPpto()"><input type="number" class="border border-gray-200 rounded p-1.5 text-sm text-center" placeholder="$0" oninput="mpCalcPpto()"><span class="text-center font-bold text-sm text-gray-700">$0</span><button onclick="this.parentElement.remove();mpCalcPpto()" class="text-red-400 hover:text-red-600 text-sm"><i class="fas fa-times"></i></button></div>`)}
+function mpCalcPpto(){let t=0;document.querySelectorAll('#mp-ppto-list > div').forEach(r=>{const ins=r.querySelectorAll('input');const q=parseFloat(ins[1]?.value)||0,u=parseFloat(ins[2]?.value)||0;const s=q*u;t+=s;r.querySelector('span').textContent='$'+s.toLocaleString('es-CL')});document.getElementById('mp-ppto-total').textContent='Total: $'+t.toLocaleString('es-CL')}
+function mpAddIndRow(){document.getElementById('mp-indicadores-list').insertAdjacentHTML('beforeend',`<div class="flex gap-2 mb-2"><input type="text" class="flex-1 border border-gray-200 rounded-lg p-2 text-sm focus:border-amber-400 outline-none" placeholder="Indicador..."><input type="text" class="w-20 border border-gray-200 rounded-lg p-2 text-sm text-center focus:border-amber-400 outline-none" placeholder="Meta"><button onclick="this.parentElement.remove()" class="text-red-400 hover:text-red-600 text-sm px-2"><i class="fas fa-times"></i></button></div>`)}
+function mpAddArbolRow(cid,ph,bc){document.getElementById(cid).insertAdjacentHTML('beforeend',`<div class="flex gap-2 mb-2"><input type="text" class="flex-1 border ${bc} rounded-lg p-2 text-sm focus:border-amber-500 outline-none" placeholder="${ph}..."><button onclick="this.parentElement.remove()" class="text-red-400 text-sm px-1"><i class="fas fa-times"></i></button></div>`)}
+
+// Responsables search
+async function mpBuscarResp(input,area){const q=input.value.trim();if(q.length<2)return;
+const{data:all}=await sb.from('mmbb_registrations').select('run,nombres,apellidos,foto_url').or(`run.ilike.%${q}%,nombres.ilike.%${q}%,apellidos.ilike.%${q}%`).limit(5);
+const{data:adu}=await sb.from('adultos_registros').select('run,nombres,apellidos,foto_url').or(`run.ilike.%${q}%,nombres.ilike.%${q}%,apellidos.ilike.%${q}%`).limit(5);
+let results=[...(all||[]).map(p=>({run:p.run,nombre:`${p.nombres} ${p.apellidos}`,foto:p.foto_url,tipo:'joven'})),...(adu||[]).map(a=>({run:a.run,nombre:`${a.nombres} ${a.apellidos}`,foto:a.foto_url,tipo:'adulto'}))];
+const key=areaKey(area);const cont=input.parentElement.querySelector('.resp-result-'+key);
+if(!results.length){cont.innerHTML='';return}
+cont.innerHTML=`<div class="bg-white border border-gray-200 rounded-lg shadow-lg max-h-40 overflow-y-auto" style="width:100%;">${results.map(r=>`<div class="flex items-center gap-2 p-2 hover:bg-indigo-50 cursor-pointer text-sm" onclick="mpSelResp('${area}','${esc(r.run)}','${esc(r.nombre)}','${esc(r.foto||'')}','${r.tipo}');this.closest('.resp-result-${key}').innerHTML=''"><img src="${esc(r.foto||'')}" style="width:22px;height:22px;border-radius:50%;object-fit:cover;" onerror="this.style.display='none'"><span class="font-medium">${esc(r.nombre)}</span><span class="text-xs text-gray-400 ml-auto">${r.tipo}</span></div>`).join('')}</div>`}
+function mpSelResp(area,run,nombre,foto,tipo){mpResponsables[area]={run,nombre,foto,tipo};renderMpResponsables();const key=areaKey(area);const cont=document.querySelector('.resp-result-'+key);if(cont)cont.innerHTML=''}
+function renderMpResponsables(){AREAS_RESP.forEach(area=>{const key=areaKey(area);const el=document.getElementById('mp-resp-sel-'+key);if(!el)return;const r=mpResponsables[area];if(!r){el.innerHTML='';return}
+el.innerHTML=`<div class="flex items-center gap-2 bg-indigo-50 border border-indigo-200 rounded-lg p-2"><img src="${esc(r.foto||'')}" style="width:24px;height:24px;border-radius:50%;object-fit:cover;" onerror="this.style.display='none'"><span class="text-xs font-bold">${esc(r.nombre)}</span><span class="text-xs text-indigo-500 font-bold ml-auto">${r.tipo}</span><button onclick="delete mpResponsables['${area}'];renderMpResponsables()" class="text-red-400 hover:text-red-600 ml-1"><i class="fas fa-times text-xs"></i></button></div>`})}
+
+// Participantes search
+async function mpBuscarParticipante(){const q=document.getElementById('mp-buscar-part').value.trim();if(q.length<2)return;
+const{data:j}=await sb.from('mmbb_registrations').select('run,nombres,apellidos,foto_url').or(`run.ilike.%${q}%,apellidos.ilike.%${q}%,nombres.ilike.%${q}%`).limit(8);
+const{data:a}=await sb.from('adultos_registros').select('run,nombres,apellidos,foto_url').or(`run.ilike.%${q}%,apellidos.ilike.%${q}%,nombres.ilike.%${q}%`).limit(5);
+let all=[...(j||[]).map(p=>({run:p.run,nombre:`${p.nombres} ${p.apellidos}`,foto:p.foto_url,tipo:'joven'})),...(a||[]).map(p=>({run:p.run,nombre:`${p.nombres} ${p.apellidos}`,foto:p.foto_url,tipo:'adulto'}))];
+const c=document.getElementById('mp-resultados-part');
+if(!all.length){c.innerHTML='<p class="p-3 text-center text-gray-400 text-sm">Sin resultados.</p>';c.classList.remove('hidden');return}
+c.innerHTML=all.map(r=>`<div class="flex items-center gap-2 p-2 cursor-pointer" onclick="mpAddParticipante('${esc(r.run)}','${esc(r.nombre)}','${esc(r.foto||'')}','${r.tipo}')"><img src="${esc(r.foto||'')}" style="width:24px;height:24px;border-radius:50%;object-fit:cover;" onerror="this.style.display='none'"><span class="text-sm font-medium">${esc(r.nombre)}</span><span class="text-xs text-gray-400 ml-auto">${r.tipo}</span></div>`).join('');c.classList.remove('hidden')}
+function mpAddParticipante(run,nombre,foto,tipo){if(mpParticipantes.find(p=>p.run===run)){toast('Ya está agregado.','info');return}mpParticipantes.push({run,nombre,foto,tipo});renderMpParticipantes();document.getElementById('mp-resultados-part').classList.add('hidden');document.getElementById('mp-buscar-part').value=''}
+function renderMpParticipantes(){document.getElementById('mp-participantes-list').innerHTML=mpParticipantes.map((p,i)=>`<div class="flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-lg p-2"><img src="${esc(p.foto||'')}" style="width:28px;height:28px;border-radius:50%;object-fit:cover;" onerror="this.style.display='none'"><div><p class="text-xs font-bold">${esc(p.nombre)}</p><p class="text-xs text-gray-400">${p.tipo}</p></div><button onclick="mpParticipantes.splice(${i},1);renderMpParticipantes()" class="ml-auto text-red-400 hover:text-red-600"><i class="fas fa-times text-xs"></i></button></div>`).join('')}
+
+// Evidencias
+async function mpSubirEvidencia(){const files=document.getElementById('mp-evidencia-file').files;if(!files.length)return;toast('Subiendo...','info');
+for(const f of files){const ext=f.name.split('.').pop();const path=`proyectos/${currentJoven.id}_${Date.now()}.${ext}`;
+const{error}=await sb.storage.from('evidencias_proyectos').upload(path,f,{cacheControl:'3600',upsert:false});if(error){toast('Error: '+error.message,'err');continue}
+const{data}=sb.storage.from('evidencias_proyectos').getPublicUrl(path);mpEvidencias.push({url:data.publicUrl,nombre:f.name})}
+renderMpEvidencias();toast('Evidencias subidas.');document.getElementById('mp-evidencia-file').value=''}
+function renderMpEvidencias(){document.getElementById('mp-evidencias-list').innerHTML=mpEvidencias.map((e,i)=>`<a href="${esc(e.url)}" target="_blank" class="bg-indigo-50 text-indigo-700 px-3 py-1.5 rounded-lg text-xs font-bold border border-indigo-200"><i class="fas fa-file mr-1"></i>${esc(e.nombre)}</a>`).join('')}
+
+// ══════════ GUARDAR PROYECTO ══════════
+async function mpGuardarProyecto(){
+const nombre=document.getElementById('mp-nombre').value.trim(),objetivo=document.getElementById('mp-objetivo').value.trim();
+const campoSel=document.getElementById('mp-campo').value;const campo=campoSel==='Otros'?(document.getElementById('mp-campo-otro').value.trim()||'Otros'):campoSel;
+const inicio=document.getElementById('mp-inicio').value;
+if(!nombre||!objetivo||!campo||!inicio){toast('Completa nombre, objetivo, campo e inicio.','err');return}
+const editId=document.getElementById('mp-edit-id').value;
+const fichaExt=document.getElementById('mp-toggle-ficha')?.checked||false;
+const proy={id:editId?Number(editId):Date.now(),nombre,objetivo,campoAccion:campo,inicio,termino:document.getElementById('mp-termino').value,
+creadorRun:currentJoven.run,participantes:[...mpParticipantes],responsables:{...mpResponsables},fichaExtendida:fichaExt,evidencias:[...mpEvidencias],solicitudes_pendientes:[]};
+
+// Ficha extendida
+if(document.getElementById('mp-toggle-ficha').checked){
+proy.justificacion=document.getElementById('mp-justificacion').value.trim();
+proy.beneficiarios=document.getElementById('mp-beneficiarios').value.trim();
+proy.lugar=document.getElementById('mp-lugar').value.trim();
+proy.camposAccionPrioritarios=[...document.querySelectorAll('#mp-campos-list input')].map(i=>i.value.trim()).filter(Boolean);
+proy.objetivosEspecificos=[...document.querySelectorAll('#mp-objetivos-list input')].map(i=>i.value.trim()).filter(Boolean);
+proy.planAccion=[...document.querySelectorAll('#mp-acciones-list > div')].map(r=>{const ins=r.querySelectorAll('input');return{accion:ins[0]?.value?.trim()||'',recurso:ins[1]?.value?.trim()||'',responsable:ins[2]?.value?.trim()||'',cronograma:ins[3]?.value?.trim()||''}}).filter(a=>a.accion);
+proy.presupuestoEstimado=[...document.querySelectorAll('#mp-ppto-list > div')].map(r=>{const ins=r.querySelectorAll('input');return{concepto:ins[0]?.value?.trim()||'',cantidad:parseFloat(ins[1]?.value)||0,costoUnitario:parseFloat(ins[2]?.value)||0}}).filter(p=>p.concepto);
+proy.indicadores=[...document.querySelectorAll('#mp-indicadores-list > div')].map(r=>{const ins=r.querySelectorAll('input');return{descripcion:ins[0]?.value?.trim()||'',meta:ins[1]?.value?.trim()||''}}).filter(i=>i.descripcion);
+proy.arbolProblema={consecuencias:[...document.querySelectorAll('#mp-arbol-cons input')].map(i=>i.value.trim()).filter(Boolean),problemaCentral:document.getElementById('mp-arbol-central').value.trim(),causas:[...document.querySelectorAll('#mp-arbol-causas input')].map(i=>i.value.trim()).filter(Boolean)}}
+
+if(editId){const idx=camino.proyectos_colectivos.findIndex(p=>p.id===Number(editId));if(idx!==-1){proy.solicitudes_pendientes=camino.proyectos_colectivos[idx].solicitudes_pendientes||[];camino.proyectos_colectivos[idx]=proy}}
+else camino.proyectos_colectivos.push(proy);
+
+toast('Guardando...','info');
+if(await guardarCamino()){
+// Crear evento si se marcó
+if(document.getElementById('mp-crear-evento').checked){try{
+const desc=[proy.objetivo?'Objetivo: '+proy.objetivo:'',proy.justificacion?'Justificación: '+proy.justificacion:'',proy.beneficiarios?'Beneficiarios: '+proy.beneficiarios:''].filter(Boolean).join('\n');
+const{data:ev,error:evE}=await sb.from('eventos').insert({nombre:proy.nombre,fecha_inicio:proy.inicio||null,fecha_fin:proy.termino||null,lugar:proy.lugar||'',descripcion:desc,publicado:false}).select().single();
+if(evE)throw evE;await sb.from('tesoreria_cuentas').insert({nombre:proy.nombre,tipo:'evento',orden:0});
+if(proy.objetivo)await sb.from('objetivos_evento').insert({evento_id:ev.id,objetivo_general:proy.objetivo});
+const dias=(proy.inicio&&proy.termino)?Math.max(1,Math.ceil((new Date(proy.termino)-new Date(proy.inicio))/86400000)):1;
+await sb.from('configuracion_presupuesto').insert({evento_id:ev.id,participantes:mpParticipantes.length,staff:Object.keys(mpResponsables).length,dias,nota:'Desde portal caminante'});
+for(const pt of mpParticipantes){try{const{data:m}=await sb.from('mmbb_registrations').select('nombres,apellidos,email_apoderado,apoderado_titular_telefono,foto_url,unidad').ilike('run',pt.run).maybeSingle();await sb.from('jovenes').insert({evento_id:ev.id,nombre_patrulla:m?(m.nombres+' '+m.apellidos):pt.nombre,grupo_scout:'Salvador Sanfuentes',numero_integrantes:1,email:m?.email_apoderado||'',telefono:m?.apoderado_titular_telefono||'',foto_url:m?.foto_url||pt.foto||'',moneda:'CLP',confirmado:false,observaciones:'Unidad: '+(m?.unidad||'N/A')})}catch(e){}}
+for(const[cargo,resp]of Object.entries(mpResponsables)){if(!resp?.run)continue;try{let d=null;const{data:a}=await sb.from('adultos_registros').select('nombres,apellidos,email,telefono,foto_url').ilike('run',resp.run).maybeSingle();if(a)d=a;else{const{data:j}=await sb.from('mmbb_registrations').select('nombres,apellidos,email_apoderado,apoderado_titular_telefono,foto_url').ilike('run',resp.run).maybeSingle();if(j)d={nombres:j.nombres,apellidos:j.apellidos,email:j.email_apoderado,telefono:j.apoderado_titular_telefono,foto_url:j.foto_url}}await sb.from('adultos').insert({evento_id:ev.id,nombre:d?(d.nombres+' '+d.apellidos):resp.nombre,grupo:'Salvador Sanfuentes',rol:cargo,email:d?.email||'',telefono:d?.telefono||'',foto_url:d?.foto_url||resp.foto||'',confirmado:false,observaciones:cargo+' — Importado'})}catch(e){}}
+for(const item of(proy.presupuestoEstimado||[])){if(item.concepto){const{data:s}=await sb.from('secciones_presupuesto').select('id').order('orden').limit(1);await sb.from('items_presupuesto').insert({evento_id:ev.id,seccion_id:s?.[0]?.id||1,concepto:item.concepto,cantidad:item.cantidad,costo_unitario:item.costoUnitario,costo_final:item.cantidad*item.costoUnitario,observaciones:'Desde proyecto'})}}
+for(const ind of(proy.indicadores||[])){if(ind.descripcion)await sb.from('metas_evento').insert({evento_id:ev.id,descripcion:ind.descripcion,valor_esperado:parseFloat(ind.meta)||0,unidad:'unidad'})}
+toast('Evento creado con todos los datos del proyecto.','ok')}catch(evErr){toast('Proyecto guardado, error al crear evento: '+evErr.message,'err')}}
+cerrarModalProy();cargarYRenderizarProyectos();toast(editId?'Proyecto actualizado.':'Proyecto creado y sincronizado.');
+// Enviar emails a participantes y responsables
+try{const cn=currentJoven.nombres+' '+currentJoven.apellidos;
+for(const pt of(proy.participantes||[])){if(pt.run!==currentJoven.run)await enviarEmailProyecto(pt.run,pt.nombre,proy,'Participante',cn)}
+for(const[cargo,resp]of Object.entries(proy.responsables||{})){if(resp&&resp.run&&resp.run!==currentJoven.run)await enviarEmailProyecto(resp.run,resp.nombre,proy,cargo,cn)}
+}catch(eml){console.warn('Error emails:',eml)}}}
+
+// ══════════ ELIMINAR ══════════
+async function eliminarProyecto(idx){const p=camino.proyectos_colectivos[idx];if(!p||p.creadorRun!==currentJoven.run){toast('Solo puedes eliminar tus proyectos.','err');return}
+if(!confirm('¿Eliminar "'+p.nombre+'"?'))return;toast('Eliminando...','info');
+try{for(const pt of(p.participantes||[])){try{const{data:pj}=await sb.from('mmbb_registrations').select('id').ilike('run',pt.run).maybeSingle();if(pj){const{data:pp}=await sb.from('progresion_jovenes').select('camino').eq('joven_id',pj.id).maybeSingle();if(pp?.camino?.proyectos_colectivos){pp.camino.proyectos_colectivos=pp.camino.proyectos_colectivos.filter(pr=>pr.id!==p.id);await sb.from('progresion_jovenes').upsert({joven_id:pj.id,camino:pp.camino},{onConflict:'joven_id'})}}}catch(e){}}
+camino.proyectos_colectivos.splice(idx,1);await guardarCamino();cargarYRenderizarProyectos();toast('Proyecto eliminado.')}catch(e){toast('Error: '+e.message,'err')}}
+
+// ══════════ RENDER PROYECTOS ══════════
+
+async function abandonarProyecto(proyId){
+  if(!confirm('¿Seguro que quieres abandonar este proyecto? Ya no aparecerás como responsable ni participante.')) return;
+  try {
+    // Buscar el proyecto en toda la BD para localizarlo
+    const {data:todos} = await sb.from('progresion_jovenes').select('joven_id,camino');
+    const myRun = currentJoven.run.toLowerCase();
+    let found = false;
+    for(const pg of (todos||[])){
+      const proys = pg.camino?.proyectos_colectivos||[];
+      const idx = proys.findIndex(p=>p.id===proyId);
+      if(idx===-1) continue;
+      const proy = proys[idx];
+      // Quitar de responsables
+      if(proy.responsables){
+        for(const area in proy.responsables){
+          if(proy.responsables[area]?.run?.toLowerCase()===myRun) delete proy.responsables[area];
+        }
+      }
+      // Quitar de participantes
+      if(proy.participantes) proy.participantes = proy.participantes.filter(pt=>pt?.run?.toLowerCase()!==myRun);
+      pg.camino.proyectos_colectivos[idx] = proy;
+      await sb.from('progresion_jovenes').upsert({joven_id:pg.joven_id,camino:pg.camino},{onConflict:'joven_id'});
+      found = true;
+      break;
+    }
+    if(found){ toast('Abandonaste el proyecto.'); await cargarYRenderizarProyectos(); }
+    else toast('No se encontró el proyecto.','err');
+  } catch(e){ toast('Error: '+e.message,'err'); }
+}
+async function cargarYRenderizarProyectos(){
+// Buscar en toda la BD proyectos donde este joven sea responsable o participante (no creador)
+const myRun=currentJoven.run.toLowerCase();
+const extra=[];
+try{
+  const{data:todos}=await sb.from('progresion_jovenes').select('joven_id,camino');
+  if(todos){
+    for(const pg of todos){
+      for(const proy of(pg.camino?.proyectos_colectivos||[])){
+        if(!proy.id)continue;
+        // Saltear los que ya son propios
+        const yaPropio=(camino.proyectos_colectivos||[]).some(p=>p.id===proy.id);
+        if(yaPropio)continue;
+        // Ver si estoy como responsable
+        const esResp=proy.responsables&&Object.values(proy.responsables).some(r=>r&&r.run&&r.run.toLowerCase()===myRun);
+        // Ver si estoy como participante
+        const esPart=(proy.participantes||[]).some(pt=>pt&&pt.run&&pt.run.toLowerCase()===myRun);
+        if(esResp||esPart) extra.push(proy);
+      }
+    }
+  }
+}catch(e){console.warn('Error buscando proyectos externos:',e);}
+renderProyectos(extra);
+}
+function renderProyectos(extra=[]){const c=document.getElementById('portal-proyectos');const propios=camino.proyectos_colectivos||[];
+// Combinar propios + externos (sin duplicados por id)
+const seen=new Set(propios.map(p=>p.id));
+const externos=extra.filter(p=>!seen.has(p.id));
+const proys=[...propios,...externos];
+if(!proys.length){c.innerHTML='<p class="text-center text-gray-400 py-8"><i class="fas fa-inbox text-3xl block mb-3 opacity-30"></i>No tienes proyectos aún. Si te asignaron a uno, aparecerá aquí. También puedes crear uno con el botón de arriba.</p>';return}
+c.innerHTML=proys.map((p,i)=>{const sc={'Finalizado':'#10b981','En curso':'#3b82f6','Planificación':'#f59e0b','Evaluación':'#8b5cf6'};const color=sc[p.estado]||'#f59e0b';const esMio=p.creadorRun===currentJoven.run;
+return `<div class="proyecto-card-portal" style="border-left:3px solid ${esMio?'#10b981':'#94a3b8'}"><div class="proyecto-header-portal" onclick="const b=document.getElementById('pb-${i}'),ic=document.getElementById('pi-${i}');b.classList.toggle('open');ic.classList.toggle('rotate-180')"><h4 class="font-bold text-sm flex-1">${esc(p.nombre)}</h4>${esMio?'<span class="bg-green-50 text-green-700 px-2 py-0.5 rounded text-xs font-bold">MI PROYECTO</span>':(()=>{const myRun=currentJoven.run;const esResp=p.responsables&&Object.values(p.responsables).some(r=>r&&r.run&&r.run.toLowerCase()===myRun.toLowerCase());return esResp?'<span class="bg-blue-100 text-blue-700 px-2 py-0.5 rounded text-xs font-bold">🎖 RESPONSABLE</span>':'<span class="bg-gray-100 text-gray-500 px-2 py-0.5 rounded text-xs font-bold">👥 PARTICIPANTE</span>';})()}<span style="background:${color}20;color:${color}" class="px-2 py-0.5 rounded text-xs font-bold">${esc(p.estado||'Planificación')}</span><i class="fas fa-chevron-down text-gray-400 text-xs transition-transform" id="pi-${i}"></i></div>
+<div class="proyecto-body-portal" id="pb-${i}">${esMio?`
+<p class="text-xs text-gray-500 mb-2"><strong>Objetivo:</strong> ${esc(p.objetivo||'')}</p>
+<p class="text-xs text-gray-500 mb-2"><strong>Campo:</strong> ${esc(p.campoAccion||'')} | <strong>Fechas:</strong> ${p.inicio||'?'} → ${p.termino||'?'}</p>
+${(p.participantes||[]).length?`<p class="text-xs text-gray-500 mb-2"><strong>Participantes:</strong> ${(p.participantes||[]).map(pt=>esc(pt.nombre)).join(', ')}</p>`:''}
+${Object.keys(p.responsables||{}).length?`<p class="text-xs text-gray-500 mb-2"><strong>Organigrama:</strong> ${Object.entries(p.responsables||{}).map(([c,r])=>c+': '+esc(r.nombre)).join(' | ')}</p>`:''}
+${(p.solicitudes_pendientes||[]).length?`<div class="bg-amber-50 border border-amber-200 rounded-lg p-3 mb-2"><p class="text-xs font-bold text-amber-800"><i class="fas fa-bell"></i> ${(p.solicitudes_pendientes||[]).length} solicitud(es) — se aprueban en el ERP</p></div>`:''}
+<div class="flex gap-2 mt-3"><button onclick="abrirModalProyecto(${i})" class="bg-indigo-600 hover:bg-indigo-700 text-white border-none rounded-lg px-4 py-2 font-bold text-xs cursor-pointer shadow"><i class="fas fa-pen mr-1"></i> Editar</button><button onclick="eliminarProyecto(${i})" class="bg-red-50 hover:bg-red-500 hover:text-white text-red-600 border border-red-200 rounded-lg px-4 py-2 font-bold text-xs cursor-pointer transition"><i class="fas fa-trash mr-1"></i> Eliminar</button></div>
+`:`
+<p class="text-xs text-gray-500 mb-2"><strong>Objetivo:</strong> ${esc(p.objetivo||'')}</p>
+<p class="text-xs text-gray-500 mb-2"><strong>Campo de Acción:</strong> ${esc(p.campoAccion||'')} &nbsp;|&nbsp; <strong>Fechas:</strong> ${p.inicio||'?'} → ${p.termino||'En ejecución'}</p>
+${p.justificacion?`<p class="text-xs text-gray-500 mb-2"><strong>Justificación:</strong> ${esc(p.justificacion)}</p>`:''}
+${p.beneficiarios?`<p class="text-xs text-gray-500 mb-2"><strong>Beneficiarios:</strong> ${esc(p.beneficiarios)}</p>`:''}
+${p.lugar?`<p class="text-xs text-gray-500 mb-2"><strong>Lugar:</strong> ${esc(p.lugar)}</p>`:''}
+${(p.objetivosEspecificos||[]).length?`<div class="mb-2"><p class="text-xs font-bold text-gray-600">Objetivos Específicos:</p><ul class="list-disc list-inside text-xs text-gray-500">${(p.objetivosEspecificos||[]).map(o=>`<li>${esc(o)}</li>`).join('')}</ul></div>`:''}
+${Object.keys(p.responsables||{}).length?`<div class="mb-2"><p class="text-xs font-bold text-gray-600 mb-1">Organigrama:</p><div class="grid grid-cols-2 gap-1">${Object.entries(p.responsables||{}).filter(([,r])=>r&&r.nombre).map(([cargo,r])=>`<div class="bg-blue-50 border border-blue-100 rounded-lg px-2 py-1 flex items-center gap-1"><img src="${esc(r.foto||'')}" style="width:18px;height:18px;border-radius:50%;object-fit:cover;"><span class="text-xs text-blue-800"><strong>${esc(cargo)}:</strong> ${esc(r.nombre)}</span></div>`).join('')}</div></div>`:''}
+${(p.participantes||[]).length?`<div class="mb-2"><p class="text-xs font-bold text-gray-600 mb-1">Participantes (${(p.participantes||[]).length}):</p><div class="flex flex-wrap gap-1">${(p.participantes||[]).map(pt=>`<span class="bg-gray-100 text-gray-700 text-xs px-2 py-0.5 rounded-full flex items-center gap-1"><img src="${esc(pt.foto||'')}" style="width:14px;height:14px;border-radius:50%;object-fit:cover;">${esc(pt.nombre)}</span>`).join('')}</div></div>`:''}
+${(p.planAccion||[]).length?`<div class="mb-2"><p class="text-xs font-bold text-gray-600 mb-1">Plan de Acción:</p><table class="w-full text-xs border-collapse"><thead><tr class="bg-gray-100"><th class="text-left p-1 border border-gray-200">Acción</th><th class="text-left p-1 border border-gray-200">Responsable</th><th class="text-left p-1 border border-gray-200">Cronograma</th></tr></thead><tbody>${(p.planAccion||[]).map(a=>`<tr><td class="p-1 border border-gray-100">${esc(a.accion||'')}</td><td class="p-1 border border-gray-100">${esc(a.responsable||'')}</td><td class="p-1 border border-gray-100">${esc(a.cronograma||'')}</td></tr>`).join('')}</tbody></table></div>`:''}
+${(p.presupuestoEstimado||[]).length?`<div class="mb-2"><p class="text-xs font-bold text-gray-600 mb-1">Presupuesto Estimado:</p><table class="w-full text-xs border-collapse"><thead><tr class="bg-gray-100"><th class="text-left p-1 border border-gray-200">Concepto</th><th class="text-center p-1 border border-gray-200">Cant.</th><th class="text-right p-1 border border-gray-200">Total</th></tr></thead><tbody>${(p.presupuestoEstimado||[]).map(i=>`<tr><td class="p-1 border border-gray-100">${esc(i.concepto||'')}</td><td class="text-center p-1 border border-gray-100">${i.cantidad||0}</td><td class="text-right p-1 border border-gray-100">$${((i.cantidad||0)*(i.costoUnitario||0)).toLocaleString('es-CL')}</td></tr>`).join('')}</tbody></table></div>`:''}
+${(p.evidencias||[]).length?`<div class="mb-2"><p class="text-xs font-bold text-gray-600 mb-1"><i class="fas fa-paperclip mr-1"></i> Evidencias (${p.evidencias.length}):</p><div class="flex flex-wrap gap-2">${p.evidencias.map(ev=>ev.tipo==='imagen'?`<a href="${esc(ev.url)}" target="_blank"><img src="${esc(ev.url)}" style="width:48px;height:48px;object-fit:cover;border-radius:6px;border:2px solid #e5e7eb;"></a>`:`<a href="${esc(ev.url)}" target="_blank" class="text-xs bg-gray-100 text-gray-700 px-2 py-1 rounded border border-gray-200"><i class="fas fa-file mr-1"></i>${esc(ev.nombre||'Archivo')}</a>`).join('')}</div></div>`:''}
+${(p.fichaExtendida&&p.arbolProblema&&p.arbolProblema.problemaCentral)?`<div class="mb-2 border border-amber-200 bg-amber-50 rounded-xl p-2">
+<p class="text-[0.62rem] font-extrabold text-amber-700 uppercase mb-1"><i class="fas fa-tree mr-1"></i> Arbol del Problema</p>
+${(p.arbolProblema.consecuencias||[]).length?`<p class="text-[0.6rem] font-bold text-amber-600 uppercase mb-1">Consecuencias</p><div class="flex flex-wrap gap-1 mb-1">${(p.arbolProblema.consecuencias||[]).map(cons=>`<span class="bg-amber-200 text-amber-900 text-xs px-2 py-0.5 rounded-full border border-amber-300">${esc(cons)}</span>`).join('')}</div>`:''}
+<div class="bg-amber-600 text-white rounded px-2 py-1 text-xs font-extrabold text-center mb-1">${esc(p.arbolProblema.problemaCentral)}</div>
+${(p.arbolProblema.causas||[]).length?`<p class="text-[0.6rem] font-bold text-green-700 uppercase mb-1">Causas</p><div class="flex flex-wrap gap-1">${(p.arbolProblema.causas||[]).map(c=>`<span class="bg-green-100 text-green-900 text-xs px-2 py-0.5 rounded-full border border-green-300">${esc(c)}</span>`).join('')}</div>`:''}
+</div>`:''}
+<div class="mt-3 pt-3 border-t border-gray-100 flex items-center justify-between">
+  <p class="text-xs text-gray-400"><i class="fas fa-info-circle mr-1"></i> Solo lectura — no puedes editar este proyecto.</p>
+  <button onclick="abandonarProyecto(${p.id})" class="bg-red-50 hover:bg-red-500 hover:text-white text-red-600 border border-red-200 rounded-lg px-3 py-1.5 font-bold text-xs cursor-pointer transition"><i class="fas fa-door-open mr-1"></i> Abandonar proyecto</button>
+</div>
+`}
+</div></div>`}).join('')}
+
+// ══════════ EXPLORAR VIGENTES ══════════
+async function cargarProyectosVigentes(){const c=document.getElementById('portal-proyectos-vigentes');c.innerHTML='<p class="text-center text-gray-400 py-4"><i class="fas fa-spinner fa-spin"></i> Cargando...</p>';
+try{const{data:jov}=await sb.from('mmbb_registrations').select('id,nombres,apellidos,unidad,foto_url,run').or('unidad.ilike.%avanzada%,unidad.ilike.%clan%,unidad.ilike.%caminante%,unidad.ilike.%pionero%');
+if(!jov||!jov.length){c.innerHTML='<p class="text-center text-gray-400 py-6">No hay proyectos disponibles.</p>';return}
+const{data:progs}=await sb.from('progresion_jovenes').select('joven_id,camino').in('joven_id',jov.map(j=>j.id));
+const proyectos=[];const seen=new Set();(progs||[]).forEach(p=>{const j=jov.find(x=>x.id===p.joven_id);(p.camino?.proyectos_colectivos||[]).forEach(proy=>{if(proy.estado==='Finalizado'||seen.has(proy.id))return;seen.add(proy.id);const u=(j?.unidad||'').toLowerCase();
+proyectos.push({...proy,rama:(u.includes('avanzada')||u.includes('pionero'))?'Avanzada':'Clan',creadorNombre:j?`${j.nombres} ${j.apellidos}`:'',creadorFoto:j?.foto_url,creadorId:j?.id})})});
+if(!proyectos.length){c.innerHTML='<p class="text-center text-gray-400 py-6"><i class="fas fa-inbox text-2xl block mb-2 opacity-30"></i>No hay proyectos vigentes.</p>';return}
+c.innerHTML=proyectos.map(p=>renderTarjetaVigentePV(p)).join('')}catch(e){c.innerHTML='<p class="text-red-500 text-center text-sm">Error: '+e.message+'</p>'}}
+
+
+function renderTarjetaVigentePV(p) {
+    const rc = p.rama==='Avanzada' ? '#8b5cf6' : '#E31837';
+    const sc = {'En curso':'#3b82f6','Planificaci\u00f3n':'#f59e0b','Evaluaci\u00f3n':'#8b5cf6'};
+    const ec = sc[p.estado] || '#f59e0b';
+    const ramaLabel = p.rama==='Avanzada' ? 'Pioneros' : 'Caminantes';
+    const pid = p.id;
+    const myRun = currentJoven.run;
+    const yaInsc = (p.participantes||[]).some(pt=>pt.run===myRun);
+    const yaSol  = (p.solicitudes_pendientes||[]).some(s=>s.run===myRun);
+    const esMio  = p.creadorRun===myRun;
+
+    let btn = '';
+    if (esMio) btn = '<span class="bg-green-50 text-green-700 px-3 py-1.5 rounded-lg text-xs font-bold"><i class="fas fa-star mr-1"></i> Mi proyecto</span>';
+    else if (yaInsc) btn = '<span class="bg-green-50 text-green-700 px-3 py-1.5 rounded-lg text-xs font-bold"><i class="fas fa-check-circle mr-1"></i> Participas</span>';
+    else if (yaSol)  btn = '<span class="bg-amber-50 text-amber-700 px-3 py-1.5 rounded-lg text-xs font-bold"><i class="fas fa-clock mr-1"></i> Pendiente</span>';
+    else btn = '<button onclick="solicitarUnirse(' + pid + ',' + p.creadorId + ')" class="bg-gradient-to-r from-purple-600 to-red-600 text-white border-none rounded-lg px-4 py-1.5 font-bold text-xs cursor-pointer shadow"><i class="fas fa-user-plus mr-1"></i> Solicitar</button>';
+
+    // Card principal
+    let html = '<div class="pv-card" style="padding:0;overflow:hidden;">';
+
+    // Cabecera visible
+    html += '<div class="p-3">';
+    html += '<div class="flex justify-between items-start gap-2 flex-wrap">';
+    html += '<div class="flex-1 min-w-[160px]">';
+    html += '<div class="flex items-center gap-1.5 mb-1 flex-wrap">';
+    html += '<span class="font-bold text-sm">' + esc(p.nombre) + '</span>';
+    html += '<span style="background:' + ec + '15;color:' + ec + '" class="px-2 py-0.5 rounded text-xs font-bold">' + (p.estado||'Planificaci\u00f3n') + '</span>';
+    html += '</div>';
+    html += '<div class="flex gap-2 text-xs text-gray-500 mb-1 flex-wrap">';
+    html += '<span style="color:' + rc + ';font-weight:700;">' + ramaLabel + '</span>';
+    html += '<span><i class="fas fa-leaf mr-1"></i>' + esc(p.campoAccion||'') + '</span>';
+    if (p.inicio) html += '<span><i class="fas fa-calendar mr-1"></i>' + p.inicio + (p.termino ? ' \u2192 '+p.termino : '') + '</span>';
+    html += '<span><i class="fas fa-users mr-1"></i>' + (p.participantes||[]).length + '</span>';
+    html += '</div>';
+    if (p.objetivo) html += '<p class="text-xs text-gray-500 italic mb-1">' + esc(p.objetivo) + '</p>';
+    html += '<div class="flex items-center gap-1 mt-1">';
+    if (p.creadorFoto) html += '<img src="' + esc(p.creadorFoto) + '" style="width:16px;height:16px;border-radius:50%;object-fit:cover;">';
+    html += '<span class="text-xs text-gray-400">por <strong>' + esc(p.creadorNombre||'') + '</strong></span>';
+    html += '</div>';
+    html += '</div>';
+    html += '<div class="flex flex-col gap-1.5 items-end">';
+    html += btn;
+    html += '<button onclick="toggleDetallePVP(' + pid + ')" class="text-xs text-indigo-600 font-bold underline cursor-pointer bg-transparent border-none flex items-center gap-1"><i class="fas fa-eye text-xs" id="pvpico' + pid + '"></i> Ver detalle</button>';
+    html += '</div>';
+    html += '</div>';
+    html += '</div>'; // flex justify-between
+    html += '</div>'; // p-3
+
+    // Panel detalle expandible
+    html += '<div id="pvpdet' + pid + '" style="display:none;" class="border-t border-gray-100 bg-gray-50 px-3 pb-3 pt-2 flex flex-col gap-2">';
+
+    if (p.justificacion) html += '<div><p class="text-[0.62rem] font-extrabold text-gray-400 uppercase tracking-wider mb-0.5">Justificaci\u00f3n</p><p class="text-xs text-gray-700">' + esc(p.justificacion) + '</p></div>';
+    if (p.beneficiarios) html += '<p class="text-xs text-gray-600"><strong>Beneficiarios:</strong> ' + esc(p.beneficiarios) + '</p>';
+    if (p.lugar) html += '<p class="text-xs text-gray-600"><strong>Lugar:</strong> ' + esc(p.lugar) + '</p>';
+
+    if ((p.objetivosEspecificos||[]).length) {
+        html += '<div><p class="text-[0.62rem] font-extrabold text-gray-400 uppercase tracking-wider mb-0.5">Objetivos Espec\u00edficos</p><ul class="list-disc list-inside text-xs text-gray-700">';
+        (p.objetivosEspecificos||[]).forEach(o => { html += '<li>' + esc(o) + '</li>'; });
+        html += '</ul></div>';
+    }
+
+    const respEntries = Object.entries(p.responsables||{}).filter(([,r])=>r&&r.nombre);
+    if (respEntries.length) {
+        html += '<div><p class="text-[0.62rem] font-extrabold text-gray-400 uppercase tracking-wider mb-0.5">Organigrama</p><div class="grid grid-cols-2 gap-1">';
+        respEntries.forEach(([cargo, r]) => { html += '<div class="bg-blue-50 border border-blue-100 rounded px-2 py-0.5 text-xs text-blue-800"><strong>' + esc(cargo) + ':</strong> ' + esc(r.nombre) + '</div>'; });
+        html += '</div></div>';
+    }
+
+    if ((p.participantes||[]).length) {
+        html += '<div><p class="text-[0.62rem] font-extrabold text-gray-400 uppercase tracking-wider mb-0.5">Participantes</p><div class="flex flex-wrap gap-1">';
+        (p.participantes||[]).forEach(pt => { html += '<span class="bg-white border border-gray-200 text-gray-600 text-xs px-2 py-0.5 rounded-full">' + esc(pt.nombre||'') + '</span>'; });
+        html += '</div></div>';
+    }
+
+    if ((p.planAccion||[]).length) {
+        html += '<div><p class="text-[0.62rem] font-extrabold text-gray-400 uppercase tracking-wider mb-0.5">Plan de Acci\u00f3n</p><div class="overflow-x-auto"><table class="w-full text-xs border-collapse"><thead><tr class="bg-gray-100"><th class="text-left p-1 border border-gray-200">Acci\u00f3n</th><th class="text-left p-1 border border-gray-200">Responsable</th><th class="text-left p-1 border border-gray-200">Cronograma</th></tr></thead><tbody>';
+        (p.planAccion||[]).forEach(a => { html += '<tr><td class="p-1 border border-gray-100">' + esc(a.accion||'') + '</td><td class="p-1 border border-gray-100">' + esc(a.responsable||'') + '</td><td class="p-1 border border-gray-100">' + esc(a.cronograma||'') + '</td></tr>'; });
+        html += '</tbody></table></div></div>';
+    }
+
+    if (p.fichaExtendida && p.arbolProblema && (p.arbolProblema.problemaCentral || (p.arbolProblema.causas||[]).length || (p.arbolProblema.consecuencias||[]).length)) {
+        html += '<div class="border border-amber-200 bg-amber-50 rounded-xl p-2">';
+        html += '<p class="text-[0.62rem] font-extrabold text-amber-700 uppercase tracking-wider mb-1"><i class="fas fa-tree mr-1"></i> \u00c1rbol del Problema</p>';
+        if ((p.arbolProblema.consecuencias||[]).length) {
+            html += '<p class="text-[0.6rem] font-bold text-amber-600 uppercase mb-1">Consecuencias</p><div class="flex flex-wrap gap-1 mb-2">';
+            (p.arbolProblema.consecuencias||[]).forEach(cons => { html += '<span class="bg-amber-200 text-amber-900 text-xs px-2 py-0.5 rounded-full border border-amber-300">' + esc(cons) + '</span>'; });
+            html += '</div>';
+        }
+        if (p.arbolProblema.problemaCentral) {
+            html += '<div class="bg-amber-600 text-white rounded-lg px-2 py-1.5 mb-2 text-xs font-extrabold text-center">⚠️ ' + esc(p.arbolProblema.problemaCentral) + '</div>';
+        }
+        if ((p.arbolProblema.causas||[]).length) {
+            html += '<p class="text-[0.6rem] font-bold text-green-700 uppercase mb-1">Causas</p><div class="flex flex-wrap gap-1">';
+            (p.arbolProblema.causas||[]).forEach(causa => { html += '<span class="bg-green-100 text-green-900 text-xs px-2 py-0.5 rounded-full border border-green-300">' + esc(causa) + '</span>'; });
+            html += '</div>';
+        }
+        html += '</div>';
+    }
+
+    if (!(p.justificacion||p.beneficiarios||p.lugar||(p.objetivosEspecificos||[]).length||respEntries.length||(p.participantes||[]).length||(p.planAccion||[]).length||(p.fichaExtendida&&p.arbolProblema&&p.arbolProblema.problemaCentral))) {
+        html += '<p class="text-xs text-gray-400 text-center py-1"><i class="fas fa-info-circle mr-1"></i> Sin informaci\u00f3n adicional cargada.</p>';
+    }
+
+    html += '</div>'; // panel detalle
+    html += '</div>'; // card
+    return html;
+}
+
+function toggleDetallePVP(pid) {
+    const panel = document.getElementById('pvpdet' + pid);
+    const ico   = document.getElementById('pvpico' + pid);
+    if (!panel) return;
+    const open = panel.style.display === 'none' || panel.style.display === '';
+    panel.style.display = open ? 'flex' : 'none';
+    panel.style.flexDirection = 'column';
+    if (ico) { ico.className = open ? 'fas fa-eye-slash text-xs' : 'fas fa-eye text-xs'; }
+}
+
+async function solicitarUnirse(proyId,creadorId){toast('Enviando solicitud...','info');
+try{const{data:pg}=await sb.from('progresion_jovenes').select('camino').eq('joven_id',creadorId).maybeSingle();if(!pg?.camino)throw new Error('Proyecto no encontrado.');
+const proy=(pg.camino.proyectos_colectivos||[]).find(p=>p.id===proyId);if(!proy)throw new Error('Proyecto no encontrado.');
+if((proy.participantes||[]).some(pt=>pt.run===currentJoven.run)){toast('Ya participas.','info');return}
+if((proy.solicitudes_pendientes||[]).some(s=>s.run===currentJoven.run)){toast('Ya tienes solicitud pendiente.','info');return}
+if(!proy.solicitudes_pendientes)proy.solicitudes_pendientes=[];
+proy.solicitudes_pendientes.push({run:currentJoven.run,nombre:`${currentJoven.nombres} ${currentJoven.apellidos}`,foto:currentJoven.foto_url||'',rama:currentJoven.unidad||'',fecha:new Date().toISOString().split('T')[0],jovenId:currentJoven.id});
+await sb.from('progresion_jovenes').upsert({joven_id:creadorId,camino:pg.camino},{onConflict:'joven_id'});
+toast('Solicitud enviada. Debe ser aprobada.');await cargarProyectosVigentes()}catch(e){toast('Error: '+e.message,'err')}}
+
+// ══════════ EMAIL NOTIFICACIÓN ══════════
+async function enviarEmailProyecto(run, nombrePersona, proyecto, rol, invitadoPor) {
+try {
+const np = typeof proyecto === 'string' ? proyecto : proyecto.nombre;
+const p = typeof proyecto === 'object' ? proyecto : {};
+let email = null;
+const { data: jov } = await sb.from('mmbb_registrations').select('email_apoderado, apoderado_titular_email').ilike('run', run).maybeSingle();
+if (jov) email = jov.email_apoderado || jov.apoderado_titular_email;
+if (!email) { const { data: adu } = await sb.from('adultos_registros').select('email').ilike('run', run).maybeSingle(); if (adu) email = adu.email; }
+if (!email) return;
+const esResp = rol !== 'Participante';
+const nParts = (p.participantes || []).length;
+const nResps = Object.keys(p.responsables || {}).length;
+const orgHTML = Object.entries(p.responsables || {}).map(([c, r]) => '<tr><td style="padding:4px 8px;font-size:0.82rem;color:#64748b;border-bottom:1px solid #f1f5f9;">' + c + '</td><td style="padding:4px 8px;font-size:0.82rem;color:#1e293b;font-weight:600;border-bottom:1px solid #f1f5f9;">' + (r.nombre || 'Por asignar') + '</td></tr>').join('');
+const objHTML = (p.objetivosEspecificos || []).map(o => '<li style="margin-bottom:4px;color:#475569;font-size:0.82rem;">' + o + '</li>').join('');
+const arbolHTML = (p.fichaExtendida && p.arbolProblema && p.arbolProblema.problemaCentral) ? '<div style="border:2px solid #92400e;border-radius:12px;overflow:hidden;margin:20px 0;"><div style="background:linear-gradient(135deg,#92400e,#78350f);padding:10px 16px;text-align:center;"><p style="margin:0;font-size:0.82rem;font-weight:700;color:white;">🌳 Árbol del Problema</p></div><div style="padding:16px;background:linear-gradient(180deg,#eff6ff 0%,#f0fdf4 50%,#fefce8 100%);">' + ((p.arbolProblema.consecuencias||[]).length ? '<div style="background:#fef3c7;border:1.5px solid #f59e0b;border-radius:10px;padding:12px;text-align:center;margin-bottom:4px;"><p style="font-weight:700;font-size:0.72rem;color:#92400e;text-transform:uppercase;margin:0 0 6px;">☀️ CONSECUENCIAS</p>' + p.arbolProblema.consecuencias.map((c,i) => '<p style="margin:3px 0;font-size:0.82rem;color:#78350f;background:white;padding:5px 12px;border-radius:6px;border:1px solid #fde68a;">' + (i+1) + '. ' + c + '</p>').join('') + '</div>' : '') + '<div style="text-align:center;"><div style="width:6px;height:14px;background:#92400e;margin:0 auto;border-radius:3px;"></div></div><div style="background:linear-gradient(135deg,#dc2626,#991b1b);border:2px solid #7f1d1d;border-radius:10px;padding:14px;text-align:center;margin:4px 0;"><p style="font-weight:800;font-size:0.72rem;color:#fecaca;text-transform:uppercase;margin:0 0 6px;">🎯 PROBLEMA CENTRAL</p><p style="margin:0;font-size:0.9rem;color:white;font-weight:700;">' + p.arbolProblema.problemaCentral + '</p></div><div style="text-align:center;"><div style="width:6px;height:14px;background:#92400e;margin:0 auto;border-radius:3px;"></div></div>' + ((p.arbolProblema.causas||[]).length ? '<div style="background:#d1fae5;border:1.5px solid #10b981;border-radius:10px;padding:12px;text-align:center;margin-top:4px;"><p style="font-weight:700;font-size:0.72rem;color:#065f46;text-transform:uppercase;margin:0 0 6px;">🌱 CAUSAS</p>' + p.arbolProblema.causas.map((c,i) => '<p style="margin:3px 0;font-size:0.82rem;color:#064e3b;background:white;padding:5px 12px;border-radius:6px;border:1px solid #a7f3d0;">' + (i+1) + '. ' + c + '</p>').join('') + '</div>' : '') + '</div></div>' : '';
+
+const html = '<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"></head><body style="font-family:Segoe UI,Arial,sans-serif;background:#f4f7f9;margin:0;padding:20px;"><div style="max-width:620px;margin:0 auto;background:white;border-radius:16px;overflow:hidden;box-shadow:0 10px 30px rgba(0,0,0,0.1);"><div style="background:linear-gradient(135deg,#0E2586,#1e3a8a,#E31837);padding:30px;text-align:center;"><img src="https://i.imgur.com/11u9rUD.png" style="height:70px;margin-bottom:12px;"><h1 style="color:white;margin:0;font-size:1.4rem;font-weight:800;">Grupo Guías y Scouts<br>Salvador Sanfuentes</h1><p style="color:rgba(255,255,255,0.85);font-size:0.85rem;margin:10px 0 0;">Invitación a Proyecto</p></div><div style="padding:30px;"><p style="font-size:1rem;color:#1e293b;">Estimado/a <strong>' + nombrePersona + '</strong>,</p><p style="color:#475569;line-height:1.6;">Has sido ' + (esResp ? 'designado/a como <strong>' + rol + '</strong> en' : 'incorporado/a como participante en') + ' el siguiente proyecto:</p><div style="background:linear-gradient(135deg,#fef2f2,#fff7ed);border:2px solid #E31837;border-radius:14px;padding:22px;margin:20px 0;"><h2 style="margin:0 0 14px;font-size:1.15rem;color:#1e293b;">📋 ' + np + '</h2><table style="width:100%;border-collapse:collapse;"><tr><td style="padding:5px 8px;font-size:0.82rem;color:#64748b;width:130px;border-bottom:1px solid #fde8e8;"><strong>Tu rol:</strong></td><td style="padding:5px 8px;border-bottom:1px solid #fde8e8;"><span style="background:' + (esResp ? '#E31837' : '#10b981') + ';color:white;padding:3px 12px;border-radius:6px;font-weight:700;font-size:0.78rem;">' + rol + '</span></td></tr><tr><td style="padding:5px 8px;font-size:0.82rem;color:#64748b;border-bottom:1px solid #fde8e8;"><strong>Invitado por:</strong></td><td style="padding:5px 8px;font-size:0.82rem;color:#1e293b;border-bottom:1px solid #fde8e8;">' + invitadoPor + '</td></tr>' + (p.campoAccion ? '<tr><td style="padding:5px 8px;font-size:0.82rem;color:#64748b;border-bottom:1px solid #fde8e8;"><strong>Campo:</strong></td><td style="padding:5px 8px;font-size:0.82rem;color:#1e293b;border-bottom:1px solid #fde8e8;">' + p.campoAccion + '</td></tr>' : '') + (p.inicio ? '<tr><td style="padding:5px 8px;font-size:0.82rem;color:#64748b;border-bottom:1px solid #fde8e8;"><strong>Período:</strong></td><td style="padding:5px 8px;font-size:0.82rem;color:#1e293b;border-bottom:1px solid #fde8e8;">' + p.inicio + (p.termino ? ' → ' + p.termino : '') + '</td></tr>' : '') + (p.lugar ? '<tr><td style="padding:5px 8px;font-size:0.82rem;color:#64748b;border-bottom:1px solid #fde8e8;"><strong>Lugar:</strong></td><td style="padding:5px 8px;font-size:0.82rem;color:#1e293b;border-bottom:1px solid #fde8e8;">' + p.lugar + '</td></tr>' : '') + (p.beneficiarios ? '<tr><td style="padding:5px 8px;font-size:0.82rem;color:#64748b;border-bottom:1px solid #fde8e8;"><strong>Beneficiarios:</strong></td><td style="padding:5px 8px;font-size:0.82rem;color:#1e293b;border-bottom:1px solid #fde8e8;">' + p.beneficiarios + '</td></tr>' : '') + '<tr><td style="padding:5px 8px;font-size:0.82rem;color:#64748b;"><strong>Equipo:</strong></td><td style="padding:5px 8px;font-size:0.82rem;color:#1e293b;">' + nParts + ' participante(s), ' + nResps + ' responsable(s)</td></tr></table></div>' + (p.objetivo ? '<div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:16px;margin:16px 0;"><p style="font-weight:700;font-size:0.82rem;color:#0E2586;margin:0 0 6px;">🎯 Objetivo:</p><p style="margin:0;font-size:0.85rem;color:#334155;line-height:1.5;">' + p.objetivo + '</p></div>' : '') + (p.justificacion ? '<div style="background:#fefce8;border:1px solid #fde68a;border-radius:10px;padding:16px;margin:16px 0;"><p style="font-weight:700;font-size:0.82rem;color:#854d0e;margin:0 0 6px;">📝 Justificación:</p><p style="margin:0;font-size:0.85rem;color:#475569;">' + p.justificacion + '</p></div>' : '') + (objHTML ? '<div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;padding:16px;margin:16px 0;"><p style="font-weight:700;font-size:0.82rem;color:#166534;margin:0 0 8px;">✅ Objetivos Específicos:</p><ol style="margin:0;padding-left:20px;">' + objHTML + '</ol></div>' : '') + (orgHTML ? '<div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:10px;padding:16px;margin:16px 0;"><p style="font-weight:700;font-size:0.82rem;color:#1e40af;margin:0 0 8px;">👥 Organigrama:</p><table style="width:100%;border-collapse:collapse;">' + orgHTML + '</table></div>' : '') + arbolHTML + (esResp ? '<div style="background:#fef2f2;border-left:4px solid #E31837;padding:14px 18px;border-radius:0 8px 8px 0;margin:20px 0;"><p style="margin:0;font-size:0.85rem;color:#991b1b;font-weight:600;">📌 Como ' + rol + ', coordina con el equipo y revisa el plan de acción.</p></div>' : '<div style="background:#f0fdf4;border-left:4px solid #10b981;padding:14px 18px;border-radius:0 8px 8px 0;margin:20px 0;"><p style="margin:0;font-size:0.85rem;color:#065f46;font-weight:600;">🌱 Ya eres parte del equipo. Ingresa al portal para ver el plan completo.</p></div>') + '<div style="text-align:center;margin:28px 0 12px;"><a href="https://salvadorsanfuentes.netlify.app/portal_caminante.html" style="display:inline-block;background:linear-gradient(135deg,#E31837,#b91c1c);color:white;padding:14px 36px;border-radius:12px;text-decoration:none;font-weight:700;">Acceder al Portal</a></div><p style="text-align:center;font-size:0.78rem;color:#94a3b8;">RUT + últimos 4 dígitos como clave.</p><div style="border-top:1px solid #e2e8f0;margin-top:24px;padding-top:16px;"><p style="font-size:0.88rem;color:#1e293b;font-weight:600;">Siempre Listos, Siempre Listas,<br><span style="color:#64748b;font-weight:400;">Dirección del Grupo</span></p></div></div><div style="background:#0E2586;color:white;text-align:center;padding:16px;border-top:3px solid #FFD100;"><p style="margin:0;font-size:0.72rem;opacity:0.7;">Correo automático — Sistema de Gestión Educativa</p></div></div></body></html>';
+
+await fetch('/.netlify/functions/send-email', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ to_email: email, subject: (esResp ? '📋' : '🌱') + ' Invitación: "' + np + '" — Grupo Scout', html_content: html }) });
+} catch(e) { console.warn('Error email:', e); }
+}
+
+// ══════════ LOGOUT ══════════
+function cerrarSesion(){currentJoven=null;camino=null;document.getElementById('portal-screen').style.display='none';document.getElementById('login-screen').style.display='flex';document.getElementById('input-rut').value='';document.getElementById('input-clave').value=''}
+</script>
+</body>
+</html>

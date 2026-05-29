@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bandeja WhatsApp — ERP Scout</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<link rel="manifest" href="manifest.json">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="wa_api.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
+*{margin:0;padding:0;box-sizing:border-box;font-family:'Poppins',sans-serif;}
+body{background:#f4f7f9;min-height:100vh;display:flex;flex-direction:column;}
+.topbar{background:#0E2586;color:white;padding:13px 20px;display:flex;align-items:center;gap:11px;flex-shrink:0;}
+.topbar i{font-size:1.3rem;color:#FFD100;}
+.topbar h1{font-size:1rem;font-weight:600;}
+.topbar p{font-size:0.77rem;opacity:0.72;margin-top:1px;}
+.back-btn{margin-left:auto;background:rgba(255,255,255,0.12);border:none;color:white;padding:7px 14px;border-radius:8px;cursor:pointer;font-size:0.8rem;font-weight:500;text-decoration:none;display:flex;align-items:center;gap:5px;}
+.back-btn:hover{background:rgba(255,255,255,0.2);}
+.main{display:flex;flex:1;overflow:hidden;max-height:calc(100vh - 56px);}
+
+/* Columna izquierda: lista de conversaciones */
+.conv-list{width:320px;flex-shrink:0;background:white;border-right:1px solid #e2e8f0;display:flex;flex-direction:column;}
+.conv-header{padding:14px 16px;border-bottom:1px solid #e2e8f0;display:flex;align-items:center;gap:8px;flex-shrink:0;}
+.conv-header h2{font-size:0.9rem;font-weight:700;color:#0E2586;flex:1;}
+.badge-total{background:#E31837;color:white;font-size:0.65rem;font-weight:700;padding:2px 7px;border-radius:10px;}
+.search-conv{padding:10px 14px;border-bottom:1px solid #f1f5f9;flex-shrink:0;}
+.search-conv input{width:100%;border:1px solid #e2e8f0;border-radius:8px;padding:8px 12px;font-size:0.82rem;outline:none;background:#f8fafc;}
+.search-conv input:focus{border-color:#25D366;}
+.filter-tabs{display:flex;padding:0 14px 10px;gap:6px;flex-shrink:0;}
+.filter-tab{border:1px solid #e2e8f0;background:white;color:#64748b;border-radius:8px;padding:4px 10px;font-size:0.72rem;font-weight:600;cursor:pointer;transition:all 0.15s;}
+.filter-tab.active{background:#25D366;border-color:#25D366;color:white;}
+.conv-items{flex:1;overflow-y:auto;}
+.conv-item{padding:12px 16px;border-bottom:1px solid #f1f5f9;cursor:pointer;transition:background 0.12s;display:flex;align-items:center;gap:10px;position:relative;}
+.conv-item:hover{background:#f8fafc;}
+.conv-item.active{background:#f0fdf4;border-left:3px solid #25D366;}
+.conv-item.unread{background:#fff7f0;}
+.conv-avatar{width:42px;height:42px;border-radius:50%;background:linear-gradient(135deg,#25D366,#128C7E);color:white;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:0.9rem;flex-shrink:0;object-fit:cover;}
+.conv-info{flex:1;min-width:0;}
+.conv-name{font-size:0.85rem;font-weight:700;color:#1e293b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.conv-preview{font-size:0.72rem;color:#94a3b8;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:2px;}
+.conv-meta{text-align:right;flex-shrink:0;}
+.conv-time{font-size:0.65rem;color:#94a3b8;display:block;margin-bottom:4px;}
+.conv-unread-badge{background:#25D366;color:white;font-size:0.65rem;font-weight:700;padding:2px 6px;border-radius:10px;display:inline-block;}
+.conv-tag{font-size:0.6rem;font-weight:700;padding:1px 6px;border-radius:4px;margin-top:2px;display:inline-block;}
+.conv-tag.joven{background:#dbeafe;color:#1e40af;}
+.conv-tag.adulto{background:#dcfce7;color:#166534;}
+.conv-tag.desconocido{background:#f3f4f6;color:#6b7280;}
+.empty-conv{padding:40px 20px;text-align:center;color:#94a3b8;}
+.empty-conv i{font-size:2.5rem;display:block;margin-bottom:10px;opacity:0.3;}
+
+/* Panel derecho: chat */
+.chat-panel{flex:1;display:flex;flex-direction:column;background:#e5ddd5;background-image:url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23c7b9a7' fill-opacity='0.15'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");}
+.chat-header{background:#075E54;color:white;padding:12px 18px;display:flex;align-items:center;gap:12px;flex-shrink:0;box-shadow:0 2px 8px rgba(0,0,0,0.15);}
+.chat-avatar{width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,#25D366,#128C7E);color:white;display:flex;align-items:center;justify-content:center;font-weight:700;flex-shrink:0;object-fit:cover;}
+.chat-contact-info{flex:1;}
+.chat-contact-name{font-weight:700;font-size:0.9rem;}
+.chat-contact-sub{font-size:0.72rem;opacity:0.8;margin-top:2px;}
+.chat-actions{display:flex;gap:8px;}
+.chat-action-btn{background:rgba(255,255,255,0.15);border:none;color:white;padding:6px 12px;border-radius:8px;cursor:pointer;font-size:0.78rem;font-weight:600;transition:background 0.15s;}
+.chat-action-btn:hover{background:rgba(255,255,255,0.25);}
+.messages-area{flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:4px;}
+.msg-day-divider{text-align:center;margin:12px 0;}
+.msg-day-divider span{background:rgba(255,255,255,0.8);padding:4px 14px;border-radius:20px;font-size:0.72rem;color:#667781;font-weight:500;box-shadow:0 1px 3px rgba(0,0,0,0.1);}
+.msg-bubble{max-width:68%;padding:8px 12px 6px;border-radius:10px;position:relative;box-shadow:0 1px 2px rgba(0,0,0,0.13);}
+.msg-bubble.entrante{background:white;border-top-left-radius:3px;align-self:flex-start;}
+.msg-bubble.saliente{background:#d9fdd3;border-top-right-radius:3px;align-self:flex-end;}
+.msg-text{font-size:0.85rem;color:#111b21;line-height:1.45;word-break:break-word;}
+.msg-footer{display:flex;justify-content:flex-end;align-items:center;gap:4px;margin-top:3px;}
+.msg-time{font-size:0.65rem;color:#667781;}
+.msg-status{font-size:0.7rem;color:#53bdeb;}
+.msg-sender-name{font-size:0.72rem;font-weight:700;color:#075E54;margin-bottom:3px;}
+.no-chat{flex:1;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:12px;color:#667781;}
+.no-chat i{font-size:3rem;opacity:0.3;}
+.no-chat h3{font-weight:600;}
+.no-chat p{font-size:0.82rem;opacity:0.7;}
+.chat-input-area{background:#f0f2f5;padding:10px 14px;display:flex;align-items:flex-end;gap:10px;flex-shrink:0;border-top:1px solid #d1d7db;}
+.chat-input{flex:1;background:white;border:none;border-radius:24px;padding:10px 16px;font-size:0.88rem;outline:none;max-height:100px;resize:none;font-family:'Poppins',sans-serif;box-shadow:0 1px 3px rgba(0,0,0,0.08);}
+.send-btn{width:46px;height:46px;border-radius:50%;background:#075E54;border:none;color:white;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:1.1rem;transition:background 0.15s;flex-shrink:0;}
+.send-btn:hover{background:#128C7E;}
+.send-btn:disabled{background:#ccc;cursor:not-allowed;}
+
+/* Estado online / writing */
+.typing-indicator{padding:8px 16px;font-size:0.72rem;color:#667781;font-style:italic;}
+
+/* Responsive */
+@media(max-width:680px){
+.conv-list{width:100%;display:flex;}
+.chat-panel{display:none;}
+.conv-list.hidden{display:none;}
+.chat-panel.visible{display:flex;position:fixed;inset:56px 0 0 0;z-index:100;}
+}
+
+.notification-dot{width:8px;height:8px;background:#E31837;border-radius:50%;position:absolute;top:10px;right:10px;}
+.realtime-badge{background:#25D366;color:white;font-size:0.6rem;padding:2px 6px;border-radius:6px;font-weight:700;margin-left:6px;}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+    <i class="fab fa-whatsapp"></i>
+    <div>
+        <h1>Bandeja de Entrada WhatsApp</h1>
+        <p>Mensajes del Grupo Scout Salvador Sanfuentes</p>
+    </div>
+    <span class="realtime-badge"><i class="fas fa-circle" style="font-size:0.5rem;"></i> EN VIVO</span>
+    <a href="index.html" class="back-btn"><i class="fas fa-arrow-left"></i> Volver</a>
+</div>
+
+<div class="main">
+    <!-- Lista de conversaciones -->
+    <div class="conv-list" id="conv-list-panel">
+        <div class="conv-header">
+            <h2><i class="fab fa-whatsapp" style="color:#25D366;margin-right:4px;"></i> Conversaciones</h2>
+            <span class="badge-total" id="badge-noLeidos" style="display:none;">0</span>
+            <button onclick="recargarConversaciones()" style="background:none;border:none;color:#94a3b8;cursor:pointer;font-size:0.85rem;" title="Recargar"><i class="fas fa-sync-alt"></i></button>
+        </div>
+        <div class="search-conv">
+            <input type="text" id="search-conv" placeholder="Buscar conversación..." oninput="filtrarConversaciones()">
+        </div>
+        <div class="filter-tabs">
+            <button class="filter-tab active" onclick="setFiltro('todos',this)">Todos</button>
+            <button class="filter-tab" onclick="setFiltro('noLeidos',this)">No leídos</button>
+            <button class="filter-tab" onclick="setFiltro('joven',this)">Jóvenes</button>
+            <button class="filter-tab" onclick="setFiltro('adulto',this)">Adultos</button>
+        </div>
+        <div class="conv-items" id="conv-items"></div>
+    </div>
+
+    <!-- Panel de chat -->
+    <div class="chat-panel" id="chat-panel">
+        <div class="no-chat" id="no-chat">
+            <i class="fab fa-whatsapp"></i>
+            <h3>ERP Scout — WhatsApp</h3>
+            <p>Selecciona una conversación para comenzar</p>
+        </div>
+        <div id="chat-active" style="display:none;flex-direction:column;height:100%;">
+            <div class="chat-header" id="chat-header"></div>
+            <div class="messages-area" id="messages-area"></div>
+            <div id="typing-area" class="typing-indicator" style="display:none;">Escribiendo...</div>
+            <div class="chat-input-area">
+                <textarea class="chat-input" id="chat-input" placeholder="Escribe un mensaje..." rows="1" oninput="autoResizeTA(this)" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();enviarRespuesta();}"></textarea>
+                <button class="send-btn" id="send-btn" onclick="enviarRespuesta()" title="Enviar"><i class="fas fa-paper-plane"></i></button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+const SUPA_URL = 'https://hyixmaxhoxvamoecuars.supabase.co';
+const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imh5aXhtYXhob3h2YW1vZWN1YXJzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI3OTg1NDMsImV4cCI6MjA4ODM3NDU0M30.ZLeJIWdip2f00h4TqkZH7eqMX4wpwphaqkJpAa0N0X4';
+const sb = supabase.createClient(SUPA_URL, SUPA_KEY);
+
+let conversaciones = [];
+let mensajesActivos = [];
+let contactoActivo = null;
+let filtroActual = 'todos';
+let realtimeChannel = null;
+
+// ── CARGAR CONVERSACIONES ──
+async function cargarConversaciones() {
+    const { data, error } = await sb
+        .from('wa_mensajes')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+    if (error) { console.error(error); return; }
+
+    // Agrupar por número
+    const convMap = {};
+    (data || []).forEach(msg => {
+        const num = msg.from_number;
+        if (!convMap[num]) {
+            convMap[num] = {
+                number: num,
+                name: msg.from_name || formatearNumero(num),
+                messages: [],
+                unread: 0,
+                tipo: msg.joven_id ? 'joven' : msg.adulto_id ? 'adulto' : 'desconocido',
+                joven_id: msg.joven_id,
+                adulto_id: msg.adulto_id,
+                last_msg: null,
+                last_time: null
+            };
+        }
+        convMap[num].messages.push(msg);
+        if (!msg.leido && msg.direction === 'entrante') convMap[num].unread++;
+        if (!convMap[num].last_time || new Date(msg.created_at) > new Date(convMap[num].last_time)) {
+            convMap[num].last_msg = msg.text || (msg.tipo !== 'texto' ? `📎 [${msg.tipo}]` : '');
+            convMap[num].last_time = msg.created_at;
+        }
+    });
+
+    conversaciones = Object.values(convMap).sort((a, b) => new Date(b.last_time) - new Date(a.last_time));
+    renderConversaciones();
+    actualizarBadge();
+}
+
+function formatearNumero(num) {
+    if (!num) return 'Desconocido';
+    if (num.startsWith('56') && num.length === 11) return '+56 9 ' + num.slice(3, 7) + ' ' + num.slice(7);
+    return '+' + num;
+}
+
+function tiempoRelativo(ts) {
+    if (!ts) return '';
+    const d = typeof ts === 'number' ? new Date(ts * 1000) : new Date(ts);
+    const hoy = new Date();
+    const diff = hoy - d;
+    if (diff < 86400000 && d.getDate() === hoy.getDate()) return d.toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' });
+    if (diff < 172800000) return 'Ayer';
+    return d.toLocaleDateString('es-CL', { day: '2-digit', month: '2-digit' });
+}
+
+function renderConversaciones() {
+    const container = document.getElementById('conv-items');
+    const query = document.getElementById('search-conv').value.toLowerCase();
+    let lista = conversaciones.filter(c => {
+        if (filtroActual === 'noLeidos' && c.unread === 0) return false;
+        if (filtroActual === 'joven' && c.tipo !== 'joven') return false;
+        if (filtroActual === 'adulto' && c.tipo !== 'adulto') return false;
+        if (query && !c.name.toLowerCase().includes(query) && !c.number.includes(query)) return false;
+        return true;
+    });
+
+    if (!lista.length) {
+        container.innerHTML = '<div class="empty-conv"><i class="fab fa-whatsapp"></i><p>Sin conversaciones</p></div>';
+        return;
+    }
+
+    container.innerHTML = lista.map(c => `
+        <div class="conv-item ${c.unread > 0 ? 'unread' : ''} ${contactoActivo?.number === c.number ? 'active' : ''}" onclick="abrirConversacion('${c.number}')">
+            <div class="conv-avatar" style="background:${c.tipo === 'joven' ? 'linear-gradient(135deg,#25D366,#128C7E)' : c.tipo === 'adulto' ? 'linear-gradient(135deg,#3b82f6,#1d4ed8)' : 'linear-gradient(135deg,#94a3b8,#64748b)'};">
+                ${c.name.charAt(0).toUpperCase()}
+            </div>
+            <div class="conv-info">
+                <div class="conv-name">${esc(c.name)}</div>
+                <div class="conv-preview">${esc(c.last_msg || 'Sin mensajes')}</div>
+                <span class="conv-tag ${c.tipo}">${c.tipo === 'joven' ? '👤 Joven' : c.tipo === 'adulto' ? '🎖 Adulto' : '❓ Desconocido'}</span>
+            </div>
+            <div class="conv-meta">
+                <span class="conv-time">${tiempoRelativo(c.last_time)}</span>
+                ${c.unread > 0 ? `<span class="conv-unread-badge">${c.unread}</span>` : ''}
+            </div>
+        </div>`).join('');
+}
+
+function actualizarBadge() {
+    const total = conversaciones.reduce((s, c) => s + c.unread, 0);
+    const badge = document.getElementById('badge-noLeidos');
+    badge.textContent = total;
+    badge.style.display = total > 0 ? 'inline' : 'none';
+}
+
+function setFiltro(f, btn) {
+    filtroActual = f;
+    document.querySelectorAll('.filter-tab').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    renderConversaciones();
+}
+
+function filtrarConversaciones() { renderConversaciones(); }
+
+function recargarConversaciones() { cargarConversaciones(); }
+
+// ── ABRIR CONVERSACIÓN ──
+async function abrirConversacion(numero) {
+    contactoActivo = conversaciones.find(c => c.number === numero);
+    if (!contactoActivo) return;
+
+    // Marcar como leídos
+    await sb.from('wa_mensajes').update({ leido: true }).eq('from_number', numero).eq('direction', 'entrante').eq('leido', false);
+    contactoActivo.unread = 0;
+    renderConversaciones();
+    actualizarBadge();
+
+    // Mostrar panel
+    document.getElementById('no-chat').style.display = 'none';
+    const chatActive = document.getElementById('chat-active');
+    chatActive.style.display = 'flex';
+
+    // Header
+    const tipo = contactoActivo.tipo;
+    document.getElementById('chat-header').innerHTML = `
+        <div class="chat-avatar" style="background:${tipo === 'joven' ? 'linear-gradient(135deg,#25D366,#128C7E)' : tipo === 'adulto' ? 'linear-gradient(135deg,#3b82f6,#1d4ed8)' : '#94a3b8'};">
+            ${contactoActivo.name.charAt(0).toUpperCase()}
+        </div>
+        <div class="chat-contact-info">
+            <div class="chat-contact-name">${esc(contactoActivo.name)}</div>
+            <div class="chat-contact-sub">${formatearNumero(numero)} · ${tipo === 'joven' ? '👤 Beneficiario' : tipo === 'adulto' ? '🎖 Dirigente' : '❓ No registrado'}</div>
+        </div>
+        <div class="chat-actions">
+            ${tipo !== 'desconocido' ? `<button class="chat-action-btn" onclick="irAlPerfil()"><i class="fas fa-user"></i> Perfil</button>` : ''}
+            <button class="chat-action-btn" onclick="copiarNumero('${numero}')"><i class="fas fa-copy"></i> ${numero}</button>
+        </div>`;
+
+    // Cargar mensajes
+    mensajesActivos = contactoActivo.messages.sort((a, b) => {
+        const ta = a.timestamp ? a.timestamp * 1000 : new Date(a.created_at).getTime();
+        const tb = b.timestamp ? b.timestamp * 1000 : new Date(b.created_at).getTime();
+        return ta - tb;
+    });
+    renderMensajes();
+
+    // Responsive móvil
+    if (window.innerWidth <= 680) {
+        document.getElementById('conv-list-panel').classList.add('hidden');
+        document.getElementById('chat-panel').classList.add('visible');
+    }
+}
+
+function renderMensajes() {
+    const area = document.getElementById('messages-area');
+    let lastDay = null;
+    let html = '';
+    mensajesActivos.forEach(msg => {
+        const ts = msg.timestamp ? new Date(msg.timestamp * 1000) : new Date(msg.created_at);
+        const dayStr = ts.toLocaleDateString('es-CL', { weekday: 'long', day: 'numeric', month: 'long' });
+        if (dayStr !== lastDay) {
+            html += `<div class="msg-day-divider"><span>${dayStr}</span></div>`;
+            lastDay = dayStr;
+        }
+        const timeStr = ts.toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' });
+        const es = msg.direction === 'entrante';
+        html += `<div class="msg-bubble ${msg.direction}">
+            ${es ? `<div class="msg-sender-name">${esc(contactoActivo?.name || msg.from_number)}</div>` : ''}
+            <div class="msg-text">${esc(msg.text || (msg.tipo !== 'texto' ? '📎 ' + msg.tipo : ''))}</div>
+            <div class="msg-footer">
+                <span class="msg-time">${timeStr}</span>
+                ${!es ? '<span class="msg-status">✓✓</span>' : ''}
+            </div>
+        </div>`;
+    });
+    area.innerHTML = html;
+    area.scrollTop = area.scrollHeight;
+}
+
+// ── ENVIAR RESPUESTA ──
+async function enviarRespuesta() {
+    if (!contactoActivo) return;
+    const input = document.getElementById('chat-input');
+    const texto = input.value.trim();
+    if (!texto) return;
+
+    const btn = document.getElementById('send-btn');
+    btn.disabled = true;
+    input.value = '';
+    autoResizeTA(input);
+
+    try {
+        // Enviar por WhatsApp
+        const nombre = contactoActivo.name.split(' ')[0];
+        const resultado = await WA.enviar(contactoActivo.number, nombre, texto);
+
+        // Guardar saliente en Supabase
+        const { data: msgData } = await sb.from('wa_mensajes').insert({
+            from_number: contactoActivo.number,
+            from_name: contactoActivo.name,
+            joven_id: contactoActivo.joven_id || null,
+            adulto_id: contactoActivo.adulto_id || null,
+            text: texto,
+            tipo: 'texto',
+            direction: 'saliente',
+            leido: true,
+            timestamp: Math.floor(Date.now() / 1000),
+            wamid: resultado?.wamid || null
+        }).select().single();
+
+        if (msgData) {
+            mensajesActivos.push(msgData);
+            contactoActivo.messages.push(msgData);
+            contactoActivo.last_msg = texto;
+            contactoActivo.last_time = new Date().toISOString();
+            renderMensajes();
+            renderConversaciones();
+        }
+        if (!resultado?.ok) alert('Mensaje enviado al ERP pero WhatsApp reportó error: ' + (resultado?.error || 'desconocido'));
+    } catch(e) {
+        alert('Error al enviar: ' + e.message);
+    } finally {
+        btn.disabled = false;
+    }
+}
+
+function irAlPerfil() {
+    if (!contactoActivo) return;
+    if (contactoActivo.tipo === 'joven') window.open('programa_jovenes.html', '_blank');
+    else if (contactoActivo.tipo === 'adulto') window.open('adulto_voluntario.html', '_blank');
+}
+
+function copiarNumero(num) {
+    navigator.clipboard.writeText(num).then(() => alert('Número copiado: ' + num));
+}
+
+function autoResizeTA(el) {
+    el.style.height = 'auto';
+    el.style.height = Math.min(el.scrollHeight, 100) + 'px';
+}
+
+function esc(s) { const d = document.createElement('div'); d.textContent = s || ''; return d.innerHTML; }
+
+// ── REALTIME: escuchar mensajes nuevos ──
+function iniciarRealtime() {
+    realtimeChannel = sb.channel('wa-mensajes-live')
+        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'wa_mensajes' }, (payload) => {
+            const msg = payload.new;
+            // Actualizar conversaciones
+            const num = msg.from_number;
+            let conv = conversaciones.find(c => c.number === num);
+            if (!conv) {
+                conv = { number: num, name: msg.from_name || formatearNumero(num), messages: [], unread: 0, tipo: msg.joven_id ? 'joven' : msg.adulto_id ? 'adulto' : 'desconocido', joven_id: msg.joven_id, adulto_id: msg.adulto_id, last_msg: null, last_time: null };
+                conversaciones.unshift(conv);
+            }
+            conv.messages.push(msg);
+            conv.last_msg = msg.text || `[${msg.tipo}]`;
+            conv.last_time = msg.created_at;
+            if (msg.direction === 'entrante') {
+                if (contactoActivo?.number !== num) conv.unread++;
+                else {
+                    mensajesActivos.push(msg);
+                    renderMensajes();
+                    sb.from('wa_mensajes').update({ leido: true }).eq('id', msg.id);
+                }
+            }
+            conversaciones.sort((a, b) => new Date(b.last_time) - new Date(a.last_time));
+            renderConversaciones();
+            actualizarBadge();
+            // Sonido/vibración
+            if (msg.direction === 'entrante' && contactoActivo?.number !== num) {
+                if ('vibrate' in navigator) navigator.vibrate([200]);
+            }
+        })
+        .subscribe();
+}
+
+// ── BOTÓN VOLVER EN MÓVIL ──
+document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') {
+        document.getElementById('conv-list-panel').classList.remove('hidden');
+        document.getElementById('chat-panel').classList.remove('visible');
+    }
+});
+
+// ── INIT ──
+(async () => {
+    await cargarConversaciones();
+    iniciarRealtime();
+})();
+</script>
+</body>
+</html>

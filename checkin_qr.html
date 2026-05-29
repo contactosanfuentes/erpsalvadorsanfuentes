@@ -1,0 +1,548 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+    <title>Check-in QR — ERP Scout</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html5-qrcode/2.3.8/html5-qrcode.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
+        :root{--azul-profundo:#0E2586;--azul-claro:#3498db;--marron-oscuro:#4E110B;--gris-fondo:#f4f7f9;--gris-claro:#e2e8f0;--blanco:#ffffff;--texto-oscuro:#2d3748;--texto-claro:#718096;--border-color:#cbd5e0;--amarillo:#FFD100;--color-manada:#FFD100;--color-tropa:#00853F;--color-compania:#00853F;--color-pioneros:#0055A5;--color-caminantes:#E31837;--verde:#00853F;--rojo:#E31837;--naranja:#e67e22;--morado:#8b5cf6;--success:#2ecc71;--warning:#f39c12;--danger:#E31837;--info:#3498db;--area-corp:#3498db;--area-crea:#f1c40f;--area-cara:#E31837;--area-afec:#e67e22;--area-soci:#9b59b6;--area-espi:#2ecc71;}
+        *{margin:0;padding:0;box-sizing:border-box;font-family:'Poppins',sans-serif;}
+        body{background:var(--gris-fondo);min-height:100vh;}
+        .topbar{background:var(--azul-profundo);color:white;padding:13px 20px;display:flex;align-items:center;gap:11px;}
+        .topbar i{font-size:1.3rem;color:var(--amarillo);}
+        .topbar h1{font-size:0.98rem;font-weight:600;}
+        .topbar p{font-size:0.76rem;opacity:0.7;margin-top:1px;}
+        .content{max-width:880px;margin:18px auto;padding:0 12px 60px;}
+        .card{background:white;border-radius:12px;padding:18px 20px;box-shadow:0 3px 10px rgba(0,0,0,0.06);margin-bottom:14px;}
+        .card h2{font-size:0.93rem;font-weight:600;color:var(--azul-profundo);margin-bottom:12px;display:flex;align-items:center;gap:7px;}
+        .row{display:flex;gap:9px;align-items:flex-end;}
+        .row select,.row input{flex:1;padding:9px 12px;border:2px solid var(--gris-claro);border-radius:8px;font-size:0.88rem;outline:none;font-family:inherit;transition:0.18s;}
+        .row select:focus,.row input:focus{border-color:var(--azul-claro);}
+        .btn{padding:9px 16px;border:none;border-radius:8px;font-size:0.85rem;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:6px;transition:0.18s;}
+        .btn-p{background:var(--azul-profundo);color:white;}.btn-p:hover{background:#1a36a8;}
+        .btn-v{background:var(--verde);color:white;}.btn-v:hover{background:#1e9952;}
+        .btn-r{background:var(--rojo);color:white;}.btn-r:hover{background:#d9453a;}
+        .btn-sm{padding:5px 11px;font-size:0.78rem;}
+
+        .tabs{display:flex;gap:3px;background:#f0f4f8;border-radius:10px;padding:3px;margin-bottom:14px;}
+        .tab{flex:1;padding:8px;border:none;border-radius:7px;font-size:0.83rem;font-weight:500;cursor:pointer;background:transparent;color:var(--texto-claro);transition:0.18s;}
+        .tab.act{background:white;color:var(--azul-profundo);font-weight:700;box-shadow:0 2px 7px rgba(0,0,0,0.08);}
+        .panel{display:none;}.panel.vis{display:block;}
+
+        .scanner-wrap{border-radius:12px;overflow:hidden;background:#111;max-width:340px;margin:0 auto;aspect-ratio:1;position:relative;display:flex;align-items:center;justify-content:center;}
+        #reader{width:100%;height:100%;}
+        /* Ocultar el borde interno que genera html5-qrcode y alinear el video */
+        #reader video{width:100%!important;height:100%!important;object-fit:cover!important;border:none!important;}
+        #reader #qr-shaded-region{border:none!important;}
+        #reader img[alt="Info icon"]{display:none!important;}
+        #reader div[style*="border"]{border-color:transparent!important;}
+        .scan-ol{position:absolute;inset:0;pointer-events:none;display:flex;align-items:center;justify-content:center;z-index:10;}
+        .sf{width:200px;height:200px;position:relative;}
+        .sf::before{content:'';position:absolute;top:0;left:0;width:38px;height:38px;border:3.5px solid var(--amarillo);border-right:none;border-bottom:none;border-radius:4px 0 0 0;}
+        .sf::after{content:'';position:absolute;bottom:0;right:0;width:38px;height:38px;border:3.5px solid var(--amarillo);border-left:none;border-top:none;border-radius:0 0 4px 0;}
+        .ctr{position:absolute;top:0;right:0;width:38px;height:38px;border:3.5px solid var(--amarillo);border-left:none;border-bottom:none;border-radius:0 4px 0 0;}
+        .cbl{position:absolute;bottom:0;left:0;width:38px;height:38px;border:3.5px solid var(--amarillo);border-right:none;border-top:none;border-radius:0 0 0 4px;}
+        .sl{position:absolute;left:10px;right:10px;height:2px;background:linear-gradient(90deg,transparent,var(--amarillo),transparent);animation:sa 2s linear infinite;}
+        @keyframes sa{0%{top:20%}50%{top:75%}100%{top:20%}}
+        .sc-btns{display:flex;gap:9px;justify-content:center;margin-top:11px;}
+
+        .res{display:none;border-radius:11px;padding:16px;margin-top:12px;}
+        .res.show{display:block;animation:fi 0.28s ease;}
+        @keyframes fi{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:translateY(0)}}
+        .res.ok{background:#f0fdf4;border:2px solid #86efac;}
+        .res.ya{background:#fff7ed;border:2px solid #fbbf24;}
+        .res.nok{background:#faf5ff;border:2px solid #c4b5fd;}
+        .rh{display:flex;align-items:center;gap:11px;margin-bottom:11px;}
+        .ri{width:46px;height:46px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1.35rem;flex-shrink:0;}
+        .res.ok .ri{background:var(--verde);color:white;}
+        .res.ya .ri{background:var(--naranja);color:white;}
+        .res.nok .ri{background:#8b5cf6;color:white;}
+        .rn{font-size:0.97rem;font-weight:700;}
+        .rs{font-size:0.8rem;color:var(--texto-claro);margin-top:2px;}
+        .tipo-badge{display:inline-block;padding:2px 9px;border-radius:13px;font-size:0.71rem;font-weight:700;margin-left:6px;}
+        .tipo-joven{background:#dbeafe;color:#1e40af;}
+        .tipo-adulto{background:#e2d9f3;color:#4a1d96;}
+        .dg{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-top:9px;}
+        .dato{background:rgba(255,255,255,0.7);border-radius:7px;padding:8px 11px;}
+        .dato .l{font-size:0.7rem;color:var(--texto-claro);text-transform:uppercase;}
+        .dato .v{font-size:0.86rem;font-weight:600;margin-top:1px;}
+        .dato.warn{background:#fff7ed;grid-column:1/-1;}
+        .rb{display:flex;gap:7px;margin-top:10px;flex-wrap:wrap;}
+
+        .stats-row{display:grid;grid-template-columns:repeat(4,1fr);gap:9px;margin-bottom:14px;}
+        .stat{background:white;border-radius:10px;padding:12px 14px;text-align:center;box-shadow:0 2px 8px rgba(0,0,0,0.05);}
+        .stat .n{font-size:1.55rem;font-weight:700;line-height:1;}
+        .stat .l{font-size:0.74rem;color:var(--texto-claro);margin-top:2px;}
+        .stat.az .n{color:var(--azul-claro);}.stat.vd .n{color:var(--verde);}.stat.na .n{color:var(--naranja);}.stat.gr .n{color:var(--texto-claro);}
+
+        .sub-tabs{display:flex;gap:3px;margin-bottom:11px;}
+        .sub-tab{padding:6px 14px;border:none;border-radius:7px;font-size:0.82rem;font-weight:600;cursor:pointer;background:#f1f5f9;color:var(--texto-claro);transition:0.16s;}
+        .sub-tab.act{background:var(--azul-profundo);color:white;}
+
+        .sr{display:flex;gap:7px;margin-bottom:10px;}
+        .sr input{flex:1;padding:8px 12px;border:2px solid var(--gris-claro);border-radius:8px;font-size:0.86rem;outline:none;font-family:inherit;}
+        .sr input:focus{border-color:var(--azul-claro);}
+
+        .tw{overflow-x:auto;border-radius:9px;border:1px solid var(--gris-claro);}
+        table{width:100%;border-collapse:collapse;background:white;}
+        thead th{background:#f8fafc;padding:9px 13px;text-align:left;font-size:0.74rem;color:var(--texto-claro);text-transform:uppercase;letter-spacing:0.3px;border-bottom:1px solid var(--gris-claro);white-space:nowrap;}
+        tbody td{padding:9px 13px;font-size:0.84rem;border-bottom:1px solid #f0f4f8;}
+        tbody tr:last-child td{border-bottom:none;}
+        tbody tr:hover{background:#fafbff;}
+        .bg{display:inline-flex;align-items:center;gap:3px;padding:2px 8px;border-radius:18px;font-size:0.72rem;font-weight:600;}
+        .bg-v{background:#dcfce7;color:#166534;}.bg-g{background:#fff7ed;color:#9a3412;}
+
+        .empty{text-align:center;padding:32px;color:var(--texto-claro);}
+        .empty i{font-size:2rem;margin-bottom:9px;display:block;}
+        @media(max-width:520px){.stats-row{grid-template-columns:1fr 1fr;}.dg{grid-template-columns:1fr;}.row{flex-direction:column;}}
+    </style>
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#0E2586">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="ERP Scout">
+</head>
+<body>
+<div class="topbar">
+    <i class="fas fa-qrcode"></i>
+    <div><h1>Check-in QR — Confirmación de Inscripciones</h1><p id="topbarEv">Selecciona un evento para comenzar</p></div>
+</div>
+<div class="content">
+    <div class="card">
+        <h2><i class="fas fa-calendar-check" style="color:var(--azul-claro)"></i> Evento activo</h2>
+        <div class="row">
+            <select id="selEv" onchange="cambiarEv()"><option value="">— Cargando eventos —</option></select>
+            <button class="btn btn-p" onclick="recargar()"><i class="fas fa-sync-alt"></i></button>
+        </div>
+    </div>
+
+    <div id="tabsBar" style="display:none">
+        <div class="tabs">
+            <button class="tab act" onclick="cambiarTab('scanner',this)"><i class="fas fa-camera"></i> Escáner QR</button>
+            <button class="tab" onclick="cambiarTab('manual',this)"><i class="fas fa-keyboard"></i> Código manual</button>
+            <button class="tab" onclick="cambiarTab('lista',this)"><i class="fas fa-list-check"></i> Lista de pendientes</button>
+        </div>
+    </div>
+
+    <div class="card panel vis" id="panelScanner">
+        <h2><i class="fas fa-camera" style="color:var(--azul-claro)"></i> Escanear código QR</h2>
+        <div class="scanner-wrap">
+            <div id="reader"></div>
+            <div class="scan-ol"><div class="sf"><div class="ctr"></div><div class="cbl"></div><div class="sl"></div></div></div>
+        </div>
+        <div class="sc-btns">
+            <button class="btn btn-p" id="btnI" onclick="iniciar()"><i class="fas fa-play"></i> Iniciar cámara</button>
+            <button class="btn btn-r" id="btnD" style="display:none" onclick="detener()"><i class="fas fa-stop"></i> Detener</button>
+        </div>
+        <div class="res" id="resS"></div>
+    </div>
+
+    <div class="card panel" id="panelManual">
+        <h2><i class="fas fa-keyboard" style="color:var(--azul-claro)"></i> Buscar código manualmente</h2>
+        <div class="row">
+            <input type="text" id="cManual" placeholder="Ej: GSS-M8X3K2-A1B" style="text-transform:uppercase" onkeydown="if(event.key==='Enter')buscarM()">
+            <button class="btn btn-p" onclick="buscarM()"><i class="fas fa-search"></i> Buscar</button>
+        </div>
+        <div class="res" id="resM"></div>
+    </div>
+
+    <div class="panel" id="panelLista">
+        <div class="stats-row">
+            <div class="stat az"><div class="n" id="sTotal">0</div><div class="l">Total inscritos</div></div>
+            <div class="stat vd"><div class="n" id="sConf">0</div><div class="l">Confirmados</div></div>
+            <div class="stat na"><div class="n" id="sPend">0</div><div class="l">Pendientes</div></div>
+            <div class="stat gr"><div class="n" id="sPct">0%</div><div class="l">Confirmación</div></div>
+        </div>
+        <div class="card" style="padding:13px">
+            <div class="sub-tabs">
+                <button class="sub-tab act" onclick="cambiarSubTab('jovenes',this)"><i class="fas fa-users"></i> Jóvenes / Patrullas</button>
+                <button class="sub-tab" onclick="cambiarSubTab('adultos',this)"><i class="fas fa-user-tie"></i> Adultos / Staff</button>
+            </div>
+            <div class="sr">
+                <input type="text" id="filtro" placeholder="Buscar..." oninput="filtrarLista()">
+                <button class="btn btn-sm btn-v" onclick="exportarCSV()"><i class="fas fa-file-csv"></i> Exportar</button>
+                <button class="btn btn-sm btn-p" onclick="recargar()"><i class="fas fa-sync-alt"></i></button>
+            </div>
+            <div class="tw">
+                <table>
+                    <thead><tr id="tHead"></tr></thead>
+                    <tbody id="tbody"><tr><td colspan="7"><div class="empty"><i class="fas fa-circle-notch fa-spin"></i>Esperando evento...</div></td></tr></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+(async () => {
+    const SUPABASE_URL = 'https://hyixmaxhoxvamoecuars.supabase.co';
+    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imh5aXhtYXhob3h2YW1vZWN1YXJzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI3OTg1NDMsImV4cCI6MjA4ODM3NDU0M30.ZLeJIWdip2f00h4TqkZH7eqMX4wpwphaqkJpAa0N0X4';
+    const _accessToken = new URLSearchParams(window.location.search).get('token');
+    const _opts = _accessToken ? { global: { headers: { Authorization: `Bearer ${_accessToken}` } } } : {};
+    const db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY, _opts);
+
+    let ev = null;
+    let jovenes = [], adultos = [];
+    let scanner = null, activo = false;
+
+    // ── Sonido de escaneo exitoso ──
+    function beepExito() {
+        try {
+            const ctx = new (window.AudioContext || window.webkitAudioContext)();
+            // Primer tono: agudo corto
+            const o1 = ctx.createOscillator();
+            const g1 = ctx.createGain();
+            o1.connect(g1); g1.connect(ctx.destination);
+            o1.type = 'sine'; o1.frequency.value = 1200;
+            g1.gain.setValueAtTime(0.35, ctx.currentTime);
+            g1.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.12);
+            o1.start(ctx.currentTime); o1.stop(ctx.currentTime + 0.12);
+            // Segundo tono: más agudo (confirmación)
+            const o2 = ctx.createOscillator();
+            const g2 = ctx.createGain();
+            o2.connect(g2); g2.connect(ctx.destination);
+            o2.type = 'sine'; o2.frequency.value = 1600;
+            g2.gain.setValueAtTime(0.35, ctx.currentTime + 0.1);
+            g2.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.25);
+            o2.start(ctx.currentTime + 0.1); o2.stop(ctx.currentTime + 0.25);
+            setTimeout(() => ctx.close(), 400);
+        } catch(e) { /* dispositivo sin audio */ }
+    }
+    function beepError() {
+        try {
+            const ctx = new (window.AudioContext || window.webkitAudioContext)();
+            const o = ctx.createOscillator();
+            const g = ctx.createGain();
+            o.connect(g); g.connect(ctx.destination);
+            o.type = 'square'; o.frequency.value = 300;
+            g.gain.setValueAtTime(0.25, ctx.currentTime);
+            g.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.35);
+            o.start(ctx.currentTime); o.stop(ctx.currentTime + 0.35);
+            setTimeout(() => ctx.close(), 500);
+        } catch(e) {}
+    }
+    let subTab = 'jovenes';
+
+    // ── Cargar tabla "eventos" del sistema ──
+    const evResp = await db.from('eventos').select('id,nombre,fecha_inicio').order('creado_en', { ascending: false });
+    const evs = (evResp.data || []).map(e => ({ id: e.id, nombre: e.nombre, fecha_inicio: e.fecha_inicio }));
+    const sel = document.getElementById('selEv');
+    sel.innerHTML = '<option value="">— Selecciona un evento —</option>';
+    evs.forEach(e => {
+        const o = document.createElement('option');
+        o.value = e.id;
+        o.textContent = e.nombre + (e.fecha_inicio ? ' (' + new Date(e.fecha_inicio + 'T12:00:00').toLocaleDateString('es-CL') + ')' : '');
+        sel.appendChild(o);
+    });
+
+    window.cambiarEv = async function() {
+        const id = document.getElementById('selEv').value;
+        if (!id) { ev = null; return; }
+        const evResp = await db.from('eventos').select('*').eq('id', id).single();
+        if (!evResp.data) return;
+        // Mapear a objeto plano (evita DataCloneError)
+        ev = {
+            id: evResp.data.id,
+            nombre: evResp.data.nombre,
+            fecha_inicio: evResp.data.fecha_inicio,
+            fecha_fin: evResp.data.fecha_fin,
+            lugar: evResp.data.lugar
+        };
+        // Si fue auto-seleccionado desde iframe, mostrar indicador visual
+        const esEmbebido = !!(new URLSearchParams(window.location.search)).get('evento_id');
+        document.getElementById('topbarEv').innerHTML = esEmbebido
+            ? `<i class="fas fa-link" style="color:#FFD100;margin-right:5px"></i>${ev.nombre} <span style="font-size:0.72rem;opacity:0.7">(sincronizado)</span>`
+            : ev.nombre;
+        document.getElementById('tabsBar').style.display = 'block';
+        await recargar();
+    };
+
+    window.recargar = async function() {
+        if (!ev) return;
+        // Lee tabla "jovenes" del evento (misma de eventos_iframe)
+        const jResp = await db.from('jovenes').select('*').eq('evento_id', ev.id).order('id');
+        // Lee tabla "adultos" del evento (misma de eventos_iframe)
+        const aResp = await db.from('adultos').select('*').eq('evento_id', ev.id).order('id');
+        // Mapear a objetos planos para evitar DataCloneError en iframes
+        jovenes = (jResp.data || []).map(r => ({...r}));
+        adultos = (aResp.data || []).map(r => ({...r}));
+        renderListaActual();
+        actualizarStats();
+    };
+
+    window.cambiarTab = function(tab, el) {
+        document.querySelectorAll('.tab').forEach(t => t.classList.remove('act'));
+        el.classList.add('act');
+        ['panelScanner','panelManual','panelLista'].forEach(id =>
+            document.getElementById(id).classList.toggle('vis', id === 'panel' + tab.charAt(0).toUpperCase() + tab.slice(1))
+        );
+        if (tab !== 'scanner' && activo) detener();
+    };
+
+    window.cambiarSubTab = function(t, el) {
+        document.querySelectorAll('.sub-tab').forEach(s => s.classList.remove('act'));
+        el.classList.add('act');
+        subTab = t;
+        renderListaActual();
+    };
+
+    // ── ESCÁNER QR ──
+    window.iniciar = async function() {
+        if (!ev) { alert('Selecciona un evento primero.'); return; }
+        scanner = new Html5Qrcode('reader');
+        try {
+            await scanner.start({ facingMode: 'environment' }, { fps: 10, qrbox: { width: 200, height: 200 }, aspectRatio: 1.0 },
+                async decoded => {
+                    beepExito();
+                    if (activo) await detener();
+                    await procesarCodigo(decoded, 'resS');
+                }, () => {});
+            activo = true;
+            document.getElementById('btnI').style.display = 'none';
+            document.getElementById('btnD').style.display = 'inline-flex';
+        } catch(e) { alert('No se pudo acceder a la cámara: ' + e.message); }
+    };
+
+    window.detener = async function() {
+        if (scanner && activo) { await scanner.stop().catch(() => {}); activo = false; }
+        document.getElementById('btnI').style.display = 'inline-flex';
+        document.getElementById('btnD').style.display = 'none';
+    };
+
+    window.buscarM = async function() {
+        const c = document.getElementById('cManual').value.trim().toUpperCase();
+        if (!c) return;
+        await procesarCodigo(c, 'resM');
+    };
+
+    // ── BUSCAR Y CONFIRMAR EN AMBAS TABLAS (jovenes + adultos) ──
+    async function procesarCodigo(texto, resId) {
+        if (!ev) { alert('Selecciona un evento primero.'); return; }
+
+        // El QR puede venir como JSON con {codigo_qr, tipo, evento_id} o como texto plano
+        let codigo = texto, tipoHint = null;
+        try {
+            const o = JSON.parse(texto);
+            codigo = o.codigo_qr || texto;
+            tipoHint = o.tipo;
+        } catch(e) {}
+
+        // Buscar primero en jovenes
+        let tabla = 'jovenes';
+        let { data, error } = await db.from('jovenes').select('*')
+            .eq('codigo_qr', codigo).eq('evento_id', ev.id).maybeSingle();
+
+        // Si no se encontró, buscar en adultos
+        if (!data) {
+            const r = await db.from('adultos').select('*')
+                .eq('codigo_qr', codigo).eq('evento_id', ev.id).maybeSingle();
+            if (r.data) { data = r.data; tabla = 'adultos'; }
+        }
+
+        const card = document.getElementById(resId);
+        card.className = 'res show';
+
+        if (!data) {
+            beepError();
+            card.classList.add('nok');
+            card.innerHTML = `
+                <div class="rh">
+                    <div class="ri"><i class="fas fa-question"></i></div>
+                    <div><div class="rn">Código no encontrado</div><div class="rs">${codigo}</div></div>
+                </div>
+                <p style="font-size:0.82rem;color:var(--texto-claro)">No hay inscripción con este código en el evento seleccionado.</p>`;
+            return;
+        }
+
+        const esJoven = tabla === 'jovenes';
+        const nombre = esJoven ? data.nombre_patrulla : data.nombre;
+        const tipoBadge = esJoven
+            ? '<span class="tipo-badge tipo-joven">Joven/Patrulla</span>'
+            : '<span class="tipo-badge tipo-adulto">Adulto/Staff</span>';
+
+        if (data.confirmado) {
+            // YA CONFIRMADO
+            card.classList.add('ya');
+            const hora = data.checkin_at ? new Date(data.checkin_at).toLocaleTimeString('es-CL', {hour:'2-digit',minute:'2-digit'}) : '—';
+            const detalleJov = esJoven
+                ? `<div class="dato"><div class="l">Grupo Scout</div><div class="v">${data.grupo_scout || '—'}</div></div>
+                   <div class="dato"><div class="l">Integrantes</div><div class="v">${data.numero_integrantes || 1}</div></div>`
+                : `<div class="dato"><div class="l">Grupo</div><div class="v">${data.grupo || '—'}</div></div>
+                   <div class="dato"><div class="l">Rol</div><div class="v">${data.rol || '—'}</div></div>`;
+            card.innerHTML = `
+                <div class="rh">
+                    <div class="ri"><i class="fas fa-clock"></i></div>
+                    <div><div class="rn">${nombre} ${tipoBadge}</div><div class="rs">Ya fue confirmado a las ${hora}</div></div>
+                </div>
+                <div class="dg">${detalleJov}</div>
+                <div class="rb">
+                    <button class="btn btn-r btn-sm" onclick="anular('${tabla}','${data.id}','${resId}')"><i class="fas fa-undo"></i> Revertir confirmación</button>
+                </div>`;
+        } else {
+            // PENDIENTE → confirmar
+            card.classList.add('ok');
+            const detalleJov = esJoven
+                ? `<div class="dato"><div class="l">Grupo Scout</div><div class="v">${data.grupo_scout || '—'}</div></div>
+                   <div class="dato"><div class="l">Integrantes</div><div class="v">${data.numero_integrantes || 1}</div></div>
+                   <div class="dato"><div class="l">Email</div><div class="v" style="font-size:0.78rem;word-break:break-all">${data.email || '—'}</div></div>
+                   <div class="dato"><div class="l">Cuota</div><div class="v">$${parseInt(data.cuota || 0).toLocaleString('es-CL')}</div></div>`
+                : `<div class="dato"><div class="l">Grupo</div><div class="v">${data.grupo || '—'}</div></div>
+                   <div class="dato"><div class="l">Rol</div><div class="v">${data.rol || '—'}</div></div>
+                   <div class="dato"><div class="l">Email</div><div class="v" style="font-size:0.78rem;word-break:break-all">${data.email || '—'}</div></div>
+                   <div class="dato"><div class="l">Teléfono</div><div class="v">${data.telefono || '—'}</div></div>`;
+            card.innerHTML = `
+                <div class="rh">
+                    <div class="ri"><i class="fas fa-check"></i></div>
+                    <div><div class="rn">${nombre} ${tipoBadge}</div><div class="rs">Inscripción válida — pendiente de confirmar</div></div>
+                </div>
+                <div class="dg">
+                    ${detalleJov}
+                    ${data.observaciones ? `<div class="dato warn"><div class="l">⚠ Observaciones</div><div class="v">${data.observaciones}</div></div>` : ''}
+                </div>
+                <div class="rb">
+                    <button class="btn btn-v" onclick="confirmar('${tabla}','${data.id}','${resId}')"><i class="fas fa-check-circle"></i> Confirmar entrada al evento</button>
+                </div>`;
+        }
+        card.scrollIntoView({ behavior:'smooth', block:'nearest' });
+    }
+
+    // ── Confirmar = setea confirmado=true y checkin_at ──
+    window.confirmar = async function(tabla, id, resId) {
+        const { error } = await db.from(tabla).update({
+            confirmado: true,
+            checkin_at: new Date().toISOString()
+        }).eq('id', id);
+        if (error) { alert('Error: ' + error.message); return; }
+        await recargar();
+        // Re-buscar para mostrar resultado actualizado
+        const { data } = await db.from(tabla).select('codigo_qr').eq('id', id).single();
+        if (data) await procesarCodigo(data.codigo_qr, resId);
+    };
+
+    window.anular = async function(tabla, id, resId) {
+        if (!confirm('¿Revertir la confirmación de esta inscripción?')) return;
+        await db.from(tabla).update({ confirmado: false, checkin_at: null }).eq('id', id);
+        await recargar();
+        const { data } = await db.from(tabla).select('codigo_qr').eq('id', id).single();
+        if (data) await procesarCodigo(data.codigo_qr, resId);
+    };
+
+    // ── LISTA ──
+    function renderListaActual() {
+        const lista = subTab === 'jovenes' ? jovenes : adultos;
+        const esJov = subTab === 'jovenes';
+
+        // Header
+        document.getElementById('tHead').innerHTML = esJov
+            ? '<th>#</th><th>Patrulla / Nombre</th><th>Grupo Scout</th><th>Integrantes</th><th>Email</th><th>Estado</th><th>Acción</th>'
+            : '<th>#</th><th>Nombre</th><th>Rol</th><th>Grupo</th><th>Email</th><th>Estado</th><th>Acción</th>';
+
+        const tb = document.getElementById('tbody');
+        if (!lista.length) {
+            tb.innerHTML = `<tr><td colspan="7"><div class="empty"><i class="fas fa-users-slash"></i>Sin inscripciones de ${subTab} para este evento.</div></td></tr>`;
+            return;
+        }
+
+        const tabla = esJov ? 'jovenes' : 'adultos';
+        tb.innerHTML = lista.map((r, i) => {
+            const conf = r.confirmado;
+            const badge = conf
+                ? '<span class="bg bg-v"><i class="fas fa-check"></i> Confirmado</span>'
+                : '<span class="bg bg-g"><i class="fas fa-clock"></i> Pendiente</span>';
+            const accion = !conf
+                ? `<button class="btn btn-sm btn-v" onclick="confirmarDirecto('${tabla}','${r.id}')" title="Confirmar"><i class="fas fa-check"></i></button>`
+                : `<button class="btn btn-sm" style="background:#f1f5f9;color:var(--texto-claro)" onclick="anularDirecto('${tabla}','${r.id}')" title="Revertir"><i class="fas fa-undo"></i></button>`;
+            return esJov
+                ? `<tr><td>${i+1}</td><td><strong>${r.nombre_patrulla||'—'}</strong></td><td>${r.grupo_scout||'—'}</td><td>${r.numero_integrantes||0}</td><td style="font-size:0.8rem">${r.email||'—'}</td><td>${badge}</td><td>${accion}</td></tr>`
+                : `<tr><td>${i+1}</td><td><strong>${r.nombre||'—'}</strong></td><td>${r.rol||'—'}</td><td>${r.grupo||'—'}</td><td style="font-size:0.8rem">${r.email||'—'}</td><td>${badge}</td><td>${accion}</td></tr>`;
+        }).join('');
+    }
+
+    window.confirmarDirecto = async function(tabla, id) {
+        await db.from(tabla).update({ confirmado: true, checkin_at: new Date().toISOString() }).eq('id', id);
+        await recargar();
+    };
+    window.anularDirecto = async function(tabla, id) {
+        await db.from(tabla).update({ confirmado: false, checkin_at: null }).eq('id', id);
+        await recargar();
+    };
+
+    window.filtrarLista = function() {
+        const q = document.getElementById('filtro').value.toLowerCase();
+        const lista = subTab === 'jovenes' ? jovenes : adultos;
+        const filtered = lista.filter(r => {
+            const txt = subTab === 'jovenes'
+                ? `${r.nombre_patrulla||''} ${r.grupo_scout||''} ${r.email||''} ${r.codigo_qr||''}`
+                : `${r.nombre||''} ${r.rol||''} ${r.grupo||''} ${r.email||''} ${r.codigo_qr||''}`;
+            return txt.toLowerCase().includes(q);
+        });
+        const esJov = subTab === 'jovenes';
+        const tabla = esJov ? 'jovenes' : 'adultos';
+        const tb = document.getElementById('tbody');
+        if (!filtered.length) { tb.innerHTML = '<tr><td colspan="7"><div class="empty">Sin coincidencias.</div></td></tr>'; return; }
+        tb.innerHTML = filtered.map((r, i) => {
+            const conf = r.confirmado;
+            const badge = conf ? '<span class="bg bg-v"><i class="fas fa-check"></i> Confirmado</span>' : '<span class="bg bg-g"><i class="fas fa-clock"></i> Pendiente</span>';
+            const accion = !conf
+                ? `<button class="btn btn-sm btn-v" onclick="confirmarDirecto('${tabla}','${r.id}')"><i class="fas fa-check"></i></button>`
+                : `<button class="btn btn-sm" style="background:#f1f5f9;color:var(--texto-claro)" onclick="anularDirecto('${tabla}','${r.id}')"><i class="fas fa-undo"></i></button>`;
+            return esJov
+                ? `<tr><td>${i+1}</td><td><strong>${r.nombre_patrulla||'—'}</strong></td><td>${r.grupo_scout||'—'}</td><td>${r.numero_integrantes||0}</td><td style="font-size:0.8rem">${r.email||'—'}</td><td>${badge}</td><td>${accion}</td></tr>`
+                : `<tr><td>${i+1}</td><td><strong>${r.nombre||'—'}</strong></td><td>${r.rol||'—'}</td><td>${r.grupo||'—'}</td><td style="font-size:0.8rem">${r.email||'—'}</td><td>${badge}</td><td>${accion}</td></tr>`;
+        }).join('');
+    };
+
+    function actualizarStats() {
+        const total = jovenes.length + adultos.length;
+        const conf = jovenes.filter(j => j.confirmado).length + adultos.filter(a => a.confirmado).length;
+        document.getElementById('sTotal').textContent = total;
+        document.getElementById('sConf').textContent = conf;
+        document.getElementById('sPend').textContent = total - conf;
+        document.getElementById('sPct').textContent = total ? Math.round(conf/total*100) + '%' : '0%';
+    }
+
+    window.exportarCSV = function() {
+        const lista = subTab === 'jovenes' ? jovenes : adultos;
+        if (!lista.length) { alert('No hay datos.'); return; }
+        const esJov = subTab === 'jovenes';
+        const headers = esJov
+            ? ['#','Patrulla','Grupo Scout','Integrantes','Email','Teléfono','Cuota','Confirmado','Hora Confirmación','Observaciones']
+            : ['#','Nombre','Rol','Grupo','Email','Teléfono','Confirmado','Hora Confirmación','Observaciones'];
+        const rows = [headers];
+        lista.forEach((r,i) => {
+            const hora = r.checkin_at ? new Date(r.checkin_at).toLocaleString('es-CL') : '';
+            rows.push(esJov
+                ? [i+1, r.nombre_patrulla, r.grupo_scout, r.numero_integrantes, r.email, r.telefono, r.cuota, r.confirmado?'Sí':'No', hora, r.observaciones||'']
+                : [i+1, r.nombre, r.rol, r.grupo, r.email, r.telefono, r.confirmado?'Sí':'No', hora, r.observaciones||'']);
+        });
+        const csv = rows.map(r => r.map(c => `"${String(c||'').replace(/"/g,'""')}"`).join(',')).join('\n');
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(new Blob(['\ufeff'+csv], {type:'text/csv;charset=utf-8;'}));
+        a.download = `${subTab}_${ev?.nombre?.replace(/\s/g,'_')||'evento'}.csv`;
+        a.click();
+    };
+
+    // ── AUTO-SELECCIÓN cuando se embebe desde eventos_iframe ──
+    // Lee ?evento_id=X de la URL y selecciona ese evento automáticamente
+    // Se ejecuta al final para garantizar que cambiarEv/recargar ya están definidas
+    const urlParams = new URLSearchParams(window.location.search);
+    const autoEvId = urlParams.get('evento_id');
+    if (autoEvId) {
+        const optEncontrada = sel.querySelector(`option[value="${autoEvId}"]`);
+        if (optEncontrada) {
+            sel.value = autoEvId;
+            await window.cambiarEv();
+        } else {
+            console.warn('checkin_qr: evento_id=' + autoEvId + ' no encontrado en la lista de eventos.');
+        }
+    }
+
+})();
+</script>
+<script>if('serviceWorker' in navigator){navigator.serviceWorker.register('/sw.js').catch(function(){});}</script>
+</body>
+</html>

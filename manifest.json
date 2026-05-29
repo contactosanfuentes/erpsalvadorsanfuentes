@@ -1,0 +1,73 @@
+{
+  "name": "ERP Scout Salvador Sanfuentes",
+  "short_name": "Scout SSF",
+  "description": "Sistema de gestión integral del Grupo Guías y Scouts Salvador Sanfuentes — Chile",
+  "start_url": "/login.html",
+  "scope": "/",
+  "display": "standalone",
+  "display_override": ["standalone", "minimal-ui", "browser"],
+  "background_color": "#0E2586",
+  "theme_color": "#0E2586",
+  "orientation": "portrait-primary",
+  "lang": "es-CL",
+  "dir": "ltr",
+  "id": "erp-scout-salvadorsanfuentes",
+  "categories": ["productivity", "education", "utilities", "business"],
+  "prefer_related_applications": false,
+  "icons": [
+    {
+      "src": "https://i.imgur.com/11u9rUD.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "https://i.imgur.com/11u9rUD.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "https://i.imgur.com/11u9rUD.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "https://i.imgur.com/11u9rUD.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Directorio de Beneficiarios",
+      "short_name": "Jóvenes",
+      "description": "Acceder al programa de jóvenes",
+      "url": "/programa_jovenes.html",
+      "icons": [{ "src": "https://i.imgur.com/11u9rUD.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Comunicaciones",
+      "short_name": "Mensajes",
+      "description": "Enviar mensajes masivos",
+      "url": "/comunicaciones.html",
+      "icons": [{ "src": "https://i.imgur.com/11u9rUD.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Eventos",
+      "short_name": "Eventos",
+      "description": "Gestión de eventos",
+      "url": "/eventos_iframe.html",
+      "icons": [{ "src": "https://i.imgur.com/11u9rUD.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Tesorería",
+      "short_name": "Tesorería",
+      "description": "Gestión financiera",
+      "url": "/tesoreria.html",
+      "icons": [{ "src": "https://i.imgur.com/11u9rUD.png", "sizes": "192x192" }]
+    }
+  ]
+}
