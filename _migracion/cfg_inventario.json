@@ -1,0 +1,22 @@
+{
+ "origen": "/home/claude/erp_upload/erp_full/inventario_grupo.html",
+ "destino": "/home/claude/plataforma_v2",
+ "pagina": "inventario_grupo.html",
+ "carpeta": "inventario",
+ "scriptInicio": "<script>\n",
+ "scriptFin": "\n</script>",
+ "scriptOcurrencia": 1,
+ "estilos": [
+  {
+   "inicio": "    <style>\n",
+   "fin": "    </style>",
+   "archivo": "inventario.css"
+  }
+ ],
+ "grupos": [
+  {
+   "desde": 0,
+   "nombre": "app"
+  }
+ ]
+}

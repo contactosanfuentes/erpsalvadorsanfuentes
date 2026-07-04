@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Portal Caminante | Salvador Sanfuentes</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<link rel="stylesheet" href="caminante/css/caminante.css">
+</head>
+<body>
+<div id="toast" class="toast"></div>
+
+<!-- LOGIN -->
+<div class="login-screen" id="login-screen">
+<div class="login-card">
+<img src="https://i.imgur.com/11u9rUD.png" alt="Logo">
+<h1>Portal del Caminante</h1>
+<p>Accede con tu RUT para gestionar tu Proyecto de Vida y proyectos de intervención.</p>
+<div id="error-box" class="error-msg"></div>
+<div class="form-group"><label>RUT</label><input type="text" id="input-rut" placeholder="Ej: 22865919-3" maxlength="15" autofocus></div>
+<div class="form-group"><label>Clave de acceso</label><input type="password" id="input-clave" placeholder="Últimos 4 dígitos de tu RUT"></div>
+<button class="btn-login" id="btn-ingresar" onclick="verificarAcceso()"><i class="fas fa-sign-in-alt"></i> Ingresar</button>
+<p style="margin-top:16px;font-size:0.72rem;color:#94a3b8;">Clave por defecto: últimos 4 dígitos de tu RUT.</p>
+</div>
+</div>
+
+<!-- PORTAL -->
+<div class="portal-screen" id="portal-screen">
+<div class="portal-header">
+<img id="portal-foto" src="" alt=""><div><h2 id="portal-nombre"></h2><span class="badge"><i class="fas fa-fire"></i> <span id="portal-unidad">Caminante</span></span></div>
+<button class="btn-logout" onclick="cerrarSesion()"><i class="fas fa-sign-out-alt"></i> Cerrar Sesión</button>
+</div>
+
+<!-- MANIFIESTO -->
+
+<!-- PORTAFOLIO PERSONAL -->
+<div class="bg-white rounded-2xl shadow-sm p-6 mb-6">
+  <h2 class="text-lg font-bold text-gray-800 mb-1 flex items-center gap-2">
+    <span class="text-xl">🧭</span> Mi Progresión Personal
+  </h2>
+  <p class="text-sm text-gray-400 mb-4">Tu progresión en el Clan — etapas, competencias y compromiso</p>
+  <div id="portal-portafolio"><p class="text-center text-gray-400 py-4"><i class="fas fa-spinner fa-spin"></i> Cargando...</p></div>
+</div>
+
+<div class="section-card">
+<h3><i class="fas fa-compass" style="color:#E31837;margin-right:8px;"></i> Tengo un Proyecto para mi Vida</h3>
+<p class="subtitle">Tu visión de largo plazo, misión y vocación personal</p>
+
+<!-- Tres preguntas del Camino Simbólico AGSCh -->
+<div class="grid grid-cols-1 gap-3 mb-4" style="grid-template-columns:repeat(3,1fr)">
+  <div class="bg-red-50 border border-red-100 rounded-xl p-3">
+    <p class="text-xs font-bold text-red-700 mb-1">¿Qué quiero para mi vida?</p>
+    <textarea id="pv-q1" rows="2" class="w-full bg-transparent border-none outline-none text-xs text-gray-700 resize-none" placeholder="Escribe aquí..."></textarea>
+  </div>
+  <div class="bg-red-50 border border-red-100 rounded-xl p-3">
+    <p class="text-xs font-bold text-red-700 mb-1">¿Quién quiero ser?</p>
+    <textarea id="pv-q2" rows="2" class="w-full bg-transparent border-none outline-none text-xs text-gray-700 resize-none" placeholder="Escribe aquí..."></textarea>
+  </div>
+  <div class="bg-red-50 border border-red-100 rounded-xl p-3">
+    <p class="text-xs font-bold text-red-700 mb-1">¿Qué puedo hacer para lograrlo?</p>
+    <textarea id="pv-q3" rows="2" class="w-full bg-transparent border-none outline-none text-xs text-gray-700 resize-none" placeholder="Escribe aquí..."></textarea>
+  </div>
+</div>
+<p class="text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">Mi proyecto es</p>
+<textarea id="portal-manifiesto" rows="4" class="w-full border-2 border-gray-200 rounded-xl p-4 text-sm focus:border-red-400 outline-none font-medium" placeholder="Escribe tu proyecto de vida, metas, misión personal..."></textarea>
+<div class="flex gap-2 mt-3 flex-wrap">
+<label class="bg-red-50 text-red-700 border border-red-200 rounded-lg px-3 py-1.5 text-xs font-bold cursor-pointer hover:bg-red-100"><i class="fas fa-image mr-1"></i> Imagen <input type="file" accept="image/*" multiple style="display:none" onchange="subirAdjunto('imagen',this)"></label>
+<label class="bg-purple-50 text-purple-700 border border-purple-200 rounded-lg px-3 py-1.5 text-xs font-bold cursor-pointer hover:bg-purple-100"><i class="fas fa-microphone mr-1"></i> Audio <input type="file" accept="audio/*" style="display:none" onchange="subirAdjunto('audio',this)"></label>
+</div>
+<div id="portal-adjuntos" class="flex flex-wrap gap-2 mt-2"></div>
+<div class="text-right mt-3"><button class="btn-primary-portal" onclick="guardarManifiesto()"><i class="fas fa-save"></i> Guardar</button></div>
+
+<!-- Requisitos para avanzar de etapa -->
+<div id="pv-requisitos" class="mt-4 bg-gray-50 border border-gray-200 rounded-xl p-4" style="display:none">
+  <p class="text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">Para avanzar a la siguiente etapa necesitas</p>
+  <div id="pv-req-lista" class="flex flex-col gap-1"></div>
+</div>
+
+<!-- Potenciar / Reformular -->
+<div class="grid gap-3 mt-4" style="grid-template-columns:1fr 1fr">
+  <div class="bg-gray-50 border border-gray-200 rounded-xl p-3">
+    <p class="text-xs font-bold text-gray-600 mb-1"><i class="fas fa-rocket mr-1 text-indigo-500"></i> Potencio mi proyecto con nuevos objetivos</p>
+    <textarea id="pv-potenciar" rows="2" class="w-full bg-transparent border-none outline-none text-xs text-gray-700 resize-none" placeholder="¿Qué nuevos objetivos le agregarías?"></textarea>
+  </div>
+  <div class="bg-gray-50 border border-gray-200 rounded-xl p-3">
+    <p class="text-xs font-bold text-gray-600 mb-1"><i class="fas fa-sync-alt mr-1 text-amber-500"></i> Reformulo mi proyecto</p>
+    <textarea id="pv-reformular" rows="2" class="w-full bg-transparent border-none outline-none text-xs text-gray-700 resize-none" placeholder="¿Cambiarías algo de lo planificado?"></textarea>
+  </div>
+</div>
+
+<!-- Avances concretos -->
+<div class="mt-4">
+  <p class="text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">Mis avances concretos</p>
+  <div id="pv-avances-lista" class="flex flex-col gap-2 mb-2"></div>
+  <button onclick="pvAgregarAvance()" class="text-xs font-bold text-red-600 hover:text-red-800"><i class="fas fa-plus mr-1"></i> Agregar avance</button>
+</div>
+
+</div>
+
+<!-- MIS PROYECTOS -->
+<div class="section-card">
+<h3><i class="fas fa-project-diagram" style="color:#E31837;margin-right:8px;"></i> Mis Proyectos</h3>
+<p class="subtitle">Crea y gestiona proyectos con el mismo formulario del sistema principal.</p>
+<button onclick="abrirModalProyecto()" class="btn-primary-portal mb-4"><i class="fas fa-plus-circle"></i> Crear Nuevo Proyecto</button>
+<div id="portal-proyectos"></div>
+</div>
+
+<!-- EXPLORAR PROYECTOS -->
+<div class="section-card">
+<h3><i class="fas fa-rocket" style="color:#8b5cf6;margin-right:8px;"></i> Explorar Proyectos Vigentes</h3>
+<p class="subtitle">Proyectos activos de Avanzada y Clan.</p>
+<div id="portal-proyectos-vigentes"></div>
+</div>
+<!-- CALENDARIO DE PROYECTOS -->
+<div class="bg-white rounded-2xl shadow-sm p-6 mb-6">
+  <h2 class="text-lg font-bold text-gray-800 mb-1 flex items-center gap-2">
+    <span class="text-xl">📅</span> Calendario de Proyectos
+  </h2>
+  <p class="text-sm text-gray-400 mb-4">Fechas de inicio y término de los proyectos vigentes</p>
+  <div id="portal-calendario"></div>
+</div>
+</div>
+
+<!-- MODAL PROYECTO (réplica exacta del sistema interno) -->
+<div id="modal-proyecto-portal" class="modal-overlay">
+<div class="modal-box" style="max-width:850px;padding:0;">
+<div class="bg-gradient-to-r from-indigo-700 to-red-700 px-8 py-5 sticky top-0 z-10 flex justify-between items-center" style="border-radius:16px 16px 0 0;">
+<div><h3 style="margin:0;color:white;font-size:1.1rem;font-weight:800;"><i class="fas fa-project-diagram mr-2"></i> <span id="mp-title">Estructuración de Proyecto</span></h3><p class="text-indigo-200 text-xs font-medium mt-1">Formulario de proyectos adaptado a la pedagogía scout.</p></div>
+<button onclick="cerrarModalProy()" class="text-white/70 hover:text-white text-2xl"><i class="fas fa-times"></i></button>
+</div>
+<div style="padding:24px;" id="mp-body">
+<input type="hidden" id="mp-edit-id" value="">
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-5">
+<div class="md:col-span-2"><label class="font-extrabold text-xs text-gray-700 uppercase tracking-wide block mb-1">Nombre Oficial del Proyecto *</label><input type="text" id="mp-nombre" class="w-full border-2 border-gray-200 rounded-lg p-2.5 focus:border-indigo-400 outline-none font-bold text-gray-800" placeholder="Ej: Operativo Reforestación Cerro Renca"></div>
+<div class="md:col-span-2"><label class="font-extrabold text-xs text-gray-700 uppercase tracking-wide block mb-1">Objetivo General (SMART) *</label><textarea id="mp-objetivo" rows="2" class="w-full border-2 border-gray-200 rounded-lg p-2.5 focus:border-indigo-400 outline-none font-medium text-gray-800" placeholder="Meta específica, medible y alcanzable..."></textarea></div>
+<div><label class="font-extrabold text-xs text-gray-700 uppercase tracking-wide block mb-1">Área / Campo Estratégico *</label>
+<select id="mp-campo" class="w-full border-2 border-gray-200 rounded-lg p-2.5 focus:border-indigo-400 outline-none font-bold text-indigo-800 bg-indigo-50" onchange="document.getElementById('mp-campo-otro').style.display=this.value==='Otros'?'block':'none'">
+<option value="Servicio">Intervención de Servicio / Comunitaria</option><option value="Trabajo">Mundo del Trabajo / Emprendimiento</option><option value="Viaje">Viaje / Inmersión Cultural</option><option value="Naturaleza">Naturaleza / Sustentabilidad (ODS)</option><option value="Cultura y Artes">Cultura y Artes (Pioneros)</option><option value="Innovación / Técnica">Innovación / Técnica (Pioneros)</option><option value="Otros">Otros (especificar)</option>
+</select><input type="text" id="mp-campo-otro" style="display:none;" class="w-full border-2 border-indigo-200 rounded-lg p-2.5 mt-2 focus:border-indigo-400 outline-none font-bold text-indigo-800" placeholder="Especifica..."></div>
+<div class="flex gap-3"><div class="flex-1"><label class="font-extrabold text-xs text-gray-700 uppercase tracking-wide block mb-1">Inicio *</label><input type="date" id="mp-inicio" class="w-full border-2 border-gray-200 rounded-lg p-2.5 focus:border-indigo-400 outline-none font-medium"></div><div class="flex-1"><label class="font-extrabold text-xs text-gray-700 uppercase tracking-wide block mb-1">Término</label><input type="date" id="mp-termino" class="w-full border-2 border-gray-200 rounded-lg p-2.5 focus:border-indigo-400 outline-none font-medium"></div></div>
+</div>
+
+<!-- ORGANIGRAMA -->
+<div class="bg-gray-50 border border-gray-200 rounded-xl p-5 mb-5">
+<h4 class="font-extrabold text-gray-800 mb-3 border-b border-gray-200 pb-2 uppercase tracking-wide text-sm"><i class="fas fa-sitemap mr-1"></i> Organigrama y Responsables por Área</h4>
+<div id="mp-responsables" class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4"></div>
+</div>
+
+<!-- PARTICIPANTES -->
+<div class="bg-gray-50 border border-gray-200 rounded-xl p-5 mb-5">
+<h4 class="font-extrabold text-gray-800 mb-3 border-b border-gray-200 pb-2 uppercase tracking-wide text-sm"><i class="fas fa-users mr-1"></i> Ficha de Participantes y Voluntarios</h4>
+<div class="flex gap-2 mb-3"><input type="text" id="mp-buscar-part" placeholder="Buscar por RUN o Apellidos..." class="flex-1 border border-gray-300 rounded-lg p-2.5 outline-none focus:border-indigo-400 font-medium text-sm"><button onclick="mpBuscarParticipante()" class="bg-indigo-600 hover:bg-indigo-700 text-white border-none rounded-lg px-5 py-2 font-bold text-sm cursor-pointer shadow"><i class="fas fa-search"></i> Buscar</button></div>
+<div id="mp-resultados-part" class="search-results hidden mb-3"></div>
+<div id="mp-participantes-list" class="grid grid-cols-1 sm:grid-cols-2 gap-2"></div>
+</div>
+
+<!-- EVIDENCIAS -->
+<div class="bg-gray-50 border border-gray-200 rounded-xl p-5 mb-5">
+<h4 class="font-extrabold text-gray-800 mb-3 border-b border-gray-200 pb-2 uppercase tracking-wide text-sm"><i class="fas fa-paperclip mr-1"></i> Evidencias del Proyecto</h4>
+<div class="mb-3">
+  <div class="flex gap-2 items-center">
+    <label for="mp-evidencia-file" class="flex-1 flex items-center gap-2 border border-gray-300 rounded-lg px-3 py-2 cursor-pointer bg-gray-50 hover:bg-gray-100 transition min-w-0">
+      <i class="fas fa-paperclip text-gray-400 flex-shrink-0"></i>
+      <span id="mp-file-label" class="text-sm text-gray-500 truncate">Elegir imágenes o archivos</span>
+      <input type="file" id="mp-evidencia-file" multiple class="hidden" onchange="document.getElementById('mp-file-label').textContent=this.files.length>0?(this.files.length+' archivo(s) seleccionado(s)'):'Elegir imágenes o archivos'">
+    </label>
+    <button onclick="mpSubirEvidencia()" class="flex-shrink-0 bg-indigo-600 hover:bg-indigo-700 text-white border-none rounded-lg px-4 py-2 font-bold text-sm cursor-pointer shadow flex items-center gap-1">
+      <i class="fas fa-upload"></i> Subir
+    </button>
+  </div>
+  <p class="text-xs text-gray-400 mt-1">Máx. 10 archivos por vez</p>
+</div>
+<div id="mp-evidencia-error"></div>
+<div id="mp-evidencias-list" class="flex flex-wrap gap-2"></div>
+</div>
+
+<!-- FICHA EXTENDIDA -->
+<div class="bg-amber-50 border border-amber-200 rounded-xl p-5 mb-5">
+<label class="flex items-center gap-3 cursor-pointer"><input type="checkbox" id="mp-toggle-ficha" onchange="document.getElementById('mp-ficha-ext').style.display=this.checked?'block':'none'" class="w-5 h-5 accent-amber-600 cursor-pointer"><span class="font-extrabold text-amber-900 uppercase tracking-wide text-sm"><i class="fas fa-clipboard-list mr-1"></i> Activar Ficha Extendida (Caminantes)</span></label>
+<div id="mp-ficha-ext" style="display:none;" class="mt-5">
+
+<!-- 1. Identificación -->
+<div class="bg-white border border-amber-100 rounded-xl p-5 mb-4 shadow-sm">
+<h4 class="font-extrabold text-amber-900 text-sm uppercase tracking-wide mb-3 border-b border-amber-100 pb-2"><i class="fas fa-tag mr-1"></i> 1. Identificación y Contexto</h4>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+<div class="md:col-span-2"><label class="font-bold text-xs text-gray-700 block mb-1">Justificación</label><textarea id="mp-justificacion" rows="2" class="w-full border border-gray-200 rounded-lg p-2.5 text-sm focus:border-amber-400 outline-none" placeholder="¿Por qué es necesario este proyecto?"></textarea></div>
+<div><label class="font-bold text-xs text-gray-700 block mb-1">Beneficiarios Directos</label><input type="text" id="mp-beneficiarios" class="w-full border border-gray-200 rounded-lg p-2.5 text-sm focus:border-amber-400 outline-none" placeholder="Ej: 50 familias"></div>
+<div><label class="font-bold text-xs text-gray-700 block mb-1">Lugar de Ejecución</label><input type="text" id="mp-lugar" class="w-full border border-gray-200 rounded-lg p-2.5 text-sm focus:border-amber-400 outline-none" placeholder="Ej: Cerro San Cristóbal"></div>
+</div></div>
+
+<!-- 2. Campos de Acción -->
+<div class="bg-white border border-amber-100 rounded-xl p-5 mb-4 shadow-sm">
+<h4 class="font-extrabold text-amber-900 text-sm uppercase tracking-wide mb-3 border-b border-amber-100 pb-2"><i class="fas fa-compass mr-1"></i> 2. Campos de Acción Prioritarios</h4>
+<div id="mp-campos-list"></div>
+<button onclick="mpAddDynRow('mp-campos-list','Campo de acción')" class="text-amber-700 text-xs font-bold mt-1"><i class="fas fa-plus mr-1"></i> Agregar</button>
+</div>
+
+<!-- 3. Objetivos Específicos -->
+<div class="bg-white border border-amber-100 rounded-xl p-5 mb-4 shadow-sm">
+<h4 class="font-extrabold text-amber-900 text-sm uppercase tracking-wide mb-3 border-b border-amber-100 pb-2"><i class="fas fa-bullseye mr-1"></i> 3. Objetivos Específicos</h4>
+<div id="mp-objetivos-list"></div>
+<button onclick="mpAddDynRow('mp-objetivos-list','Objetivo específico')" class="text-amber-700 text-xs font-bold mt-1"><i class="fas fa-plus mr-1"></i> Agregar</button>
+</div>
+
+<!-- 4. Plan de Acción -->
+<div class="bg-white border border-amber-100 rounded-xl p-5 mb-4 shadow-sm">
+<h4 class="font-extrabold text-amber-900 text-sm uppercase tracking-wide mb-3 border-b border-amber-100 pb-2"><i class="fas fa-tasks mr-1"></i> 4. Plan de Acción</h4>
+<div class="overflow-x-auto"><div class="grid grid-cols-5 gap-1 font-bold text-xs text-amber-900 mb-2 min-w-[600px] bg-amber-100 rounded-lg p-2"><span>Acción</span><span>Recursos</span><span>Responsable</span><span>Cronograma</span><span></span></div>
+<div id="mp-acciones-list" class="min-w-[600px]"></div></div>
+<button onclick="mpAddAccionRow()" class="text-amber-700 text-xs font-bold mt-2"><i class="fas fa-plus mr-1"></i> Agregar fila</button>
+</div>
+
+<!-- 5. Presupuesto -->
+<div class="bg-white border border-amber-100 rounded-xl p-5 mb-4 shadow-sm">
+<h4 class="font-extrabold text-amber-900 text-sm uppercase tracking-wide mb-3 border-b border-amber-100 pb-2"><i class="fas fa-coins mr-1"></i> 5. Presupuesto Estimado</h4>
+<div class="overflow-x-auto"><div class="grid grid-cols-5 gap-1 font-bold text-xs text-amber-900 mb-2 min-w-[500px] bg-amber-100 rounded-lg p-2"><span>Concepto</span><span>Cant.</span><span>C. Unit.</span><span>Subtotal</span><span></span></div>
+<div id="mp-ppto-list" class="min-w-[500px]"></div></div>
+<div class="flex justify-between items-center mt-2"><button onclick="mpAddPptoRow()" class="text-amber-700 text-xs font-bold"><i class="fas fa-plus mr-1"></i> Agregar</button><span id="mp-ppto-total" class="font-extrabold text-amber-900 text-sm">Total: $0</span></div>
+</div>
+
+<!-- 6. Indicadores -->
+<div class="bg-white border border-amber-100 rounded-xl p-5 mb-4 shadow-sm">
+<h4 class="font-extrabold text-amber-900 text-sm uppercase tracking-wide mb-3 border-b border-amber-100 pb-2"><i class="fas fa-chart-bar mr-1"></i> 6. Indicadores de Evaluación</h4>
+<div id="mp-indicadores-list"></div>
+<button onclick="mpAddIndRow()" class="text-amber-700 text-xs font-bold mt-1"><i class="fas fa-plus mr-1"></i> Agregar</button>
+</div>
+
+<!-- 7. Árbol del Problema -->
+<div class="rounded-xl overflow-hidden mb-4 shadow-sm" style="border:2px solid #92400e;">
+<div class="bg-amber-800 text-white px-5 py-3"><h4 class="font-extrabold text-sm uppercase tracking-wide"><i class="fas fa-tree mr-2 text-amber-300"></i> 7. Árbol del Problema</h4></div>
+<div style="position:relative;background:linear-gradient(180deg,#87CEEB 0%,#87CEEB 30%,#c1e6c1 30%,#8fbc8f 50%,#6b4423 50%,#5a3a1a 100%);padding:20px;min-height:400px;display:flex;flex-direction:column;align-items:center;gap:0;">
+<div style="background:rgba(254,243,199,0.95);border:2px solid #f59e0b;border-radius:16px;padding:14px;width:100%;max-width:600px;text-align:center;">
+<p class="font-extrabold text-xs text-amber-900 uppercase tracking-wider mb-2"><i class="fas fa-cloud-sun"></i> Consecuencias / Efectos</p>
+<div id="mp-arbol-cons"></div>
+<button onclick="mpAddArbolRow('mp-arbol-cons','Consecuencia','border-amber-300')" class="text-amber-800 text-xs font-bold mt-1"><i class="fas fa-plus"></i> Agregar</button>
+</div>
+<div style="width:6px;height:16px;background:#5a3a1a;border-radius:3px;"></div>
+<div style="background:linear-gradient(135deg,#dc2626,#b91c1c);border:3px solid #7f1d1d;border-radius:16px;padding:16px;width:100%;max-width:500px;text-align:center;box-shadow:0 4px 15px rgba(185,28,28,0.3);">
+<p class="font-extrabold text-xs text-red-200 uppercase tracking-wider mb-2">🎯 Problema Central</p>
+<textarea id="mp-arbol-central" rows="2" class="w-full bg-white/90 border-2 border-red-300 rounded-lg p-3 text-sm font-bold text-red-900 focus:border-white outline-none" placeholder="¿Cuál es el problema central?"></textarea>
+</div>
+<div style="width:6px;height:16px;background:#5a3a1a;border-radius:3px;"></div>
+<div style="background:rgba(209,250,229,0.95);border:2px solid #10b981;border-radius:16px;padding:14px;width:100%;max-width:600px;text-align:center;">
+<p class="font-extrabold text-xs text-green-900 uppercase tracking-wider mb-2"><i class="fas fa-seedling"></i> Causas / Raíces</p>
+<div id="mp-arbol-causas"></div>
+<button onclick="mpAddArbolRow('mp-arbol-causas','Causa','border-green-300')" class="text-green-800 text-xs font-bold mt-1"><i class="fas fa-plus"></i> Agregar</button>
+</div>
+</div></div>
+
+</div></div>
+
+<!-- Crear evento -->
+<div class="bg-orange-50 border border-orange-200 rounded-xl p-4 mb-5">
+<label class="flex items-center gap-3 cursor-pointer"><input type="checkbox" id="mp-crear-evento" class="w-5 h-5 accent-orange-600 cursor-pointer"><span class="font-extrabold text-orange-900 text-sm"><i class="fas fa-calendar-plus mr-1"></i> Crear un Evento a partir de este Proyecto</span></label>
+<p class="text-xs text-orange-700 mt-2 ml-8">Se creará un evento con los datos del proyecto, participantes y responsables.</p>
+</div>
+
+<div class="flex gap-4 pt-5 border-t border-gray-200">
+<button onclick="cerrarModalProy()" class="flex-1 py-3 border-2 border-gray-200 rounded-lg font-bold text-gray-600 bg-white cursor-pointer text-base">Cancelar</button>
+<button onclick="mpGuardarProyecto()" class="flex-1 py-3 bg-indigo-600 hover:bg-indigo-700 text-white border-none rounded-lg font-bold cursor-pointer text-base shadow-lg"><i class="fas fa-save mr-1"></i> Guardar y Distribuir</button>
+</div>
+</div></div></div>
+
+    <script src="caminante/js/00_nucleo_y_acceso.js"></script>
+    <script src="caminante/js/01_camino_y_manifiesto.js"></script>
+    <script src="caminante/js/02_modal_proyecto.js"></script>
+    <script src="caminante/js/03_responsables_y_participantes.js"></script>
+    <script src="caminante/js/04_evidencias_y_drive.js"></script>
+    <script src="caminante/js/05_proyectos.js"></script>
+    <script src="caminante/js/06_calendario_y_portafolio.js"></script>
+<script src="google-api-helper.js"></script>
+<script src="google-ui.js"></script>
+</body>
+</html>

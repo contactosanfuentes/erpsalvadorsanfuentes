@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <script src="auth-guard.js"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ERP Scout - Sistema de Gestión Integrado AGSCh</title>
+    <!-- estilos inline en <style> tag abajo -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="permisos.js"></script>
+<link rel="stylesheet" href="shell/css/shell.css">
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#0E2586">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="ERP Scout">
+</head>
+<body>
+    
+    <!-- Contenedor de Notificaciones Elegantes -->
+    <div id="toast-container"></div>
+
+    <!-- Overlay oscuro para el buscador -->
+    <div class="global-overlay" id="global-overlay"></div>
+
+    <div id="app-container">
+        <!-- MENÚ LATERAL -->
+        <nav class="sidebar" id="main-sidebar">
+            <div class="sidebar-header">
+                <img src="https://i.imgur.com/11u9rUD.png" alt="Logo Grupo">
+                <h2>ERP Scout</h2>
+                <p>Grupo Salvador Sanfuentes</p>
+            </div>
+
+            <div class="nav-menu">
+                <a class="nav-item active" id="nav-dashboard" onclick="appSwitchView('view-dashboard', this)">
+                    <i class="fas fa-chart-pie"></i> <span>Dashboard Central</span>
+                </a>
+                <a class="nav-item oculto-permiso" id="nav-programa" data-permiso="ver_jovenes" onclick="appSwitchView('view-programa', this)">
+                    <i class="fas fa-child"></i> <span>Programa de Jóvenes</span>
+                </a>
+                <a class="nav-item oculto-permiso" id="nav-adultos" data-permiso="ver_adultos" onclick="appSwitchView('view-adultos', this)">
+                    <i class="fas fa-user-tie"></i> <span>Adultos Voluntarios</span>
+                </a>
+                <a class="nav-item oculto-permiso" id="nav-directorio" data-permiso="ver_jovenes" onclick="appSwitchView('view-directorio', this)">
+                    <i class="fas fa-address-book"></i> <span>Directorio General</span>
+                </a>
+                
+                <a class="nav-item oculto-permiso" id="nav-eventos" data-permiso="eventos" onclick="toggleSubmenu('submenu-eventos', this)">
+                    <i class="fas fa-map-marked-alt"></i> <span>Eventos / Campamentos</span>
+                    <i class="fas fa-chevron-down toggle-icon" style="margin-left: auto; font-size: 0.8rem;"></i>
+                </a>
+                <div id="submenu-eventos" class="submenu">
+                    <a class="submenu-item active" data-tab="objetivos" onclick="activateEventosTab(this, 'objetivos')"><i class="fas fa-bullseye"></i> <span>Metas y Objetivos</span></a>
+                    <a class="submenu-item" data-tab="jovenes" onclick="activateEventosTab(this, 'jovenes')"><i class="fas fa-child"></i> <span>Jóvenes</span></a>
+                    <a class="submenu-item" data-tab="adultos" onclick="activateEventosTab(this, 'adultos')"><i class="fas fa-user-tie"></i> <span>Adultos</span></a>
+                    <a class="submenu-item" data-tab="checkin-qr" onclick="activateEventosTab(this, 'checkin-qr')"><i class="fas fa-qrcode"></i> <span>Check-in QR</span></a>
+                    <a class="submenu-item" data-tab="presupuesto" onclick="activateEventosTab(this, 'presupuesto')"><i class="fas fa-chart-pie"></i> <span>Presupuesto</span></a>
+                    <a class="submenu-item" data-tab="recursos" onclick="activateEventosTab(this, 'recursos')"><i class="fas fa-money-bill-wave"></i> <span>Recursos</span></a>
+                    <a class="submenu-item" data-tab="postas" onclick="activateEventosTab(this, 'postas')"><i class="fas fa-flag"></i> <span>Postas</span></a>
+                    <a class="submenu-item" data-tab="planilla" onclick="activateEventosTab(this, 'planilla')"><i class="fas fa-table"></i> <span>Planilla</span></a>
+                    <a class="submenu-item" data-tab="puntuacion" onclick="activateEventosTab(this, 'puntuacion')"><i class="fas fa-trophy"></i> <span>Puntuación</span></a>
+                    <a class="submenu-item" data-tab="pasaporte" onclick="activateEventosTab(this, 'pasaporte')"><i class="fas fa-passport"></i> <span>Pasaporte</span></a>
+                    <a class="submenu-item" data-tab="croquis" onclick="activateEventosTab(this, 'croquis')"><i class="fas fa-map-marked-alt"></i> <span>Croquis</span></a>
+                    <a class="submenu-item" data-tab="inventario" onclick="activateEventosTab(this, 'inventario')"><i class="fas fa-boxes"></i> <span>Inventario</span></a>
+                    <a class="submenu-item" data-tab="menu" onclick="activateEventosTab(this, 'menu')"><i class="fas fa-utensils"></i> <span>Menú</span></a>
+                    <a class="submenu-item" data-tab="entregas" onclick="activateEventosTab(this, 'entregas')"><i class="fas fa-clipboard-check"></i> <span>Entregas</span></a>
+                </div>
+                <a class="nav-item oculto-permiso" id="nav-tesoreria" data-permiso="tesoreria" onclick="appSwitchView('view-tesoreria', this)">
+                    <i class="fas fa-file-invoice-dollar"></i> <span>Tesorería General</span>
+                </a>
+                <a class="nav-item oculto-permiso" id="nav-inventario-grupo" data-permiso="inventario" onclick="appSwitchView('view-inventario-grupo', this)">
+                    <i class="fas fa-boxes-stacked"></i> <span>Inventario del Grupo</span>
+                </a>
+                <a class="nav-item oculto-permiso" id="nav-reuniones" data-permiso="eventos" onclick="appSwitchView('view-reuniones', this)">
+                    <i class="fas fa-calendar-alt"></i> <span>Reuniones & Calendario</span>
+                </a>
+                <a class="nav-item oculto-permiso" id="nav-comunicaciones" data-permiso="comunicaciones" onclick="appSwitchView('view-comunicaciones', this)">
+                    <i class="fas fa-envelope-open-text"></i> <span>Comunicaciones</span>
+                </button>
+                <a class="nav-item oculto-permiso" id="nav-bandeja-wa" data-permiso="comunicaciones" onclick="appSwitchView('view-bandeja-wa', this)" title="Bandeja WhatsApp">
+                    <i class="fab fa-whatsapp" style="color:#25D366;"></i> <span>Bandeja WA</span>
+                </a>
+                <a class="nav-item oculto-permiso" id="nav-usuarios" onclick="appSwitchView('view-usuarios', this)" title="Gestión de Usuarios" data-solo-admin>
+                    <i class="fas fa-users-cog" style="color:#FFD100;"></i> <span>Usuarios y Permisos</span>
+                </a>
+                <a class="nav-item oculto-permiso" id="nav-certificados" data-permiso="certificados" onclick="appSwitchView('view-certificados', this)" title="Generador de Certificados">
+                    <i class="fas fa-certificate" style="color:#FFD100;"></i> <span>Certificados</span>
+                </a>
+
+                <!-- Separador Enlaces públicos -->
+                <div style="padding:8px 20px;margin-top:12px;font-size:0.65rem;color:rgba(255,255,255,0.4);text-transform:uppercase;letter-spacing:1px;font-weight:700;border-top:1px solid rgba(255,255,255,0.08)">
+                    <i class="fas fa-globe" style="margin-right:6px"></i> <span>Enlaces públicos</span>
+                </div>
+                <a class="nav-item" id="nav-inscripcion" onclick="appSwitchView('view-inscripcion', this)" title="Formulario público — compártelo con los participantes">
+                    <i class="fas fa-user-plus"></i> <span>Inscripción Pública</span>
+                </a>
+                <a class="nav-item" id="nav-apoderados" onclick="appSwitchView('view-apoderados', this)" title="Consulta pública — compártelo con las familias">
+                    <i class="fas fa-users-between-lines"></i> <span>Portal Apoderados</span>
+                </a>
+            </div>
+            
+            <div class="nav-item" style="border-top: 1px solid rgba(255,255,255,0.1); margin-top: auto;" onclick="toggleSidebarColapso()">
+                <i class="fas fa-exchange-alt"></i> <span>Contraer Menú</span>
+            </div>
+            <a href="https://www.netlify.com" target="_blank" rel="noopener" style="display:flex;align-items:center;justify-content:center;gap:6px;padding:10px;font-size:0.68rem;color:rgba(255,255,255,0.45);text-decoration:none;border-top:1px solid rgba(255,255,255,0.08);">
+                <span class="netlify-badge-text">Powered by</span>
+                <img src="https://www.netlify.com/v3/img/components/netlify-color-accent.svg" alt="Netlify" style="height:14px;">
+            </a>
+        </nav>
+
+        <!-- ÁREA PRINCIPAL -->
+        <main class="main-content">
+            <header class="topbar">
+                <div class="topbar-left">
+                    <i class="fas fa-bars sidebar-toggle" onclick="toggleSidebarColapso()" title="Ocultar/Mostrar Menú"></i>
+                    
+                    <!-- BUSCADOR GLOBAL INTELIGENTE (OMNIBOX) -->
+                    <div class="search-container" id="search-container">
+                        <div class="search-bar" id="search-box">
+                            <i class="fas fa-search" id="search-icon"></i>
+                            <input type="text" id="global-search" placeholder="Buscar personas, eventos..." autocomplete="off">
+                            <div class="search-shortcut">Ctrl K</div>
+                            <i class="fas fa-times-circle" id="clear-search" style="display:none; cursor:pointer; margin-left:10px; color:#ccc;"></i>
+                        </div>
+
+                        <!-- Panel de resultados flotante -->
+                        <div class="search-results" id="search-results">
+                            <!-- Inyectado por JS -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ACCIONES Y PERFIL DE USUARIO -->
+                <div class="topbar-actions">
+                    <!-- Botón Crear Nuevo (Acción Rápida) -->
+                    <button class="action-btn" title="Acciones Rápidas" onclick="showToast('Menú de creación rápida (Pronto)', 'info')">
+                        <i class="fas fa-plus"></i>
+                    </button>
+                    
+                    <!-- Campana Notificaciones -->
+                    <div class="notif-section">
+                        <button class="action-btn notif-trigger" title="Notificaciones del Sistema" onclick="toggleNotifications(event)">
+                            <i class="far fa-bell"></i>
+                            <div class="badge-dot" id="notif-badge"></div>
+                        </button>
+                        
+                        <div class="notif-dropdown" id="notifDropdown">
+                            <div class="notif-header">
+                                <h3>Notificaciones</h3>
+                                <span onclick="markAllRead()">Marcar leídas</span>
+                            </div>
+                            <div class="notif-body" id="notif-body-content">
+                                <div style="padding: 20px; text-align: center; color: var(--texto-claro);">
+                                    <i class="fas fa-circle-notch fa-spin" style="font-size: 1.5rem; margin-bottom: 10px;"></i>
+                                    <p style="margin: 0; font-size: 0.85rem;">Sincronizando alertas reales...</p>
+                                </div>
+                            </div>
+                            <div class="notif-footer" onclick="fetchRealNotifications()">
+                                <i class="fas fa-sync-alt"></i> Actualizar alertas
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="user-section">
+                        <div class="user-trigger" onclick="toggleUserDropdown(event)">
+                            <div class="user-info-text">
+                                <p class="user-name" id="display-name">Cargando...</p>
+                                <p class="user-role" id="display-role">Cargando...</p>
+                            </div>
+                            <!-- Mini Avatar -->
+                            <div class="avatar-img-container">
+                                <span id="avatar-initials">??</span>
+                                <img id="avatar-img" src="" alt="Perfil">
+                            </div>
+                        </div>
+
+                        <div class="user-dropdown" id="userDropdown">
+                            <div class="dropdown-header">
+                                <div class="dropdown-header-content">
+                                    <!-- Avatar Grande en Menú -->
+                                    <div class="big-avatar-container">
+                                        <span id="dropdown-initials">??</span>
+                                        <img id="dropdown-img" src="" alt="Perfil">
+                                    </div>
+                                    <h3 style="margin: 0; font-size: 1.1rem;" id="dropdown-name">Cargando...</h3>
+                                    <p style="margin: 2px 0 0; font-size: 0.8rem; opacity: 0.8;" id="dropdown-email">cargando@scout.cl</p>
+                                    <div class="dropdown-badges">
+                                        <span class="badge active-status"><i class="fas fa-check-circle"></i> Activo</span>
+                                        <span class="badge" id="dropdown-role-badge">Dirigente</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="dropdown-body">
+                                <div class="item" onclick="openProfileModal()">
+                                    <i class="fas fa-user-edit"></i> Mi Perfil Scout
+                                </div>
+                                <div class="item" onclick="openPasswordModal()">
+                                    <i class="fas fa-shield-alt"></i> Seguridad y Contraseña
+                                </div>
+                                <div style="height: 1px; background: #eee; margin: 5px 0;"></div>
+                                <div class="item danger" onclick="handleLogout()">
+                                    <i class="fas fa-sign-out-alt"></i> Cerrar Sesión
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </header>
+
+            <!-- VISTAS / IFRAMES -->
+            <div id="view-dashboard" class="view-content active"><iframe id="dashboardIframe" src="dashboard.html"></iframe></div>
+            <div id="view-programa" class="view-content"><iframe id="programaIframe" src="programa_jovenes.html"></iframe></div>
+            <div id="view-adultos" class="view-content"><iframe id="adultosIframe" src="adulto_voluntario.html"></iframe></div>
+            <div id="view-directorio" class="view-content"><iframe id="directorioIframe" src="directorio.html"></iframe></div>
+            <div id="view-eventos" class="view-content"><iframe id="eventosIframe" src="eventos_iframe.html"></iframe></div>
+            <div id="view-calendario" class="view-content"><iframe id="calendarioIframe" src="calendario.html"></iframe></div>
+            <div id="view-tesoreria" class="view-content"><iframe id="tesoreriaIframe" src="tesoreria.html"></iframe></div>
+
+            <!-- NUEVOS MÓDULOS INTERNOS -->
+            <div id="view-inventario-grupo" class="view-content"><iframe id="inventarioGrupoIframe" src="inventario_grupo.html"></iframe></div>
+            <div id="view-progresion" class="view-content"><iframe id="progresionIframe" src="progresion_insignias.html"></iframe></div>
+            <div id="view-reuniones" class="view-content"><iframe id="reunionesIframe" src="planificador_reuniones.html"></iframe></div>
+            <div id="view-comunicaciones" class="view-content"><iframe id="comunicacionesIframe" src="comunicaciones.html"></iframe></div>
+            <div id="view-checkin" class="view-content"><iframe id="checkinIframe" src="checkin_qr.html"></iframe></div>
+            <div id="view-bandeja-wa" class="view-content"><iframe id="bandejaWAIframe" src="bandeja_whatsapp.html"></iframe></div>
+            <div id="view-usuarios" class="view-content"><iframe id="usuariosIframe" src="gestion_usuarios.html"></iframe></div>
+            <div id="view-certificados" class="view-content"><iframe id="certificadosIframe" src="certificados_demo.html"></iframe></div>
+
+            <!-- ENLACES PÚBLICOS: previsualización + botón para copiar URL -->
+            <div id="view-inscripcion" class="view-content">
+                <div style="background:white;border-radius:12px;padding:16px 20px;margin-bottom:12px;box-shadow:0 2px 10px rgba(0,0,0,0.06);display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+                    <div style="flex:1;min-width:200px">
+                        <h3 style="margin:0;font-size:0.95rem;color:var(--azul-profundo)"><i class="fas fa-globe" style="color:#27ae60;margin-right:6px"></i> Enlace público de inscripción</h3>
+                        <p style="margin:4px 0 0;font-size:0.8rem;color:#64748b">Compártelo con los participantes del evento. Este enlace no requiere login.</p>
+                    </div>
+                    <button class="btn btn-primary" onclick="copiarEnlacePublico('inscripcion_publica.html', this)" style="padding:8px 16px"><i class="fas fa-copy"></i> Copiar enlace</button>
+                    <button class="btn btn-secondary" onclick="window.open('inscripcion_publica.html', '_blank')" style="padding:8px 16px"><i class="fas fa-external-link-alt"></i> Abrir aparte</button>
+                </div>
+                <iframe id="inscripcionIframe" src="inscripcion_publica.html" style="height:calc(100vh - 170px)"></iframe>
+            </div>
+
+            <div id="view-apoderados" class="view-content">
+                <div style="background:white;border-radius:12px;padding:16px 20px;margin-bottom:12px;box-shadow:0 2px 10px rgba(0,0,0,0.06);display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+                    <div style="flex:1;min-width:200px">
+                        <h3 style="margin:0;font-size:0.95rem;color:var(--azul-profundo)"><i class="fas fa-globe" style="color:#27ae60;margin-right:6px"></i> Portal público de consulta</h3>
+                        <p style="margin:4px 0 0;font-size:0.8rem;color:#64748b">Compártelo con las familias. Consulta por nombre o RUN del joven.</p>
+                    </div>
+                    <button class="btn btn-primary" onclick="copiarEnlacePublico('portal_apoderados.html', this)" style="padding:8px 16px"><i class="fas fa-copy"></i> Copiar enlace</button>
+                    <button class="btn btn-secondary" onclick="window.open('portal_apoderados.html', '_blank')" style="padding:8px 16px"><i class="fas fa-external-link-alt"></i> Abrir aparte</button>
+                </div>
+                <iframe id="apoderadosIframe" src="portal_apoderados.html" style="height:calc(100vh - 170px)"></iframe>
+            </div>
+
+<!-- botones flotantes eliminados -->
+        </main>
+    </div>
+
+    <!-- MODALES -->
+    <div class="modal-overlay" id="passwordModal">
+        <div class="modal">
+            <div class="close-btn" onclick="closeModal('passwordModal')"><i class="fas fa-times"></i></div>
+            <h3><i class="fas fa-shield-alt" style="color: var(--azul-claro);"></i> Seguridad</h3>
+            <p style="font-size: 0.85rem; color: var(--texto-claro); margin-bottom: 20px;">Actualiza tu contraseña de acceso al sistema.</p>
+            <div class="form-group"><label>Nueva Contraseña</label><input type="password" id="new-password" placeholder="Mínimo 6 caracteres"></div>
+            <div class="form-group"><label>Confirmar Contraseña</label><input type="password" id="confirm-password" placeholder="Repite la contraseña"></div>
+            <button class="btn btn-primary" style="width: 100%; justify-content: center; margin-top: 10px;" onclick="updatePassword()">Guardar Contraseña</button>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="profileModal">
+        <div class="modal">
+            <div class="close-btn" onclick="closeModal('profileModal')"><i class="fas fa-times"></i></div>
+            <h3><i class="fas fa-user-edit" style="color: var(--verde-scout);"></i> Mi Perfil Scout</h3>
+            <p style="font-size: 0.85rem; color: var(--texto-claro); margin-bottom: 20px; text-align: center;">Personaliza tu identidad en el ERP.</p>
+            
+            <!-- Zona de Subida de Avatar -->
+            <div class="avatar-upload-zone">
+                <div class="avatar-edit-circle" onclick="document.getElementById('avatar-upload').click()">
+                    <span id="modal-avatar-initials">??</span>
+                    <img id="modal-avatar-preview" src="" alt="Previsualización">
+                    <div class="avatar-edit-overlay">
+                        <i class="fas fa-camera" style="font-size: 1.5rem; margin-bottom: 5px;"></i>
+                        <span>Cambiar Foto</span>
+                    </div>
+                </div>
+                <input type="file" id="avatar-upload" hidden accept="image/png, image/jpeg, image/webp" onchange="handleAvatarSelect(event)">
+                <small style="color: #888; margin-top: 8px;">Haz clic en el círculo para subir tu foto</small>
+            </div>
+
+            <div class="form-group">
+                <label>Nombre Completo</label>
+                <input type="text" id="prof-name" placeholder="Tu nombre completo">
+            </div>
+            
+            <div class="form-group">
+                <label>Correo Electrónico</label>
+                <input type="email" id="prof-email" disabled style="background: #f4f7f9; cursor: not-allowed;">
+            </div>
+            
+            <div class="form-group">
+                <label>Unidad / Cargo Actual</label>
+                <input type="text" id="prof-role" placeholder="Ej. Responsable de Tropa">
+            </div>
+            
+            <button class="btn btn-primary" style="width: 100%; justify-content: center; background: var(--verde-scout); margin-top: 10px;" onclick="saveProfile()">
+                <i class="fas fa-save"></i> Guardar Cambios
+            </button>
+        </div>
+    </div>
+
+    <script src="shell/js/00_nucleo_y_permisos.js"></script>
+    <script src="shell/js/01_perfil_usuario.js"></script>
+    <script src="shell/js/02_notificaciones.js"></script>
+    <script src="shell/js/03_navegacion_movil.js"></script>
+    <script src="shell/js/04_vistas_y_busqueda.js"></script>
+<script>if('serviceWorker' in navigator){navigator.serviceWorker.register('/sw.js').catch(function(){});}</script>
+<script src="google-api-helper.js"></script>
+<!-- google-ui.js eliminado -->
+
+<!-- Backdrop del drawer móvil -->
+<div class="sidebar-backdrop" id="sidebarBackdrop" onclick="cerrarDrawerMovil()"></div>
+
+<!-- Bottom Navigation (solo visible en móvil) -->
+<nav class="bottom-nav" id="bottomNav">
+    <button class="bnav-item act" data-view="view-dashboard" onclick="bnavGo('view-dashboard', this, 'nav-dashboard')">
+        <i class="fas fa-chart-pie"></i><span>Inicio</span>
+    </button>
+    <button class="bnav-item" data-view="view-programa" onclick="bnavGo('view-programa', this, 'nav-programa')">
+        <i class="fas fa-child"></i><span>Jóvenes</span>
+    </button>
+    <button class="bnav-fab" data-view="view-checkin" onclick="bnavGo('view-checkin', this, null)">
+        <div class="fab-circle"><i class="fas fa-qrcode"></i></div>
+        <span>Check-in</span>
+    </button>
+    <button class="bnav-item" data-view="view-reuniones" onclick="bnavGo('view-reuniones', this, 'nav-reuniones')">
+        <i class="fas fa-calendar-alt"></i><span>Agenda</span>
+    </button>
+    <button class="bnav-item" data-view="view-adultos" onclick="bnavGo('view-adultos', this, 'nav-adultos')">
+        <i class="fas fa-user-tie"></i><span>Adultos</span>
+    </button>
+</nav>
+</body>
+</html>

@@ -1,0 +1,16 @@
+        #modal-editor-foto { position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:99999;display:none;align-items:center;justify-content:center;padding:16px; }
+        #modal-editor-foto.active { display:flex; }
+        .foto-editor-box { background:#1a1a2e;border-radius:20px;overflow:hidden;max-width:520px;width:100%;box-shadow:0 25px 60px rgba(0,0,0,0.5); }
+        .foto-editor-header { background:linear-gradient(135deg,#0E2586,#E31837);padding:16px 20px;display:flex;align-items:center;justify-content:space-between; }
+        .foto-editor-header h3 { color:white;font-weight:800;font-size:1rem;margin:0; }
+        .foto-editor-area { padding:20px;background:#0f0f1a; }
+        .foto-editor-area .img-container { width:100%;height:320px;background:#000;border-radius:12px;overflow:hidden;position:relative; }
+        .foto-editor-area .img-container img { display:block;max-width:100%; }
+        .foto-editor-controls { display:flex;gap:8px;justify-content:center;padding:14px 20px;background:#1a1a2e;flex-wrap:wrap; }
+        .foto-ctrl-btn { background:rgba(255,255,255,0.1);color:white;border:1px solid rgba(255,255,255,0.15);border-radius:10px;padding:8px 16px;cursor:pointer;font-size:0.82rem;font-weight:600;transition:all 0.15s;display:flex;align-items:center;gap:6px; }
+        .foto-ctrl-btn:hover { background:rgba(255,255,255,0.2); }
+        .foto-ctrl-btn.primary { background:#E31837;border-color:#E31837; }
+        .foto-ctrl-btn.primary:hover { background:#c41230; }
+        .foto-aspect-row { display:flex;gap:6px;justify-content:center;padding:0 20px 12px;flex-wrap:wrap; }
+        .aspect-btn { background:rgba(255,255,255,0.08);color:#9a97a0;border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:5px 12px;cursor:pointer;font-size:0.75rem;font-weight:600;transition:all 0.15s; }
+        .aspect-btn.active { background:#0E2586;border-color:#0E2586;color:white; }

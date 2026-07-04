@@ -1,0 +1,25 @@
+{
+ "destino": "/home/claude/plataforma_v2",
+ "carpeta": "progresion",
+ "pagina": "progresion_insignias.html",
+ "tagViejo": "<script src=\"progresion/js/00_app.js\"></script>",
+ "grupos": [
+  {
+   "desde": 0,
+   "nombre": "nucleo_y_constantes"
+  },
+  {
+   "desde": 9,
+   "nombre": "carga_y_render"
+  },
+  {
+   "desde": 15,
+   "nombre": "detalle_joven"
+  },
+  {
+   "desde": 22,
+   "nombre": "acciones"
+  }
+ ],
+ "wrapDesde": 28
+}

@@ -1,0 +1,510 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <script src="auth-guard.js"></script>
+    <script src="permisos.js"></script>
+<script>
+(async function(){
+  // Esperar _sbClient + que Permisos se inicialice (auth-guard lo hace)
+  await new Promise(r=>{
+    const t=setInterval(()=>{if(window.Permisos&&Permisos.listo()){clearInterval(t);r();}},80);
+    setTimeout(()=>{clearInterval(t);r();},10000);
+  });
+  // Fallback: init manual si auth-guard no lo hizo
+  if(window.Permisos&&!Permisos.listo()&&window._sbClient){
+    await Permisos.init(window._sbClient);
+  }
+  if(window.Permisos&&Permisos.listo()&&!Permisos.puede('eventos')){
+    document.body.innerHTML='<div style="display:flex;align-items:center;justify-content:center;height:100vh;flex-direction:column;gap:14px;font-family:Arial;background:#f8fafc;"><div style="font-size:48px;">🔒</div><h2 style="color:#001558;margin:0;">Acceso restringido</h2><p style="color:#64748b;margin:0;">No tienes permiso para este módulo.</p></div>';
+  }
+})();
+</script>
+<meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
+    <title>Gestión de Eventos - Módulo Interno ERP</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="drive-helper.js"></script>
+<script src="certificados.js"></script>
+<link rel="stylesheet" href="eventos/css/eventos.css">
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#0E2586">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="ERP Scout">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <script src="/wa_api.js"></script>
+    <link rel="stylesheet" href="mobile.css">
+</head>
+<body>
+    <div class="document-container">
+        <div class="print-header">
+            <img src="https://i.imgur.com/11u9rUD.png" alt="Logo">
+            <div class="title-box">
+                <h2 id="print-evento-titulo">Evento Scout</h2>
+
+                <h3 id="print-seccion-titulo">Documento ERP</h3>
+            </div>
+            <img src="https://i.imgur.com/DcxzvpX.png" alt="Logo">
+        </div>
+
+        <header class="header">
+            <div class="header-content">
+                <img src="https://i.imgur.com/11u9rUD.png" alt="Logo Scout Izquierdo" class="header-logo-left">
+                <div class="header-title">
+                    <h1>ASOCIACIÓN DE GUÍAS Y SCOUTS DE CHILE</h1>
+                    <h2>Zona Santiago Centro • Distrito Santiago Centro • Grupo "Salvador Sanfuentes"</h2>
+                    <div class="editable-title">
+                        <input type="text" id="evento-titulo" value="Colocar aqui Nombre de la Actividad y/o Evento" placeholder="Título del Evento">
+                    </div>
+                </div>
+                <img src="https://i.imgur.com/DcxzvpX.png" alt="Logo Scout Derecho" class="header-logo-right">
+            </div>
+        </header>
+
+        <div class="evento-selector">
+            <label><i class="fas fa-calendar-alt"></i> Evento:</label>
+            <select id="selector-evento" onchange="cambiarEvento()">
+                <option value="">-- Seleccionar Evento --</option>
+            </select>
+            <button class="btn btn-success" onclick="crearNuevoEvento()"><i class="fas fa-plus"></i> Nuevo Evento</button>
+            <button class="btn" style="background:#8b5cf6;color:white;border:none;" onclick="abrirImportarDesdeProyecto()"><i class="fas fa-file-import"></i> Importar desde Proyecto</button>
+            <button class="btn btn-primary" onclick="editarEventoActual()"><i class="fas fa-edit"></i> Editar Evento</button>
+            <button class="btn btn-danger" onclick="eliminarEventoActual()"><i class="fas fa-trash"></i> Eliminar Evento</button>
+            <span title="Estado sincronización en tiempo real" style="display:inline-flex;align-items:center;gap:5px;font-size:0.75rem;color:#64748b;margin-left:4px;">
+                <span id="realtime-dot" style="width:10px;height:10px;border-radius:50%;background:#94a3b8;display:inline-block;transition:background 0.5s;"></span> En vivo
+            </span>
+            <div class="evento-fecha">
+                <label><i class="fas fa-calendar-day"></i> Fecha:</label>
+                <input type="date" id="evento-fecha" onchange="guardarFechaEvento()">
+            </div>
+            <!-- Toggle: Inscripción Pública -->
+            <div style="display:inline-flex;align-items:center;gap:8px;margin-left:12px;background:rgba(255,255,255,0.06);padding:6px 14px;border-radius:8px;border:1px solid rgba(255,255,255,0.1);">
+                <label style="font-size:0.75rem;font-weight:700;color:#64748b;cursor:pointer;display:flex;align-items:center;gap:6px;" for="toggle-publicado">
+                    <i class="fas fa-globe" id="icono-publicado" style="color:#94a3b8;"></i> Inscripción Pública
+                </label>
+                <label style="position:relative;display:inline-block;width:42px;height:22px;cursor:pointer;">
+                    <input type="checkbox" id="toggle-publicado" onchange="togglePublicadoEvento(this.checked)" style="opacity:0;width:0;height:0;">
+                    <span style="position:absolute;inset:0;background:#374151;border-radius:11px;transition:background 0.3s;"></span>
+                    <span id="toggle-publicado-dot" style="position:absolute;top:3px;left:3px;width:16px;height:16px;background:white;border-radius:50%;transition:transform 0.3s;"></span>
+                </label>
+                <span id="label-publicado" style="font-size:0.7rem;font-weight:700;color:#94a3b8;">No publicado</span>
+            </div>
+            <!-- Toggle: Ficha de Salud -->
+            <div style="display:inline-flex;align-items:center;gap:8px;margin-left:8px;background:rgba(255,255,255,0.06);padding:6px 14px;border-radius:8px;border:1px solid rgba(255,255,255,0.1);" title="Solicitar ficha de primeros auxilios en la inscripción pública">
+                <label style="font-size:0.75rem;font-weight:700;color:#64748b;cursor:pointer;display:flex;align-items:center;gap:6px;" for="toggle-ficha-salud">
+                    <i class="fas fa-heartbeat" id="icono-ficha-salud" style="color:#94a3b8;"></i> Ficha Salud
+                </label>
+                <label style="position:relative;display:inline-block;width:42px;height:22px;cursor:pointer;">
+                    <input type="checkbox" id="toggle-ficha-salud" onchange="toggleFichaSalud(this.checked)" style="opacity:0;width:0;height:0;">
+                    <span id="track-ficha-salud" style="position:absolute;inset:0;background:#374151;border-radius:11px;transition:background 0.3s;"></span>
+                    <span id="toggle-ficha-salud-dot" style="position:absolute;top:3px;left:3px;width:16px;height:16px;background:white;border-radius:50%;transition:transform 0.3s;"></span>
+                </label>
+                <span id="label-ficha-salud" style="font-size:0.7rem;font-weight:700;color:#94a3b8;">No</span>
+            </div>
+            <!-- Toggle: Dieta Especial -->
+            <div style="display:inline-flex;align-items:center;gap:8px;margin-left:8px;background:rgba(255,255,255,0.06);padding:6px 14px;border-radius:8px;border:1px solid rgba(255,255,255,0.1);" title="Solicitar información de dieta o alimentación especial en la inscripción pública">
+                <label style="font-size:0.75rem;font-weight:700;color:#64748b;cursor:pointer;display:flex;align-items:center;gap:6px;" for="toggle-dieta">
+                    <i class="fas fa-utensils" id="icono-dieta" style="color:#94a3b8;"></i> Dieta Especial
+                </label>
+                <label style="position:relative;display:inline-block;width:42px;height:22px;cursor:pointer;">
+                    <input type="checkbox" id="toggle-dieta" onchange="toggleDietaEspecial(this.checked)" style="opacity:0;width:0;height:0;">
+                    <span id="track-dieta" style="position:absolute;inset:0;background:#374151;border-radius:11px;transition:background 0.3s;"></span>
+                    <span id="toggle-dieta-dot" style="position:absolute;top:3px;left:3px;width:16px;height:16px;background:white;border-radius:50%;transition:transform 0.3s;"></span>
+                </label>
+                <span id="label-dieta" style="font-size:0.7rem;font-weight:700;color:#94a3b8;">No</span>
+            </div>
+        </div>
+
+        <div class="erp-body">
+            <nav class="sidebar-nav" id="sidebar-nav">
+                <button class="toggle-sidebar" id="toggle-sidebar-btn" title="Colapsar menú"><i class="fas fa-chevron-left"></i></button>
+                <button class="tab-btn active" data-tab="objetivos"><i class="fas fa-bullseye"></i><span> Objetivos y Metas</span></button>
+                <button class="tab-btn" data-tab="jovenes"><i class="fas fa-child"></i><span> Jóvenes</span></button>
+                <button class="tab-btn" data-tab="adultos"><i class="fas fa-user-tie"></i><span> Adultos</span></button>
+                <button class="tab-btn" data-tab="checkin-qr"><i class="fas fa-qrcode"></i><span> Check-in QR</span></button>
+                <button class="tab-btn" data-tab="presupuesto"><i class="fas fa-chart-pie"></i><span> Presupuesto</span></button>
+                <button class="tab-btn" data-tab="recursos"><i class="fas fa-money-bill-wave"></i><span> Recursos</span></button>
+                <button class="tab-btn" data-tab="postas"><i class="fas fa-flag"></i><span> Postas</span></button>
+                <button class="tab-btn" data-tab="planilla"><i class="fas fa-table"></i><span> Planilla</span></button>
+                <button class="tab-btn" data-tab="puntuacion"><i class="fas fa-trophy"></i><span> Puntuación</span></button>
+                <button class="tab-btn" data-tab="pasaporte"><i class="fas fa-passport"></i><span> Pasaporte</span></button>
+                <button class="tab-btn" data-tab="croquis"><i class="fas fa-map-marked-alt"></i><span> Croquis</span></button>
+                <button class="tab-btn" data-tab="inventario"><i class="fas fa-boxes"></i><span> Inventario</span></button>
+                <button class="tab-btn" data-tab="menu"><i class="fas fa-utensils"></i><span> Menú</span></button>
+                <button class="tab-btn" data-tab="entregas"><i class="fas fa-clipboard-check"></i><span> Entregas</span></button>
+            </nav>
+
+            <main>
+                <!-- OBJETIVOS Y METAS -->
+                <div class="tab-pane active" id="objetivos">
+                    <div class="section">
+                        <h2><i class="fas fa-bullseye"></i> Objetivo General</h2>
+                        <textarea id="objetivo-general" rows="4" placeholder="Escribe el objetivo general aquí..."></textarea>
+                        <div class="controls" style="margin-top: 15px;">
+                            <button class="btn btn-success" onclick="guardarObjetivoGeneral()"><i class="fas fa-save"></i> Guardar Objetivo</button>
+                            <button class="btn btn-secondary" style="margin-left: auto;" onclick="imprimirSeccion('Objetivos y Metas')"><i class="fas fa-print"></i> Imprimir Sección</button>
+                        </div>
+                    </div>
+                    <div class="section">
+                        <h2><i class="fas fa-list"></i> Metas e Indicadores</h2>
+                        <div id="metas-container"></div>
+                        <div class="controls" style="margin-top: 20px;">
+                            <button class="btn btn-success" onclick="agregarMeta()"><i class="fas fa-plus"></i> Agregar Meta</button>
+                            <button class="btn btn-primary" onclick="guardarMetas()"><i class="fas fa-save"></i> Guardar Metas</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- JÓVENES -->
+                <div class="tab-pane" id="jovenes">
+                    <div class="section">
+                        <h2><i class="fas fa-child"></i> Inscripción de Jóvenes</h2>
+                        <div class="header-buttons">
+                            <button class="btn-header tropa active" onclick="cambiarEncabezado('tropa', this)">Tropa</button>
+                            <button class="btn-header manada inactive" onclick="cambiarEncabezado('manada', this)">Manada</button>
+                            <button class="btn-header bandada inactive" onclick="cambiarEncabezado('bandada', this)">Bandada</button>
+                            <button class="btn-header compania inactive" onclick="cambiarEncabezado('compania', this)">Compañía</button>
+                            <button class="btn-header caminantes inactive" onclick="cambiarEncabezado('caminantes', this)">Caminantes</button>
+                            <button class="btn-header clan inactive" onclick="cambiarEncabezado('clan', this)">Clan</button>
+                            <button class="btn-header varios inactive" onclick="cambiarEncabezado('varios', this)">Varios</button>
+                        </div>
+                        <div class="grupo-selector">
+                            <input type="text" id="filtroGrupo" placeholder="Escriba o seleccione grupo..." list="listaGruposDatalist" style="max-width: 300px;">
+                            <button class="btn btn-primary" onclick="agregarNuevoGrupo()"><i class="fas fa-plus"></i> Agregar grupo</button>
+                        </div>
+                        <div class="table-container">
+                            <table id="jovenes-table">
+                                <thead id="jovenes-thead"><tr id="jovenes-header-row">    </thead>
+                                <tbody id="jovenes-body"></tbody>
+                             </table>
+                        </div>
+                        <div class="controls">
+                            <button class="btn btn-warning" onclick="agregarJovenInterno()"><i class="fas fa-search"></i> Buscar en BD Interna</button>
+                            <button class="btn btn-success" onclick="addJovenRow()"><i class="fas fa-plus"></i> Agregar Fila de Registro</button>
+                            <button class="btn btn-warning" onclick="removeLastJovenRow()"><i class="fas fa-minus"></i> Eliminar Último</button>
+                            <button class="btn btn-primary" style="margin-left: auto;" onclick="imprimirCredencialesMasivasJovenes()"><i class="fas fa-id-card"></i> Imprimir Credenciales (Todas)</button>
+                            <button class="btn btn-secondary" onclick="imprimirSeccion('Inscripción de Jóvenes')"><i class="fas fa-print"></i> Imprimir Sección</button>
+                        </div>
+                        <div class="totals-bar">
+                            <div class="total-item">Total Jóvenes: <span id="total-jovenes">0</span></div>
+                            <div class="total-item">Total CLP: <span id="total-clp">0</span></div>
+                            <div class="total-item">Patrullas/Equipos: <span id="total-patrullas">0</span></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ADULTOS -->
+                <div class="tab-pane" id="adultos">
+                    <div class="section">
+                        <h2><i class="fas fa-user-tie"></i> Registro de Adultos</h2>
+                        <div class="controls" style="margin-bottom: 15px;">
+                            <button class="btn btn-warning" onclick="agregarAdultoInterno()"><i class="fas fa-search"></i> Buscar en BD Interna</button>
+                            <button class="btn btn-primary" style="margin-left: auto;" onclick="imprimirCredencialesMasivas()"><i class="fas fa-id-card"></i> Imprimir Credenciales (Todas)</button>
+                        </div>
+                        <div class="table-container">
+                            <table id="adultos-table">
+                                <thead> <th>#</th><th>Foto</th><th>Nombre</th><th>Grupo</th><th>Rol</th><th>Teléfono</th><th>Correo</th><th>Observaciones</th><th>Estado</th><th>Acción</th> </thead>
+                                <tbody id="adultos-body"></tbody>
+                             </table>
+                        </div>
+                        <div class="controls">
+                            <button class="btn btn-success" onclick="addAdultoRow()"><i class="fas fa-plus"></i> Agregar Fila (Externo/Libre)</button>
+                            <button class="btn btn-warning" onclick="removeLastAdultoRow()"><i class="fas fa-minus"></i> Eliminar Último</button>
+                            <button class="btn btn-secondary" style="margin-left: auto;" onclick="imprimirSeccion('Registro de Adultos')"><i class="fas fa-print"></i> Imprimir Lista</button>
+                        </div>
+                        <div class="totals-bar">
+                            <div class="total-item">Total Adultos: <span id="total-adultos">0</span></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- CHECK-IN QR (integrado desde checkin_qr.html) -->
+                <div class="tab-pane" id="checkin-qr">
+                    <div class="section" style="padding:0;background:transparent;border:none;box-shadow:none">
+                        <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 18px;background:linear-gradient(135deg,#0E2586,#1a36a8);color:white;border-radius:12px 12px 0 0;margin-bottom:0">
+                            <div>
+                                <h2 style="margin:0;font-size:1.05rem;color:white;border:none;padding:0"><i class="fas fa-qrcode" style="color:#FFD100;margin-right:8px"></i>Check-in QR — Confirmación de Inscripciones</h2>
+                                <p style="margin:3px 0 0;font-size:0.78rem;opacity:0.8">Escanea QR o busca por código para confirmar asistencia de jóvenes y adultos</p>
+                            </div>
+                            <div style="display:flex;gap:8px">
+                                <button class="btn btn-secondary btn-sm" onclick="reloadCheckinQR()" title="Recargar" style="background:rgba(255,255,255,0.15);color:white;border:1px solid rgba(255,255,255,0.3)"><i class="fas fa-sync-alt"></i></button>
+                                <button class="btn btn-secondary btn-sm" onclick="window.open('checkin_qr.html','_blank')" title="Abrir en ventana aparte" style="background:rgba(255,255,255,0.15);color:white;border:1px solid rgba(255,255,255,0.3)"><i class="fas fa-external-link-alt"></i></button>
+                            </div>
+                        </div>
+                        <iframe id="checkinQRIframe" src="about:blank" style="width:100%;height:calc(100vh - 220px);min-height:680px;border:1px solid var(--border-color);border-top:none;border-radius:0 0 12px 12px;background:var(--gris-fondo);display:block" allow="camera"></iframe>
+                    </div>
+                </div>
+
+                <!-- PRESUPUESTO -->
+                <div class="tab-pane" id="presupuesto">
+                    <div class="section">
+                        <h2><i class="fas fa-chart-pie"></i> Panel de Presupuesto</h2>
+                        <div class="controls" style="margin-bottom: 15px;">
+                            <button class="btn btn-secondary" style="margin-left: auto;" onclick="imprimirSeccion('Panel de Presupuesto')"><i class="fas fa-print"></i> Imprimir Sección</button>
+                        </div>
+                        <div class="card-grid">
+                            <div class="card primary">
+                                <h3><i class="fas fa-users"></i> Participación</h3>
+                                <div class="value" id="presupuesto-total-personas">27</div>
+                                <div class="detail-row"><span>Participantes:</span> <input type="number" id="presupuesto-participantes" value="20" min="0" style="width:80px; padding: 4px;" onchange="actualizarConfiguracionPresupuesto()"></div>
+                                <div class="detail-row"><span>Staff:</span> <input type="number" id="presupuesto-staff" value="7" min="0" style="width:80px; padding: 4px;" onchange="actualizarConfiguracionPresupuesto()"></div>
+                                <div class="detail-row"><span>Días:</span> <input type="number" id="presupuesto-dias" value="2" min="1" style="width:80px; padding: 4px;" onchange="actualizarConfiguracionPresupuesto()"></div>
+                            </div>
+                            <div class="card success">
+                                <h3><i class="fas fa-wallet"></i> Resumen Financiero</h3>
+                                <div class="value" id="presupuesto-total-general">$0</div>
+                                <div class="sub-value" style="font-size:12px; color:var(--texto-muted);">Total General Proyectado</div>
+                                <div class="detail-row"><span>Costo Real:</span> <strong id="presupuesto-total-costo">$0</strong></div>
+                                <div class="detail-row"><span>Aporte en Especie:</span> <strong id="presupuesto-total-especie">$0</strong></div>
+                            </div>
+                            <div class="card warning">
+                                <h3><i class="fas fa-hand-holding-usd"></i> Financiación</h3>
+                                <div class="detail-row" style="border: none; padding: 0;">
+                                    <span>Cuota por persona:</span>
+                                    <input type="number" id="presupuesto-cuota" value="180" step="0.01" style="width:100px; padding: 4px; font-weight: bold;" onchange="actualizarConfiguracionPresupuesto()">
+                                </div>
+                                <div class="sub-value" id="presupuesto-costo-unitario" style="margin-top:10px; font-size:13px; color:var(--texto-muted);">Costo unitario: $0</div>
+                                <div class="sub-value" id="presupuesto-recaudacion" style="font-size:13px; color:var(--texto-muted);">Recaudación esperada: $0</div>
+                                <div class="detail-row"><strong id="presupuesto-diferencia" style="color:var(--rojo-intenso); font-size: 16px;">Diferencia: $0</strong></div>
+                            </div>
+                        </div>
+                        <div id="secciones-presupuesto-container"></div>
+                        <div class="controls" style="margin-top: 20px; align-items: flex-start;">
+                            <button class="btn btn-success" onclick="agregarItemPresupuesto()"><i class="fas fa-plus"></i> Agregar Ítem Libre</button>
+                            <button class="btn btn-primary" onclick="guardarPresupuesto()"><i class="fas fa-save"></i> Guardar Cambios</button>
+                            <textarea id="presupuesto-nota" rows="2" placeholder="Notas adicionales del presupuesto..." style="flex: 1; min-width: 300px; margin-left: 10px; padding:10px; border-radius:8px; border:1px solid var(--border-color); font-family:'Poppins', sans-serif;"></textarea>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- RECURSOS -->
+                <div class="tab-pane" id="recursos">
+                    <div class="section">
+                        <h2><i class="fas fa-arrow-down"></i> Ingresos</h2>
+                        <div class="controls">
+                            <button class="btn btn-success" onclick="addIngresoRow()"><i class="fas fa-plus"></i> Agregar Ingreso Manual</button>
+                            <button class="btn btn-warning" onclick="updateIngresoFromInscripcion(false)"><i class="fas fa-sync"></i> Sincronizar cuotas Jóvenes</button>
+                        </div>
+                        <div class="table-container"><table id="ingresos-table"><thead><th>#</th><th>Procedencia / Descripción</th><th>Monto CLP</th><th>Acción</th></thead><tbody id="ingresos-body"></tbody></table></div>
+                    </div>
+                    <div class="section">
+                        <h2><i class="fas fa-arrow-up"></i> Gastos</h2>
+                        <div class="controls">
+                            <button class="btn btn-success" onclick="addGastoRow()"><i class="fas fa-plus"></i> Agregar Gasto Manual</button>
+                            <button class="btn btn-secondary" style="margin-left: auto;" onclick="imprimirSeccion('Flujo de Recursos')"><i class="fas fa-print"></i> Imprimir Sección</button>
+                        </div>
+                        <div class="table-container"><table id="gastos-table"><thead><th>#</th><th>Destino / Descripción</th><th>Monto CLP</th><th>Acción</th></thead><tbody id="gastos-body"></tbody></table></div>
+                    </div>
+                    <div class="totals-bar">
+                        <div class="total-item">Total Ingresos: <span id="total-ingresos" style="color: var(--verde);">0</span></div>
+                        <div class="total-item">Total Gastos: <span id="total-gastos" style="color: var(--rojo-intenso);">0</span></div>
+                        <div class="total-item">Disponible: <span id="recursos-disponibles">0</span></div>
+                    </div>
+                </div>
+
+                <!-- POSTAS -->
+                <div class="tab-pane" id="postas">
+                    <div class="section">
+                        <h2><i class="fas fa-flag"></i> Descripción de Postas</h2>
+                        <div class="controls">
+                            <button class="btn btn-success" onclick="agregarNuevaPosta()"><i class="fas fa-plus"></i> Agregar Nueva Posta</button>
+                            <button class="btn btn-secondary" style="margin-left: auto;" onclick="imprimirSeccion('Descripción de Postas')"><i class="fas fa-print"></i> Imprimir Sección</button>
+                        </div>
+                        <div id="postas-container"></div>
+                    </div>
+                    <div class="section" id="consolidado-materiales">
+                        <h2><i class="fas fa-box-open"></i> Materiales necesarios</h2>
+                        <ul id="lista-materiales-consolidados" style="padding-left: 20px; color: var(--gris-oscuro);"></ul>
+                    </div>
+                </div>
+
+                <!-- PLANILLA -->
+                <div class="tab-pane" id="planilla">
+                    <div class="section">
+                        <h2><i class="fas fa-table"></i> Planilla de Puntuación (Criterio a Criterio)</h2>
+                        <div class="controls" style="margin-bottom: 20px;">
+                            <button class="btn btn-primary" onclick="guardarPlanilla()"><i class="fas fa-save"></i> Guardar Planilla</button>
+                            <button class="btn btn-secondary" style="margin-left: auto;" onclick="imprimirPlanillasDivididas()"><i class="fas fa-print"></i> Imprimir Planillas Individuales</button>
+                        </div>
+                        <div id="planilla-contenedor"></div>
+                    </div>
+                </div>
+
+                <!-- PUNTUACIÓN -->
+                <div class="tab-pane" id="puntuacion">
+                    <div class="section">
+                        <h2><i class="fas fa-trophy"></i> Puntuación por Postas (Resumen)</h2>
+                        <div class="controls" style="margin-bottom: 10px;">
+                            <button class="btn btn-secondary" style="margin-left: auto;" onclick="imprimirSeccion('Resumen de Puntuación')"><i class="fas fa-print"></i> Imprimir Sección</button>
+                        </div>
+                        <div class="table-container"><table id="puntuacion-table"><thead><th>#</th><th>Patrulla</th><th>Grupo</th></thead><tbody id="puntuacion-body"></tbody></table></div>
+                    </div>
+                </div>
+
+                <!-- PASAPORTE -->
+                <div class="tab-pane" id="pasaporte">
+                    <div class="section">
+                        <h2><i class="fas fa-passport"></i> Pasaporte de Patrulla</h2>
+                        <div class="controls" style="align-items: center; margin-bottom: 25px;">
+                            <select id="selectGrupoPasaporte" onchange="cargarPasaporte()" style="max-width: 300px;"></select>
+                            <button class="btn btn-primary" onclick="guardarPasaporte()"><i class="fas fa-save"></i> Guardar Pasaporte</button>
+                            <button class="btn btn-secondary" style="margin-left: auto;" onclick="imprimirSeccion('Pasaporte de Patrulla')"><i class="fas fa-print"></i> Imprimir Sección</button>
+                        </div>
+                        <div id="pasaporte-info" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 20px; padding: 15px; background: var(--blanco); border-radius: 8px; border: 1px solid var(--border-color);">
+                            <div><strong>Registro/Patrulla:</strong> <span id="pasaporte-nombre"></span></div>
+                            <div><strong>Grupo:</strong> <span id="pasaporte-grupo"></span></div>
+                            <div><strong>Integrantes:</strong> <span id="pasaporte-jovenes"></span></div>
+                            <div><strong>Posta inicio:</strong> <input type="number" id="pasaporte-postaInicio" min="1" value="1" style="width: 80px; display: inline-block;"></div>
+                        </div>
+                        <div class="table-container"><table id="pasaporte-tabla"><thead><th>#</th><th>Posta</th><th>Letras</th><th>Puntos</th><th>Firma</th></thead><tbody id="pasaporte-body"></tbody><tfoot><tr style="background:var(--gris-fondo);"><td colspan="3" style="text-align: right;"><strong>TOTAL:</strong></td><td id="pasaporte-total" style="font-weight: bold; font-size: 16px;">0</td><td></td></tr></tfoot></table></div>
+                        <div class="reglas-box">
+                            <div class="reglas-texto">
+                                <strong>Reglas del Pasaporte (Editables):</strong>
+                                <textarea id="pasaporte-reglas" rows="3" style="margin-top: 10px;" onchange="guardarConfLocal()">Las patrullas deben iniciar en la posta indicada. El pasaporte es el único comprobante válido de su puntuación.</textarea>
+                                <div style="margin-top: 15px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+                                    <strong>Contacto Emergencias:</strong> 
+                                    <input type="text" id="contacto-emergencia" value="(0414)627-96-03" onchange="guardarConfLocal()" style="max-width: 200px;">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- CROQUIS UNIFICADO -->
+                <div class="tab-pane" id="croquis">
+                    <div class="section">
+                        <h2><i class="fas fa-map-marked-alt"></i> Croquis del Evento</h2>
+                        <div style="background: var(--blanco); padding: 15px; border-radius: 12px; border: 1px solid var(--border-color); margin-bottom: 15px; display:flex; gap:15px; align-items:center; flex-wrap:wrap;">
+                            <div style="border-right: 2px solid var(--border-color); padding-right: 15px; display:flex; gap:10px; align-items:center;">
+                                <input type="file" id="cargarImagen" accept="image/*" style="width:auto; max-width:200px;">
+                                <button class="btn btn-primary btn-sm" onclick="cargarImagenFondo()"><i class="fas fa-upload"></i> Subir Fondo</button>
+                            </div>
+                            <div style="display:flex; gap:10px; align-items:center;">
+                                <select id="tipoPuntoCroquis" onchange="cambiarSelectorCroquis()" style="width:auto;">
+                                    <option value="posta">🔴 Agregar Posta</option>
+                                    <option value="logistica">🟢 Agregar Señalética</option>
+                                    <option value="personalizado">🔵 Personalizado</option>
+                                </select>
+                                <select id="selectorElementoCroquis" style="width:auto;"></select>
+                                <div id="rowPersonalizado" style="display:none;gap:6px;align-items:center;">
+                                    <input type="text" id="customNombre" placeholder="Nombre del punto" style="max-width:130px;">
+                                    <select id="customIcono" style="width:auto;">
+                                        <option value="⭐">⭐ Estrella</option>
+                                        <option value="🏠">🏠 Casa</option>
+                                        <option value="🚩">🚩 Bandera</option>
+                                        <option value="🔥">🔥 Fuego</option>
+                                        <option value="🎯">🎯 Objetivo</option>
+                                        <option value="🚗">🚗 Vehículo</option>
+                                        <option value="🎪">🎪 Carpa grande</option>
+                                        <option value="🏕️">🏕️ Campamento</option>
+                                        <option value="💡">💡 Punto info</option>
+                                        <option value="🔒">🔒 Acceso restringido</option>
+                                        <option value="🎵">🎵 Escenario</option>
+                                        <option value="📦">📦 Bodega</option>
+                                        <option value="🚧">🚧 Construcción</option>
+                                        <option value="🌳">🌳 Árbol / Área verde</option>
+                                        <option value="📍">📍 Punto marcado</option>
+                                    </select>
+                                </div>
+                                <input type="text" id="descripcionPunto" placeholder="Nota breve..." style="max-width: 150px;">
+                                <button class="btn btn-success btn-sm" onclick="agregarPuntoCroquisCentro()"><i class="fas fa-map-pin"></i> Al Centro</button>
+                                <span style="font-size:12px; color:var(--texto-muted);">(o clic en el mapa)</span>
+                            </div>
+                            <div style="margin-left:auto; display:flex; gap:10px; align-items:center;">
+                                <strong>Filtros:</strong>
+                                <label style="display:flex; align-items:center; gap:5px;"><input type="checkbox" id="filtroPostas" checked onchange="renderCroquis()"> Postas</label>
+                                <label style="display:flex; align-items:center; gap:5px;"><input type="checkbox" id="filtroLogistica" checked onchange="renderCroquis()"> Logística</label>
+                                <label style="display:flex; align-items:center; gap:5px;"><input type="checkbox" id="filtroPersonalizado" checked onchange="renderCroquis()"> Personalizado</label>
+                                <button class="btn btn-secondary btn-sm" onclick="imprimirCroquisSolo()"><i class="fas fa-print"></i> Imprimir Mapa</button>
+                            </div>
+                        </div>
+
+                        <div class="croquis-container">
+                            <div class="canvas-container">
+                                <canvas id="croquisCanvas" class="croquis-canvas-el" width="800" height="500"></canvas>
+                            </div>
+                            <div class="puntos-lista">
+                                <h3 style="margin-bottom: 15px; font-size: 16px; color: var(--azul-profundo); border-bottom: 2px solid var(--border-color); padding-bottom: 5px;">Puntos en Mapa</h3>
+                                <div id="lista-puntos"></div>
+                                <button class="btn btn-danger" onclick="limpiarPuntos()" style="width: 100%; margin-top: 15px;"><i class="fas fa-trash"></i> Limpiar todos</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- INVENTARIO -->
+                <div class="tab-pane" id="inventario">
+                    <div class="section">
+                        <h2><i class="fas fa-cubes"></i> Inventario</h2>
+                        <div class="controls">
+                            <button class="btn btn-success" onclick="addInventarioRow()"><i class="fas fa-plus"></i> Agregar Producto</button>
+                            <button class="btn btn-warning" onclick="abrirPrestamoInventarioGrupo()"><i class="fas fa-handshake"></i> Pedir prestado del Grupo</button>
+                            <button class="btn btn-secondary" style="margin-left: auto;" onclick="imprimirSeccion('Inventario')"><i class="fas fa-print"></i> Imprimir Sección</button>
+                        </div>
+                        <div class="table-container"><table id="inventario-table"><thead><th>Producto</th><th>Cantidad</th><th>Origen</th><th>Acción</th></thead><tbody id="inventario-body"></tbody></table></div>
+                    </div>
+                </div>
+
+                <!-- MENÚ -->
+                <div class="tab-pane" id="menu">
+                    <div class="section">
+                        <h2><i class="fas fa-utensils"></i> Editor de Menú</h2>
+                        <div class="controls">
+                            <button class="btn btn-success" onclick="agregarDiaMenu()"><i class="fas fa-calendar-plus"></i> Agregar Día</button>
+                            <button class="btn btn-primary" onclick="guardarMenu()"><i class="fas fa-save"></i> Guardar Menú</button>
+                            <button class="btn btn-secondary" style="margin-left: auto;" onclick="imprimirSeccion('Menú del Evento')"><i class="fas fa-print"></i> Imprimir Sección</button>
+                        </div>
+                        <div id="menu-dias-container" class="card-grid" style="margin-top: 20px;"></div>
+                    </div>
+                </div>
+
+                <!-- ENTREGAS -->
+                <div class="tab-pane" id="entregas">
+                    <div class="section">
+                        <h2><i class="fas fa-clipboard-check"></i> Control de Entregas</h2>
+                        <div class="controls" style="margin-bottom: 20px; align-items:center; background:var(--blanco); padding:15px; border-radius:12px; border:1px solid var(--border-color);">
+                            <strong>Gestión de Columnas:</strong>
+                            <input type="text" id="nueva-columna-nombre" placeholder="Ej: Polera, Insignia..." style="max-width:200px;">
+                            <button class="btn btn-success btn-sm" onclick="agregarColumnaEntregas()"><i class="fas fa-plus"></i> Añadir Columna</button>
+                            <button class="btn btn-secondary" style="margin-left: auto;" onclick="imprimirSeccion('Control de Entregas')"><i class="fas fa-print"></i> Imprimir Sección</button>
+                        </div>
+
+                        <h3 style="color:var(--azul-profundo); margin-bottom:10px; border-bottom:2px solid var(--border-color); padding-bottom:5px;">Entregas a Jóvenes/Patrullas</h3>
+                        <div id="entregas-jovenes-contenedor"></div>
+
+                        <h3 style="color:var(--verde); margin-top:30px; margin-bottom:10px; border-bottom:2px solid var(--border-color); padding-bottom:5px;">Entregas a Adultos/Staff</h3>
+                        <div id="entregas-adultos-contenedor"></div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <script src="eventos/js/00_nucleo_y_config.js"></script>
+    <script src="eventos/js/01_dialogos_e_impresion.js"></script>
+    <script src="eventos/js/02_estado_global.js"></script>
+    <script src="eventos/js/03_grupos_y_unidades.js"></script>
+    <script src="eventos/js/04_carga_datos_y_eventos.js"></script>
+    <script src="eventos/js/05_realtime.js"></script>
+    <script src="eventos/js/06_edicion_evento.js"></script>
+    <script src="eventos/js/07_participantes_jovenes.js"></script>
+    <script src="eventos/js/08_participantes_adultos.js"></script>
+    <script src="eventos/js/09_ingresos_y_gastos.js"></script>
+    <script src="eventos/js/10_planilla_puntuacion.js"></script>
+    <script src="eventos/js/11_postas_y_objetivos.js"></script>
+    <script src="eventos/js/12_pasaporte.js"></script>
+    <script src="eventos/js/13_croquis.js"></script>
+    <script src="eventos/js/14_inventario_evento.js"></script>
+    <script src="eventos/js/15_menu_y_entregas.js"></script>
+    <script src="eventos/js/16_presupuesto.js"></script>
+    <script src="eventos/js/17_metas_e_indicadores.js"></script>
+    <script src="eventos/js/18_credenciales.js"></script>
+    <script src="eventos/js/19_comprobantes_y_email.js"></script>
+    <script src="eventos/js/20_navegacion_ui.js"></script>
+    <script src="eventos/js/21_inicializacion.js"></script>
+<script>if('serviceWorker' in navigator){navigator.serviceWorker.register('/sw.js').catch(function(){});}</script>
+<script src="google-api-helper.js"></script>
+<script src="google-ui.js"></script>
+</body>
+</html>

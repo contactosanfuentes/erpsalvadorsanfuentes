@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ERP Scout — Salvador Sanfuentes</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/css/base.css">
+  <link rel="stylesheet" href="assets/css/layout.css">
+  <link rel="stylesheet" href="assets/css/components.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar" id="sidebar">
+      <div class="marca">
+        <img id="logo-grupo" alt="Logo" onerror="this.style.display='none'">
+        <strong>Grupo Guías y Scouts<br>Salvador Sanfuentes</strong>
+      </div>
+      <nav class="nav" id="nav"></nav>
+      <div class="pie">
+        <button id="btn-salir">Cerrar sesión</button>
+      </div>
+    </aside>
+
+    <main class="contenido">
+      <div class="barra-superior">
+        <button class="btn-menu" id="btn-menu">☰</button>
+        <span class="usuario" id="usuario"></span>
+      </div>
+      <div id="vista">
+        <div class="cargando"><div class="spinner"></div><p>Iniciando…</p></div>
+      </div>
+    </main>
+  </div>
+
+  <script type="module">
+    import { MODULOS, GRUPO } from './js/core/config.js';
+    import { requireSession, logout, getUser } from './js/core/auth.js';
+    import * as Permisos from './js/core/permisos.js';
+    import { iniciarRouter } from './js/core/router.js';
+
+    async function main() {
+      const session = await requireSession();
+      if (!session) return;
+      await Permisos.init();
+
+      document.getElementById('logo-grupo').src = GRUPO.logo;
+
+      // Construir navegación según permisos
+      const nav = document.getElementById('nav');
+      const visibles = MODULOS.filter(m => {
+        if (m.permiso === 'admin' || m.beta) return Permisos.esAdmin();
+        return !m.permiso || Permisos.esAdmin() || Permisos.puede(m.permiso);
+      });
+      const item = m => `<a class="nav-item" data-modulo="${m.id}" href="#/${m.id}">
+            <span>${m.icono}</span> ${m.titulo}</a>`;
+      const principales = visibles.filter(m => !m.beta).map(item).join('');
+      const betas = visibles.filter(m => m.beta).map(item).join('');
+      nav.innerHTML = principales + (betas
+        ? '<div style="margin:12px 8px 4px;font-size:11px;color:#94a3b8;text-transform:uppercase">Migración modular</div>' + betas
+        : '');
+
+      const user = await getUser();
+      const p = Permisos.perfil();
+      document.getElementById('usuario').textContent =
+        `${p?.nombre || user?.email || ''} · ${Permisos.rol() || 'sin rol'}`;
+
+      document.getElementById('btn-salir').onclick = logout;
+      const sidebar = document.getElementById('sidebar');
+      document.getElementById('btn-menu').onclick = () => sidebar.classList.toggle('abierta');
+      nav.addEventListener('click', () => sidebar.classList.remove('abierta'));
+
+      iniciarRouter();
+    }
+    main().catch(e => {
+      console.error(e);
+      document.getElementById('vista').innerHTML =
+        '<div class="card card-error"><h2>Error al iniciar</h2><p>' + (e.message || e) + '</p></div>';
+    });
+  </script>
+</body>
+</html>

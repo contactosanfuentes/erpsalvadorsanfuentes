@@ -1,0 +1,22 @@
+{
+ "origen": "/home/claude/erp_upload/erp_full/portal_apoderados.html",
+ "destino": "/home/claude/plataforma_v2",
+ "pagina": "portal_apoderados.html",
+ "carpeta": "apoderados",
+ "scriptInicio": "<script>\n",
+ "scriptFin": "\n</script>",
+ "scriptOcurrencia": 1,
+ "estilos": [
+  {
+   "inicio": "    <style>\n",
+   "fin": "    </style>",
+   "archivo": "apoderados.css"
+  }
+ ],
+ "grupos": [
+  {
+   "desde": 0,
+   "nombre": "app"
+  }
+ ]
+}

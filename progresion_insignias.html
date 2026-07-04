@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <script src="auth-guard.js"></script>
+    <script src="permisos.js"></script>
+<script>
+(async function(){
+  // Esperar _sbClient + que Permisos se inicialice (auth-guard lo hace)
+  await new Promise(r=>{
+    const t=setInterval(()=>{if(window.Permisos&&Permisos.listo()){clearInterval(t);r();}},80);
+    setTimeout(()=>{clearInterval(t);r();},10000);
+  });
+  // Fallback: init manual si auth-guard no lo hizo
+  if(window.Permisos&&!Permisos.listo()&&window._sbClient){
+    await Permisos.init(window._sbClient);
+  }
+  if(window.Permisos&&Permisos.listo()&&!Permisos.puede('progresion')){
+    document.body.innerHTML='<div style="display:flex;align-items:center;justify-content:center;height:100vh;flex-direction:column;gap:14px;font-family:Arial;background:#f8fafc;"><div style="font-size:48px;">🔒</div><h2 style="color:#001558;margin:0;">Acceso restringido</h2><p style="color:#64748b;margin:0;">No tienes permiso para este módulo.</p></div>';
+  }
+})();
+</script>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Progresión e Insignias — ERP Scout</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="wa_api.js"></script>
+<link rel="stylesheet" href="progresion/css/progresion.css">
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#0E2586">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="ERP Scout">
+</head>
+<body>
+<div class="topbar">
+    <i class="fas fa-star" style="font-size:1.3rem;color:var(--amarillo)"></i>
+    <div style="flex:1"><h1>Progresión e Insignias</h1>
+<p id="topbarSub">Cargando jóvenes...</p></div>
+    <button class="btn btn-p btn-sm" onclick="recargar()"><i class="fas fa-sync-alt"></i> Actualizar</button>
+</div>
+<div class="content">
+
+    <!-- Filtros -->
+    <div class="filtros">
+        <input type="text" id="buscar" placeholder="Buscar por nombre o RUN..." oninput="filtrar()" style="min-width:200px">
+        <select id="filtroUnidad" onchange="filtrar()">
+            <option value="">Todas las unidades</option>
+            <option value="bandada">Bandada</option>
+            <option value="manada">Manada</option>
+            <option value="tropa">Tropa</option>
+            <option value="compañía">Compañía</option>
+            <option value="avanzada">Avanzada</option>
+            <option value="clan">Clan</option>
+            <option value="caminante">Caminantes</option>
+        </select>
+        <select id="filtroEtapa" onchange="filtrar()">
+            <option value="">Todas las etapas</option>
+            <optgroup label="Bandada"><option>Pichón</option><option>Aprendiz</option><option>Viajera</option><option>Guía de Vuelo</option></optgroup>
+            <optgroup label="Manada"><option>Lobezno</option><option>Saltador</option><option>Diestro</option><option>Cazador</option></optgroup>
+            <optgroup label="Tropa"><option>Cernícalo</option><option>Halcón</option><option>Águila</option><option>Cóndor</option></optgroup>
+            <optgroup label="Compañía"><option>Alba</option><option>Amanecer</option><option>Luz</option><option>Resplandor</option></optgroup>
+            <optgroup label="Avanzada"><option>Sendero</option><option>Cumbre</option></optgroup>
+            <optgroup label="Clan"><option>Bienvenida</option><option>Fuego</option><option>Antorcha</option></optgroup>
+        </select>
+    </div>
+
+    <!-- Stats -->
+    <div class="stats-row" id="statsRow">
+        <div class="stat az"><div class="n" id="stTotal">—</div><div class="l">Jóvenes</div></div>
+        <div class="stat vd"><div class="n" id="stConProg">—</div><div class="l">Con progresión</div></div>
+        <div class="stat am"><div class="n" id="stEsp">—</div><div class="l">Especialidades</div></div>
+        <div class="stat na"><div class="n" id="stSinProg">—</div><div class="l">Sin progresión</div></div>
+        <div class="stat mo"><div class="n" id="stPromedio">—</div><div class="l">% Promedio</div></div>
+    </div>
+
+    <!-- Grid de jóvenes -->
+    <div class="grid-jovenes" id="gridJovenes">
+        <div class="loading"><i class="fas fa-circle-notch fa-spin" style="font-size:2rem;margin-bottom:10px;display:block"></i>Cargando desde Supabase...</div>
+    </div>
+
+    <!-- Panel de detalle al seleccionar un joven -->
+    <div class="detalle-panel" id="detallePanel">
+        <div class="detalle-header">
+            <div class="av-lg" id="detAv" style="background:#3498db">JS</div>
+            <div style="flex:1">
+                <h2 id="detNombre" style="font-size:1.15rem;font-weight:700"></h2>
+                <p id="detSub" style="font-size:0.83rem;color:var(--texto-claro);margin-top:3px"></p>
+            </div>
+            <button onclick="cerrarDetalle()" style="background:none;border:none;font-size:1.3rem;cursor:pointer;color:var(--texto-claro)"><i class="fas fa-times"></i></button>
+        </div>
+
+        <!-- Stepper etapas -->
+        <div class="etapas-stepper" id="etapaStepper"></div>
+
+        <div class="tabs-det">
+            <button class="tab-det act" onclick="cambiarTabDet('objetivos',this)"><i class="fas fa-bullseye"></i> Objetivos</button>
+            <button class="tab-det" onclick="cambiarTabDet('especialidades',this)"><i class="fas fa-star"></i> Especialidades</button>
+            <button class="tab-det" onclick="cambiarTabDet('etapa',this)"><i class="fas fa-graduation-cap"></i> Cambiar etapa</button>
+        </div>
+
+        <div class="tab-pane-det show" id="tpObjetivos">
+            <div class="areas-detalle" id="areasDetalle"></div>
+        </div>
+
+        <div class="tab-pane-det" id="tpEspecialidades">
+            <div class="esp-grid" id="espGrid"></div>
+            <div class="esp-add">
+                <input type="text" id="nuevaEsp" placeholder="Nombre de la especialidad...">
+                <button class="btn btn-p btn-sm" onclick="agregarEsp()"><i class="fas fa-plus"></i> Agregar</button>
+            </div>
+        </div>
+
+        <div class="tab-pane-det" id="tpEtapa">
+            <p style="font-size:0.85rem;color:var(--texto-claro);margin-bottom:10px">Selecciona la etapa de progresión actual del joven:</p>
+            <div class="etapa-selector" id="etapaSelector"></div>
+            <p style="font-size:0.78rem;color:var(--texto-claro);margin-top:12px"><i class="fas fa-info-circle"></i> El cambio se guardará en <code>progresion_jovenes.etapa_actual</code></p>
+        </div>
+    </div>
+
+</div>
+    <script src="progresion/js/00_nucleo_y_constantes.js"></script>
+    <script src="progresion/js/01_carga_y_render.js"></script>
+    <script src="progresion/js/02_detalle_joven.js"></script>
+    <script src="progresion/js/03_acciones.js"></script>
+    <script src="progresion/js/04_inicializacion.js"></script>
+<script>if('serviceWorker' in navigator){navigator.serviceWorker.register('/sw.js').catch(function(){});}</script>
+<script src="google-api-helper.js"></script>
+<script src="google-ui.js"></script>
+</body>
+</html>

@@ -1,0 +1,60 @@
+        body { font-family: system-ui, -apple-system, sans-serif; background-color: #f1f5f9; margin: 0; padding: 0; }
+        .active-tab { background-color: #6366f1; color: white; }
+        .custom-scrollbar::-webkit-scrollbar { width: 5px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+        .modal { transition: opacity 0.2s ease; }
+        .toast { position: fixed; bottom: 20px; right: 20px; z-index: 1000; animation: slideIn 0.3s; }
+        @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+        .file-input-label { cursor: pointer; background: #f1f5f9; padding: 0.5rem; border-radius: 0.5rem; border: 1px dashed #cbd5e1; }
+        .file-input-label:hover { background: #e2e8f0; }
+        .account-card {
+            transition: all 0.2s ease;
+            cursor: grab;
+            user-select: none;
+        }
+        .account-card:active { cursor: grabbing; }
+        .account-card:hover { transform: translateY(-2px); box-shadow: 0 10px 20px rgba(0,0,0,0.1); }
+        .account-card.active { border: 2px solid #6366f1; background: #eef2ff; }
+        .signature-canvas-container { position: relative; margin: 20px 0; }
+        .signature-canvas {
+            width: 100%;
+            height: 200px;
+            border: 3px dashed #cbd5e1;
+            border-radius: 10px;
+            background: white;
+            cursor: crosshair;
+            touch-action: none;
+        }
+        .signature-placeholder {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%,-50%);
+            color: #94a3b8;
+            text-align: center;
+            pointer-events: none;
+            font-style: italic;
+        }
+        .signature-btn {
+            padding: 12px 15px;
+            border: none;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        .signature-btn.clear { background: #EF4444; color: white; }
+        .signature-btn.save { background: #10B981; color: white; }
+        .signature-preview {
+            margin-top: 20px;
+            padding: 15px;
+            background: white;
+            border-radius: 8px;
+            border: 2px solid #10B981;
+            display: none;
+        }
+        .signature-preview.active { display: block; }
+        .signature-image { max-width: 100%; max-height: 150px; border: 1px solid #cbd5e1; }
+        .cuota-row { display: flex; gap: 10px; align-items: center; margin-bottom: 8px; }
+        .cuota-row input { flex: 1; }

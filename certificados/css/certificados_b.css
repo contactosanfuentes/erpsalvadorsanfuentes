@@ -1,0 +1,34 @@
+/* Override mobile.css para tema oscuro de certificados */
+@media (max-width: 768px) {
+    body.cert-dark {
+        background: #0f172a !important;
+    }
+    body.cert-dark input,
+    body.cert-dark textarea {
+        background: #334155 !important;
+        color: #e2e8f0 !important;
+        border-color: #475569 !important;
+        -webkit-text-fill-color: #e2e8f0 !important;
+    }
+    body.cert-dark input::placeholder,
+    body.cert-dark textarea::placeholder {
+        color: #94a3b8 !important;
+        -webkit-text-fill-color: #94a3b8 !important;
+    }
+    body.cert-dark select {
+        background: #334155 !important;
+        color: #e2e8f0 !important;
+    }
+    body.cert-dark .card {
+        background: #1e293b !important;
+        border-color: #334155 !important;
+        color: #e2e8f0 !important;
+    }
+    body.cert-dark label,
+    body.cert-dark p,
+    body.cert-dark h1,
+    body.cert-dark h2,
+    body.cert-dark h3 {
+        color: #e2e8f0 !important;
+    }
+}

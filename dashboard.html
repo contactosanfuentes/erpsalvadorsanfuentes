@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <script src="auth-guard.js"></script>
+    <script src="permisos.js"></script>
+<script>
+(async function(){
+  // Esperar _sbClient + que Permisos se inicialice (auth-guard lo hace)
+  await new Promise(r=>{
+    const t=setInterval(()=>{if(window.Permisos&&Permisos.listo()){clearInterval(t);r();}},80);
+    setTimeout(()=>{clearInterval(t);r();},10000);
+  });
+  // Fallback: init manual si auth-guard no lo hizo
+  if(window.Permisos&&!Permisos.listo()&&window._sbClient){
+    await Permisos.init(window._sbClient);
+  }
+  if(window.Permisos&&Permisos.listo()&&!Permisos.puede('ver_jovenes')){
+    document.body.innerHTML='<div style="display:flex;align-items:center;justify-content:center;height:100vh;flex-direction:column;gap:14px;font-family:Arial;background:#f8fafc;"><div style="font-size:48px;">🔒</div><h2 style="color:#001558;margin:0;">Acceso restringido</h2><p style="color:#64748b;margin:0;">No tienes permiso para este módulo.</p></div>';
+  }
+})();
+</script>
+<meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard General - ERP Scout</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts: Poppins -->
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Supabase JS -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<link rel="stylesheet" href="dashboard/css/dashboard.css">
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#0E2586">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="ERP Scout">
+    <link rel="stylesheet" href="mobile.css">
+</head>
+<body>
+<!-- ════ HOME MÓVIL (solo se ve ≤768px) ════ -->
+<div id="mobileHome">
+    <div class="mh-header">
+        <div class="mh-saludo">
+            <p id="mhSaludoTxt">¡Hola!</p>
+            <h2 id="mhNombre">ERP Scout</h2>
+        </div>
+        <div class="mh-avatar" id="mhAvatar">SS</div>
+    </div>
+
+    <div class="mh-hero">
+        <div class="lbl">Miembros del Grupo</div>
+        <div class="big" id="mhTotalMiembros">—</div>
+        <div class="sub" id="mhHeroSub">Grupo Guías y Scouts Salvador Sanfuentes</div>
+    </div>
+
+    <div class="mh-stats">
+        <div class="mh-stat"><div class="ic">🧒</div><div class="num" id="mhJovenes">—</div><div class="lb">Jóvenes</div></div>
+        <div class="mh-stat"><div class="ic">🧑‍🏫</div><div class="num" id="mhAdultos">—</div><div class="lb">Adultos</div></div>
+        <div class="mh-stat"><div class="ic">🏕️</div><div class="num" id="mhEventos">—</div><div class="lb">Eventos</div></div>
+    </div>
+
+    <div class="mh-sect-title">Acciones rápidas</div>
+    <div class="mh-acciones">
+        <button class="mh-acc a1" onclick="mhNav('view-programa')"><i class="fas fa-child"></i>Jóvenes</button>
+        <button class="mh-acc a2" onclick="mhNav('view-eventos')"><i class="fas fa-campground"></i>Eventos</button>
+        <button class="mh-acc a3" onclick="mhNav('view-reuniones')"><i class="fas fa-calendar-alt"></i>Agenda</button>
+        <button class="mh-acc a4" onclick="mhNav('view-comunicaciones')"><i class="fas fa-paper-plane"></i>Comunicar</button>
+    </div>
+
+    <!-- ── Chip bar: navegación a secciones del Dashboard ── -->
+    <div style="margin:0 0 14px;overflow-x:auto;display:flex;gap:8px;padding:2px 0 4px;scrollbar-width:none;-webkit-overflow-scrolling:touch;align-items:center" id="mh-tab-bar">
+        <button onclick="mhAbrirTab('general',this)" class="mh-chip" data-tab="general"
+            style="flex:1;min-width:0;height:38px;white-space:nowrap;border:2px solid #0E2586;border-radius:10px;padding:0 10px;font-size:0.76rem;font-weight:700;cursor:pointer;font-family:inherit;background:#0E2586;color:white;box-shadow:0 2px 6px rgba(14,37,134,.25);display:inline-flex;align-items:center;justify-content:center;gap:5px">
+            <i class="fas fa-home" style="font-size:0.78rem"></i>General
+        </button>
+        <button onclick="mhAbrirTab('admin',this)" class="mh-chip" data-tab="admin"
+            style="flex:1;min-width:0;height:38px;white-space:nowrap;border:2px solid #e2e8f0;border-radius:10px;padding:0 10px;font-size:0.76rem;font-weight:700;cursor:pointer;font-family:inherit;background:white;color:#475569;display:inline-flex;align-items:center;justify-content:center;gap:5px">
+            <i class="fas fa-coins" style="font-size:0.78rem;color:#10b981"></i>Admin
+        </button>
+        <button onclick="mhAbrirTab('adultos',this)" class="mh-chip" data-tab="adultos"
+            style="flex:1;min-width:0;height:38px;white-space:nowrap;border:2px solid #e2e8f0;border-radius:10px;padding:0 10px;font-size:0.76rem;font-weight:700;cursor:pointer;font-family:inherit;background:white;color:#475569;display:inline-flex;align-items:center;justify-content:center;gap:5px">
+            <i class="fas fa-user-tie" style="font-size:0.78rem;color:#8b5cf6"></i>Adultos
+        </button>
+        <button onclick="mhAbrirTab('jovenes',this)" class="mh-chip" data-tab="jovenes"
+            style="flex:1;min-width:0;height:38px;white-space:nowrap;border:2px solid #e2e8f0;border-radius:10px;padding:0 10px;font-size:0.76rem;font-weight:700;cursor:pointer;font-family:inherit;background:white;color:#475569;display:inline-flex;align-items:center;justify-content:center;gap:5px">
+            <i class="fas fa-child" style="font-size:0.78rem;color:#f59e0b"></i>Jóvenes
+        </button>
+    </div>
+
+    <div class="mh-card">
+        <h4><i class="fas fa-calendar-star" style="color:#dc2626"></i><i class="fas fa-calendar-day" style="color:#dc2626"></i> Próximos eventos</h4>
+        <div class="lista" id="mhEventosList"><div class="mh-empty">Cargando…</div></div>
+    </div>
+
+    <div class="mh-card">
+        <h4><i class="fas fa-birthday-cake" style="color:#d97706"></i> Próximos cumpleaños</h4>
+        <div class="lista" id="mhCumplesList"><div class="mh-empty">Cargando…</div></div>
+    </div>
+
+    <div class="mh-card">
+        <h4><i class="fas fa-exclamation-triangle" style="color:#dc2626"></i> Alertas</h4>
+        <div class="lista" id="mhAlertasList"><div class="mh-empty">Cargando…</div></div>
+
+    </div>
+</div>
+
+
+    <!-- ================= CONTENEDOR PRINCIPAL INTERACTIVO ================= -->
+    <div id="app-dashboard">
+        <div id="dash-btn-volver-home" style="display:none;padding:10px 0 0">
+            <button onclick="mhVolver()" style="background:#0E2586;color:white;border:none;padding:10px 16px;border-radius:10px;font-size:0.85rem;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:7px;margin-bottom:10px;font-family:inherit">
+                <i class="fas fa-arrow-left"></i> Volver al inicio
+            </button>
+        </div>
+        <!-- Cabecera Unificada con Botones de Acción -->
+        <div class="flex flex-col md:flex-row justify-between items-center mb-8 bg-gradient-to-r from-[#0E2586] to-[#1e3a8a] p-6 rounded-2xl shadow-lg text-white">
+            <div class="flex items-center gap-4 mb-4 md:mb-0">
+                <div class="bg-white/20 w-14 h-14 rounded-xl flex justify-center items-center text-3xl shadow-inner backdrop-blur-sm"><i class="fas fa-chart-pie"></i></div>
+                <div>
+                    <h1 class="text-2xl font-black tracking-tight leading-tight">Dashboard General</h1>
+
+                    <p class="text-xs text-blue-200 uppercase tracking-widest font-semibold mt-1"><i class="far fa-clock mr-1"></i> Sincronizado: <span id="lastUpdate">cargando...</span></p>
+                </div>
+            </div>
+            <div class="flex gap-3">
+                <button onclick="exportarPDFEstructurado()" class="bg-white/10 hover:bg-white/20 border border-white/30 px-5 py-2.5 rounded-lg shadow-sm text-sm font-bold transition-all backdrop-blur-sm flex items-center">
+                    <i class="fas fa-file-pdf mr-2"></i>Exportar PDF (Informe)
+                </button>
+                <button onclick="window.location.reload()" class="bg-white text-[#0E2586] px-5 py-2.5 rounded-lg shadow-sm text-sm font-bold hover:bg-blue-50 transition-all">
+                    <i class="fas fa-sync-alt mr-2"></i>Actualizar
+                </button>
+            </div>
+        </div>
+
+        <!-- Pestañas principales -->
+        <div class="flex flex-wrap gap-2 mb-8 border-b border-gray-200 pb-4">
+            <button class="tab-button active" onclick="window.switchTab('general', this)"><i class="fas fa-home mr-2 text-blue-500"></i>General</button>
+            <button class="tab-button" onclick="window.switchTab('admin', this)"><i class="fas fa-coins mr-2 text-emerald-500"></i>Administración</button>
+            <button class="tab-button" onclick="window.switchTab('adultos', this)"><i class="fas fa-user-tie mr-2 text-purple-500"></i>Adultos</button>
+            <button class="tab-button" onclick="window.switchTab('jovenes', this)"><i class="fas fa-child mr-2 text-amber-500"></i>Jóvenes</button>
+        </div>
+
+        <!-- ================= CONTENEDORES DE CADA PESTAÑA ================= -->
+        <div id="tab-general" class="tab-content">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8" id="generalKPI"></div>
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+                <div class="stat-card border-t-4 border-blue-500">
+                    <div class="flex justify-between items-center mb-4 border-b border-gray-100 pb-3">
+                        <h3 class="font-extrabold text-blue-900 text-lg m-0"><i class="fas fa-calendar-alt text-blue-500 mr-2"></i> Próximos eventos del grupo</h3>
+                        <span class="text-xs bg-blue-100 text-blue-800 px-3 py-1 rounded-full font-bold" id="eventos-grupo-count">0</span>
+                    </div>
+                    <div id="eventos-grupo-list" class="space-y-3 max-h-80 overflow-y-auto pr-2 custom-scroll"></div>
+                </div>
+                <div class="stat-card border-t-4 border-red-500">
+                    <div class="flex justify-between items-center mb-4 border-b border-gray-100 pb-3">
+                        <h3 class="font-extrabold text-red-900 text-lg m-0"><i class="fab fa-google text-red-500 mr-2"></i> Próximos eventos (Calendario)</h3>
+                        <span class="text-xs bg-red-100 text-red-800 px-3 py-1 rounded-full font-bold" id="eventos-calendar-count">0</span>
+                    </div>
+                    <div id="eventos-calendar-list" class="space-y-3 max-h-80 overflow-y-auto pr-2 custom-scroll"></div>
+                </div>
+            </div>
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div class="stat-card border-t-4 border-amber-400">
+                    <div class="flex justify-between items-center mb-4 border-b border-gray-100 pb-3">
+                        <h3 class="font-extrabold text-amber-900 text-lg m-0"><i class="fas fa-birthday-cake text-amber-500 mr-2"></i> Próximos cumpleaños</h3>
+                        <span class="text-xs bg-amber-100 text-amber-800 px-3 py-1 rounded-full font-bold">7 días</span>
+                    </div>
+                    <div id="birthdays-list" class="space-y-3 max-h-80 overflow-y-auto pr-2 custom-scroll"></div>
+                </div>
+                <div class="stat-card border-t-4 border-rose-500 bg-red-50/30">
+                    <h3 class="font-extrabold text-red-900 text-lg mb-4 border-b border-red-200 pb-3"><i class="fas fa-exclamation-triangle text-red-500 mr-2"></i> Alertas importantes</h3>
+                    <div id="alertas-list" class="space-y-3 max-h-80 overflow-y-auto pr-2 custom-scroll"></div>
+                </div>
+            </div>
+        </div>
+
+        <div id="tab-admin" class="tab-content hidden">
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div class="stat-card border-t-4 border-emerald-500">
+                    <h3 class="font-extrabold text-emerald-900 text-lg mb-4 border-b border-gray-100 pb-3"><i class="fas fa-piggy-bank text-emerald-600 mr-2"></i> Saldos por cuenta (general)</h3>
+                    <div class="overflow-x-auto max-h-60 overflow-y-auto custom-scroll border rounded-xl border-gray-100">
+                        <table class="w-full text-sm">
+                            <thead class="bg-gray-50"><tr class="border-b border-gray-200"><th class="text-left py-3 px-4 font-bold text-gray-500 uppercase tracking-wide text-xs">Cuenta</th><th class="text-right py-3 px-4 font-bold text-gray-500 uppercase tracking-wide text-xs">Saldo</th></tr></thead>
+                            <tbody id="cuentas-generales" class="divide-y divide-gray-100"></tbody>
+                        </table>
+                    </div>
+                    <div class="mt-4 text-sm text-gray-500 bg-gray-50 p-3 rounded-lg border border-gray-100" id="total-general"></div>
+                </div>
+                <div class="stat-card border-t-4 border-indigo-500">
+                    <h3 class="font-extrabold text-indigo-900 text-lg mb-4 border-b border-gray-100 pb-3"><i class="fas fa-users text-indigo-600 mr-2"></i> Saldos por unidad</h3>
+                    <div class="overflow-x-auto max-h-60 overflow-y-auto custom-scroll border rounded-xl border-gray-100">
+                        <table class="w-full text-sm">
+                            <thead class="bg-gray-50"><tr class="border-b border-gray-200"><th class="text-left py-3 px-4 font-bold text-gray-500 uppercase tracking-wide text-xs">Unidad</th><th class="text-right py-3 px-4 font-bold text-gray-500 uppercase tracking-wide text-xs">Saldo</th></tr></thead>
+                            <tbody id="cuentas-unidades" class="divide-y divide-gray-100"></tbody>
+                        </table>
+                    </div>
+                    <div class="mt-4 text-sm text-gray-500 bg-gray-50 p-3 rounded-lg border border-gray-100" id="total-unidades"></div>
+                </div>
+            </div>
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
+                <div class="stat-card">
+                    <h3 class="font-extrabold text-gray-800 text-lg mb-4 border-b border-gray-100 pb-3"><i class="fas fa-chart-pie text-purple-600 mr-2"></i> Distribución de fondos</h3>
+                    <div class="chart-wrapper"><canvas id="fondosChart"></canvas></div>
+                </div>
+                <div class="stat-card bg-red-50/30 border-red-200">
+                    <h3 class="font-extrabold text-red-900 text-lg mb-4 border-b border-red-200 pb-3"><i class="fas fa-exclamation-circle text-red-600 mr-2"></i> Cuentas con saldo negativo</h3>
+                    <div id="cuentas-negativas" class="space-y-3 max-h-60 overflow-y-auto pr-2 custom-scroll"></div>
+                </div>
+            </div>
+            <div class="stat-card mt-6 border-t-4 border-blue-500">
+                <h3 class="font-extrabold text-gray-800 text-lg mb-4 border-b border-gray-100 pb-3"><i class="fas fa-chart-area text-blue-600 mr-2"></i> Evolución de saldos (últimos 6 meses)</h3>
+                <div class="chart-wrapper"><canvas id="evolucionChart"></canvas></div>
+            </div>
+        </div>
+
+        <div id="tab-adultos" class="tab-content hidden">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6" id="adultosKPI"></div>
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div class="stat-card">
+                    <h3 class="font-extrabold text-gray-800 text-lg mb-4 border-b border-gray-100 pb-3"><i class="fas fa-sitemap text-blue-600 mr-2"></i> Distribución por cargo</h3>
+                    <div class="small-chart-wrapper"><canvas id="cargosChart"></canvas></div>
+                </div>
+                <div class="stat-card">
+                    <h3 class="font-extrabold text-gray-800 text-lg mb-4 border-b border-gray-100 pb-3"><i class="fas fa-sync-alt text-amber-600 mr-2"></i> Ciclo de vida (Etapas)</h3>
+                    <div class="small-chart-wrapper"><canvas id="cicloChart"></canvas></div>
+                </div>
+            </div>
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
+                <div class="stat-card border-t-4 border-emerald-500">
+                    <h3 class="font-extrabold text-emerald-900 text-lg mb-4 border-b border-gray-100 pb-3"><i class="fas fa-file-signature text-emerald-600 mr-2"></i> Cumplimiento de Compromisos</h3>
+                    <div class="flex items-center justify-around mb-6 mt-2">
+                        <div class="text-center">
+                            <div class="progress-circle" id="compromiso-circle" style="background: conic-gradient(#10b981 0deg, #e2e8f0 0deg); margin: 0 auto;">
+                                <span id="compromiso-porcentaje" class="text-xl font-black text-emerald-700">0%</span>
+                            </div>
+                            <p class="mt-3 text-sm font-medium text-gray-600"><span id="compromisos-ok" class="font-bold text-emerald-600 text-lg">0</span> firmados</p>
+                        </div>
+                        <div class="text-center">
+                            <div class="w-20 h-20 rounded-full bg-gray-100 border-2 border-gray-200 flex items-center justify-center mx-auto">
+                                <span id="compromisos-pend" class="text-2xl font-black text-gray-400">0</span>
+                            </div>
+                            <p class="mt-3 text-sm font-medium text-gray-600">pendientes</p>
+                        </div>
+                    </div>
+                    <div class="w-full bg-gray-100 h-4 rounded-full shadow-inner overflow-hidden">
+                        <div id="compromisos-bar" class="bg-emerald-500 h-4 rounded-full transition-all duration-1000" style="width:0%"></div>
+                    </div>
+                </div>
+                <div class="stat-card bg-amber-50/30 border-amber-200 border-t-4 border-amber-400">
+                    <h3 class="font-extrabold text-amber-900 text-lg mb-4 border-b border-amber-200 pb-3"><i class="fas fa-user-clock text-amber-500 mr-2"></i> Adultos sin compromiso</h3>
+                    <div id="adultos-sin-compromiso" class="space-y-3 max-h-60 overflow-y-auto pr-2 custom-scroll"></div>
+                </div>
+            </div>
+        </div>
+
+        <div id="tab-jovenes" class="tab-content hidden">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6" id="jovenesKPI"></div>
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div class="stat-card border-t-4 border-indigo-500">
+                    <h3 class="font-extrabold text-indigo-900 text-lg mb-4 border-b border-gray-100 pb-3"><i class="fas fa-layer-group text-indigo-500 mr-2"></i> Censo de Jóvenes por Unidad</h3>
+                    <div id="unidades-grid" class="space-y-4 max-h-[500px] overflow-y-auto pr-2 custom-scroll"></div>
+                </div>
+                <div class="stat-card border-t-4 border-teal-500">
+                    <h3 class="font-extrabold text-teal-900 text-lg mb-4 border-b border-gray-100 pb-3"><i class="fas fa-route text-teal-500 mr-2"></i> Avance de progresión (Logros Activos)</h3>
+                    <div id="progresion-unidades" class="space-y-5 mt-2"></div>
+                </div>
+            </div>
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
+                <div class="stat-card bg-red-50/30 border-red-200 border-t-4 border-red-500">
+                    <h3 class="font-extrabold text-red-900 text-lg mb-4 border-b border-red-200 pb-3"><i class="fas fa-exclamation-triangle text-red-500 mr-2"></i> Alertas de progresión</h3>
+                    <div id="alertas-progresion" class="space-y-3 max-h-80 overflow-y-auto pr-2 custom-scroll"></div>
+                </div>
+                <div class="flex flex-col gap-6">
+                    <div class="stat-card !py-5 border-t-4 border-yellow-400">
+                        <h3 class="font-extrabold text-yellow-900 text-base mb-3 border-b border-gray-100 pb-2"><i class="fas fa-medal text-yellow-500 mr-2"></i> Especialidades</h3>
+                        <div id="especialidades-resumen" class="space-y-3 text-sm"></div>
+                    </div>
+                    <div class="stat-card !py-5 border-l-4 border-l-orange-400 bg-orange-50/30">
+                        <h4 class="font-extrabold text-orange-900 text-sm mb-3 border-b border-orange-200 pb-2"><i class="fas fa-envelope text-orange-500 mr-2"></i> Jóvenes sin correo institucional</h4>
+                        <div id="jovenes-sin-correo" class="space-y-2 max-h-40 overflow-y-auto pr-2 custom-scroll"></div>
+                    </div>
+                    <div class="stat-card !py-5 border-l-4 border-l-gray-400 bg-gray-50">
+                        <h4 class="font-extrabold text-gray-800 text-sm mb-3 border-b border-gray-200 pb-2"><i class="fas fa-file-excel text-gray-500 mr-2"></i> Jóvenes sin documento de progresión</h4>
+                        <div id="jovenes-sin-progresion" class="space-y-2 max-h-40 overflow-y-auto pr-2 custom-scroll"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div> <!-- FIN APP DASHBOARD -->
+
+    <!-- ================= CUERPO PROPIO DE IMPRESIÓN (OCULTO EN PANTALLA) ================= -->
+    <div id="print-report" class="hidden text-black font-sans bg-white p-4">
+        <!-- Se llena dinámicamente con JavaScript -->
+    </div>
+
+    <script src="dashboard/js/00_constantes_y_nucleo.js"></script>
+    <script src="dashboard/js/01_navegacion_y_utilidades.js"></script>
+    <script src="dashboard/js/02_carga_de_datos.js"></script>
+    <script src="dashboard/js/03_vistas_paneles.js"></script>
+    <script src="dashboard/js/04_version_movil.js"></script>
+<script>if('serviceWorker' in navigator){navigator.serviceWorker.register('/sw.js').catch(function(){});}</script>
+<script src="google-api-helper.js"></script>
+<script src="google-ui.js"></script>
+</body>
+</html>

@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <script src="auth-guard.js"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ERP Scout - Módulo de Adultos Voluntarios</title>
+    <!-- Tailwind CSS (CDN para desarrollo, reemplazar en producción) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts: Poppins -->
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <!-- Supabase JS -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="permisos.js"></script>
+<script src="drive-helper.js"></script>
+<script src="certificados.js"></script>
+    <!-- EmailJS SDK -->
+    
+<link rel="stylesheet" href="adulto_voluntario/css/adultos.css">
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#0E2586">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="ERP Scout">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.2/cropper.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.2/cropper.min.js"></script>
+<link rel="stylesheet" href="adulto_voluntario/css/cropper-extra.css">
+    <link rel="stylesheet" href="mobile.css">
+</head>
+<body>
+
+<!-- MODAL EDITOR DE FOTO (Adultos) -->
+<div id="modal-editor-foto-adulto">
+    <div class="foto-editor-box">
+        <div class="foto-editor-header">
+            <h3><i class="fas fa-crop-alt mr-2"></i> Editar Foto de Perfil</h3>
+            <button onclick="window.cerrarEditorFotoAdulto()" style="background:rgba(255,255,255,0.15);border:none;color:white;width:32px;height:32px;border-radius:50%;cursor:pointer;font-size:1rem;">✕</button>
+        </div>
+        <div class="foto-editor-area">
+            <div class="img-container">
+                <img id="foto-crop-img-adulto" src="" alt="Foto">
+            </div>
+        </div>
+        <div class="foto-aspect-row">
+            <button class="aspect-btn-a active" onclick="window.setAspectoAdulto(1,this)">⬤ Círculo (1:1)</button>
+            <button class="aspect-btn-a" onclick="window.setAspectoAdulto(4/3,this)">📷 4:3</button>
+            <button class="aspect-btn-a" onclick="window.setAspectoAdulto(NaN,this)">✂️ Libre</button>
+        </div>
+        <div class="foto-editor-controls">
+            <button class="foto-ctrl-btn" onclick="window.rotarImagenRealAdulto(-90)"><i class="fas fa-undo"></i> -90°</button>
+            <button class="foto-ctrl-btn" onclick="window.rotarImagenRealAdulto(90)"><i class="fas fa-redo"></i> +90°</button>
+            <button class="foto-ctrl-btn" onclick="window.cropperAdulto.scaleX(-(window.cropperAdulto.getData().scaleX||1))"><i class="fas fa-arrows-alt-h"></i> Voltear</button>
+            <button class="foto-ctrl-btn" onclick="window.cropperAdulto.zoom(0.1)"><i class="fas fa-search-plus"></i> Zoom+</button>
+            <button class="foto-ctrl-btn" onclick="window.cropperAdulto.zoom(-0.1)"><i class="fas fa-search-minus"></i> Zoom-</button>
+            <button class="foto-ctrl-btn" onclick="window.cropperAdulto.reset()"><i class="fas fa-sync"></i> Reset</button>
+            <button class="foto-ctrl-btn primary" onclick="window.confirmarFotoAdulto()"><i class="fas fa-check"></i> Guardar Foto</button>
+        </div>
+    </div>
+</div>
+
+    <div style="background: linear-gradient(135deg, var(--azul-profundo) 0%, #172554 100%); color: white; padding: 20px 30px; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 15px; margin-bottom: 25px; border-radius: 16px; box-shadow: 0 10px 25px -5px rgba(30, 58, 138, 0.3);">
+        <div style="display: flex; align-items: center; gap: 20px;">
+            <div class="bg-white/10 text-white w-14 h-14 rounded-xl flex items-center justify-center text-3xl shadow-inner border border-white/20 backdrop-blur-sm">
+                <i class="fas fa-user-tie"></i>
+            </div>
+            <div>
+                <h1 class="text-2xl font-extrabold leading-tight tracking-tight">Gestión de Adultos Voluntarios</h1>
+
+                <p class="text-xs font-semibold text-blue-200 uppercase tracking-widest mt-1">Control Institucional, Formación y Desempeño</p>
+            </div>
+        </div>
+        <div class="flex gap-3">
+            <button class="btn-modern bg-emerald-600/20 hover:bg-emerald-600/40 border-emerald-400/30 text-emerald-50 shadow-sm" onclick="window.mostrarNotificacion('info', 'Módulo de inscripción externa activo en la web pública.')">
+                <i class="fas fa-user-plus"></i> Nuevo Ingreso
+            </button>
+        </div>
+    </div>
+
+    <div class="programa-layout">
+        <div class="adult-list-panel">
+            <div class="adult-list-header">
+                <h3><i class="fas fa-address-book mr-2"></i> Padrón de Dirigentes</h3>
+                <div class="search-wrapper">
+                    <i class="fas fa-search"></i>
+                    <input type="text" id="search-adult" placeholder="Buscar dirigente o unidad..." onkeyup="window.filterAdultList()">
+                </div>
+                <div style="margin-top:6px;"><button id="btn-toggle-inactivos-adultos" onclick="window.toggleInactivosAdultos()" style="font-size:0.68rem;font-weight:700;padding:3px 10px;border-radius:6px;border:1px solid #e2e8f0;background:white;color:#64748b;cursor:pointer;transition:all 0.2s;"><i class="fas fa-eye"></i> Ver inactivos</button></div>
+                <div class="adult-filter-tags" id="filter-tags">
+                    <span class="adult-tag active" style="background: var(--texto-oscuro);" onclick="window.filterByFormacion('Todos', this)">Todos</span>
+                    <span class="adult-tag" style="background: #3b82f6;" onclick="window.filterByFormacion('Básico', this)">Básico</span>
+                    <span class="adult-tag" style="background: #8b5cf6;" onclick="window.filterByFormacion('Medio', this)">Medio</span>
+                    <span class="adult-tag" style="background: #10b981;" onclick="window.filterByFormacion('Avanzado', this)">Avanzado</span>
+                    <span class="adult-tag" style="background: #f59e0b;" onclick="window.filterByFormacion('IM3', this)">IM3</span>
+                    <span class="adult-tag" style="background: #ef4444;" onclick="window.filterByFormacion('IM4', this)">IM4</span>
+                </div>
+            </div>
+            <ul class="adult-list" id="adult-ul-list"></ul>
+        </div>
+
+        <div class="adult-profile-panel" id="adult-profile-view">
+            <div style="display:flex; height:100%; justify-content:center; align-items:center; flex-direction:column; color:var(--texto-claro); background:white;">
+                <div class="bg-slate-50 p-12 rounded-full mb-8 border-4 border-dashed border-slate-200 transition-all hover:scale-105 hover:bg-blue-50 hover:border-blue-200 hover:text-blue-500">
+                    <i class="fas fa-id-badge text-7xl text-slate-300"></i>
+                </div>
+                <h2 class="text-2xl font-extrabold text-slate-800 mb-3">Seleccione un Expediente</h2>
+                <p class="text-center text-sm font-medium text-slate-500 max-w-md leading-relaxed">Consulte el Plan Personal de Formación (PPF), Acuerdos Oficiales, Gestión del Desempeño, VCM y Ficha Médica del dirigente.</p>
+            </div>
+        </div>
+    </div>
+
+    <div id="modal-editar-adulto" class="modal-overlay">
+        <div class="modal-box">
+            <div class="modal-header">
+                <div class="flex items-center gap-4">
+                    <div class="w-12 h-12 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 text-xl"><i class="fas fa-user-edit"></i></div>
+                    <div>
+                        <h3 style="margin:0; padding:0; border:none; font-size:1.5rem; font-weight:800; color:var(--texto-oscuro);">Edición Integral</h3>
+                        <p class="text-xs text-slate-500 mt-1 font-semibold uppercase tracking-wide">Actualización de Expediente y PPF</p>
+                    </div>
+                </div>
+                <button onclick="window.cerrarModalEditarAdulto()" class="text-slate-400 hover:text-red-500 hover:bg-red-50 text-xl outline-none transition w-10 h-10 rounded-full flex justify-center items-center"><i class="fas fa-times"></i></button>
+            </div>
+            
+            <div class="modal-tabs-container">
+                <button class="px-6 py-4 font-bold text-sm text-indigo-600 border-b-4 border-indigo-600 outline-none edit-tab-btn transition uppercase tracking-wide bg-white" onclick="window.switchModalTab('edit-civil', this)"><i class="fas fa-address-card mr-2"></i> Civil y Médico</button>
+                <button class="px-6 py-4 font-bold text-sm text-slate-500 hover:text-indigo-600 outline-none edit-tab-btn transition uppercase tracking-wide bg-transparent" onclick="window.switchModalTab('edit-ppf', this)"><i class="fas fa-tasks mr-2"></i> Formación PPF</button>
+                <button class="px-6 py-4 font-bold text-sm text-slate-500 hover:text-indigo-600 outline-none edit-tab-btn transition uppercase tracking-wide bg-transparent" onclick="window.switchModalTab('edit-desempeno', this)"><i class="fas fa-chart-line mr-2"></i> Gestión Desempeño</button>
+            </div>
+
+            <div class="modal-body" id="modal-edit-adult-content"></div>
+            
+            <div class="modal-footer">
+                <button onclick="window.cerrarModalEditarAdulto()" class="btn btn-outline py-2.5 px-6 bg-white font-bold">Descartar</button>
+                <button onclick="window.guardarEdicionAdulto(event)" class="btn btn-success py-2.5 px-8 shadow-lg text-base"><i class="fas fa-cloud-upload-alt mr-2"></i> Guardar Cambios en BD</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="toast-container" class="toast-container"></div>
+
+    <script src="adulto_voluntario/js/00_diccionario_competencias.js"></script>
+    <script src="adulto_voluntario/js/01_nucleo_y_config.js"></script>
+    <script src="adulto_voluntario/js/02_estado_y_utilidades.js"></script>
+    <script src="adulto_voluntario/js/03_certificados_y_drive.js"></script>
+    <script src="adulto_voluntario/js/04_competencias_ui.js"></script>
+    <script src="adulto_voluntario/js/05_padron_y_carga.js"></script>
+    <script src="adulto_voluntario/js/06_tabs_y_asesorados.js"></script>
+    <script src="adulto_voluntario/js/07_perfil_y_steppers.js"></script>
+    <script src="adulto_voluntario/js/08_fotos_y_cropper.js"></script>
+    <script src="adulto_voluntario/js/09_edicion_ficha_ppf.js"></script>
+    <script src="adulto_voluntario/js/10_guardar_edicion.js"></script>
+    <script src="adulto_voluntario/js/11_expediente_documental.js"></script>
+    <script src="adulto_voluntario/js/12_inicializacion.js"></script>
+<script>if('serviceWorker' in navigator){navigator.serviceWorker.register('/sw.js').catch(function(){});}</script>
+<script src="google-api-helper.js"></script>
+<script src="google-ui.js"></script>
+
+
+
+<!-- ── Maestro-detalle móvil: Adultos v4 ── -->
+<script>
+(function(){
+  if(window.innerWidth > 768) return;
+
+  var listPanel, profilePanel;
+
+  function btnVolver(){
+    var b = document.createElement('button');
+    b.innerHTML = '<i class="fas fa-arrow-left" style="margin-right:8px"></i>Volver al listado';
+    b.style.cssText = 'display:flex;align-items:center;position:sticky;top:0;z-index:50;background:#0E2586;color:white;border:none;padding:13px 16px;width:100%;font-size:0.92rem;font-weight:700;cursor:pointer;font-family:inherit;min-height:50px;';
+    b.onclick = function(){
+      profilePanel.style.display = 'none';
+      listPanel.style.display = '';
+      window.scrollTo(0,0);
+    };
+    return b;
+  }
+
+  function mostrar(){
+    listPanel.style.display = 'none';
+    profilePanel.style.display = 'block';
+    profilePanel.style.width = '100%';
+    if(!profilePanel.querySelector('.erp-btn-volver-av')){
+      var b = btnVolver();
+      b.className = 'erp-btn-volver-av';
+      profilePanel.insertBefore(b, profilePanel.firstChild);
+    }
+    profilePanel.scrollTop = 0;
+    window.scrollTo(0,0);
+  }
+
+  function init(){
+    listPanel    = document.querySelector('.adult-list-panel');
+    profilePanel = document.getElementById('adult-profile-view');
+    if(!listPanel||!profilePanel){ setTimeout(init,400); return; }
+
+    profilePanel.style.display = 'none';
+
+    // Envolver window.renderAdultProfile
+    var tryWrap = function(){
+      if(typeof window.renderAdultProfile==='function' && !window.renderAdultProfile._mjv4){
+        var orig = window.renderAdultProfile;
+        window.renderAdultProfile = function(a){
+          orig.call(this, a);
+          mostrar();
+        };
+        window.renderAdultProfile._mjv4 = true;
+        return true;
+      }
+      return false;
+    };
+    if(!tryWrap()){
+      var iv = setInterval(function(){ if(tryWrap()) clearInterval(iv); },300);
+      setTimeout(function(){ clearInterval(iv); },5000);
+    }
+
+    document.getElementById('adult-ul-list').addEventListener('click', function(e){
+      if(!e.target.closest('.adult-list-item')) return;
+      setTimeout(mostrar, 300);
+    });
+
+    window.addEventListener('popstate', function(){
+      if(profilePanel.style.display !== 'none'){
+        profilePanel.style.display = 'none';
+        listPanel.style.display = '';
+        window.scrollTo(0,0);
+      }
+    });
+  }
+
+  setTimeout(init, 200);
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,38 @@
+{
+ "origen": "/home/claude/erp_upload/erp_full/directorio.html",
+ "destino": "/home/claude/plataforma_v2",
+ "pagina": "directorio.html",
+ "carpeta": "directorio",
+ "scriptInicio": "    <script>\n",
+ "scriptFin": "\n    </script>",
+ "scriptOcurrencia": 1,
+ "estilos": [
+  {
+   "inicio": "    <style>\n",
+   "fin": "    </style>",
+   "archivo": "directorio.css"
+  }
+ ],
+ "grupos": [
+  {
+   "desde": 0,
+   "nombre": "nucleo_y_constantes"
+  },
+  {
+   "desde": 9,
+   "nombre": "estado_y_utilidades"
+  },
+  {
+   "desde": 18,
+   "nombre": "carga_y_tabla"
+  },
+  {
+   "desde": 27,
+   "nombre": "acciones_masivas"
+  },
+  {
+   "desde": 36,
+   "nombre": "filtros_e_inicio"
+  }
+ ]
+}

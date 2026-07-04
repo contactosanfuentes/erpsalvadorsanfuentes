@@ -1,0 +1,27 @@
+const SUPABASE_URL='https://hyixmaxhoxvamoecuars.supabase.co';
+const SUPABASE_ANON_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imh5aXhtYXhob3h2YW1vZWN1YXJzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI3OTg1NDMsImV4cCI6MjA4ODM3NDU0M30.ZLeJIWdip2f00h4TqkZH7eqMX4wpwphaqkJpAa0N0X4';
+const sb=supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
+let currentJoven=null,camino=null;
+let mpResponsables={},mpParticipantes=[],mpEvidencias=[];
+const AREAS_RESP=['Coordinador General','Finanzas / Tesorería','Logística y Equipos','Comunicaciones y RRPP','Programa y Actividades','Gestión de Riesgos','Salud y Primeros Auxilios','Operaciones'];
+function areaKey(a){return a.replace(/[^a-zA-Z0-9]/g,'');}
+
+function toast(m,t='ok'){const el=document.getElementById('toast');el.textContent=m;el.className='toast '+t;el.style.display='block';setTimeout(()=>el.style.display='none',3500)}
+function esc(s){const d=document.createElement('div');d.textContent=s||'';return d.innerHTML}
+function formatRut(v){return v.replace(/[\.\-\s]/g,'').trim().toUpperCase()}
+
+document.getElementById('input-rut').addEventListener('keyup',e=>{if(e.key==='Enter')document.getElementById('input-clave').focus()});
+document.getElementById('input-clave').addEventListener('keyup',e=>{if(e.key==='Enter')verificarAcceso()});
+
+// ══════════ AUTH ══════════
+async function verificarAcceso(){
+const rut=formatRut(document.getElementById('input-rut').value),clave=document.getElementById('input-clave').value.trim(),err=document.getElementById('error-box');
+err.style.display='none';if(!rut||!clave){err.textContent='Ingresa tu RUT y clave.';err.style.display='block';return}
+document.getElementById('btn-ingresar').disabled=true;
+try{const{data,error}=await sb.from('mmbb_registrations').select('*').ilike('run',rut).limit(1);if(error)throw error;if(!data||!data.length){err.textContent='RUT no encontrado.';err.style.display='block';return}
+const j=data[0];const rutD=rut.replace(/[^0-9]/g,'');if(clave!==(j.portal_clave||rutD.slice(-4))){err.textContent='Clave incorrecta.';err.style.display='block';return}
+currentJoven=j;const{data:pg}=await sb.from('progresion_jovenes').select('*').eq('joven_id',j.id).maybeSingle();
+if(pg){camino=pg.camino||{}}else{camino={};await sb.from('progresion_jovenes').insert({joven_id:j.id,camino})}
+if(!camino.proyectoPersonal)camino.proyectoPersonal='';if(!camino.adjuntos_manifiesto)camino.adjuntos_manifiesto=[];if(!camino.proyectos_colectivos)camino.proyectos_colectivos=[];
+mostrarPortal()}catch(e){err.textContent='Error: '+e.message;err.style.display='block'}finally{document.getElementById('btn-ingresar').disabled=false}}
+

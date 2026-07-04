@@ -1,0 +1,46 @@
+{
+ "origen": "/home/claude/erp_upload/erp_full/gestion_usuarios.html",
+ "destino": "/home/claude/plataforma_v2",
+ "pagina": "gestion_usuarios.html",
+ "carpeta": "usuarios",
+ "scriptInicio": "<script>\n",
+ "scriptFin": "\n</script>",
+ "scriptOcurrencia": 1,
+ "estilos": [
+  {
+   "inicio": "  <style>\n",
+   "fin": "  </style>",
+   "archivo": "usuarios.css"
+  }
+ ],
+ "grupos": [
+  {
+   "desde": 0,
+   "nombre": "nucleo_y_config"
+  },
+  {
+   "desde": 7,
+   "nombre": "carga_y_render"
+  },
+  {
+   "desde": 16,
+   "nombre": "permisos_y_roles"
+  },
+  {
+   "desde": 22,
+   "nombre": "cuentas_usuarios"
+  },
+  {
+   "desde": 29,
+   "nombre": "workspace"
+  },
+  {
+   "desde": 33,
+   "nombre": "asesorados"
+  },
+  {
+   "desde": 38,
+   "nombre": "inicializacion"
+  }
+ ]
+}

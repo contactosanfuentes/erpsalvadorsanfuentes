@@ -1,0 +1,13 @@
+{
+ "destino": "/home/claude/plataforma_v2",
+ "carpeta": "checkin",
+ "pagina": "checkin_qr.html",
+ "tagViejo": "<script src=\"checkin/js/00_app.js\"></script>",
+ "grupos": [
+  {
+   "desde": 0,
+   "nombre": "nucleo_y_estado"
+  }
+ ],
+ "wrapDesde": 11
+}

@@ -1,0 +1,37 @@
+{
+ "destino": "/home/claude/plataforma_v2",
+ "carpeta": "inscripcion",
+ "pagina": "inscripcion_publica.html",
+ "tagViejo": "<script src=\"inscripcion/js/00_app.js\"></script>",
+ "grupos": [
+  {
+   "desde": 0,
+   "nombre": "nucleo_y_estado"
+  },
+  {
+   "desde": 11,
+   "nombre": "fotos"
+  },
+  {
+   "desde": 20,
+   "nombre": "fichas_adjuntas"
+  },
+  {
+   "desde": 25,
+   "nombre": "datos_estructurados"
+  },
+  {
+   "desde": 29,
+   "nombre": "eventos_y_tipo"
+  },
+  {
+   "desde": 32,
+   "nombre": "inscripciones"
+  },
+  {
+   "desde": 35,
+   "nombre": "email_y_ui"
+  }
+ ],
+ "wrapDesde": 41
+}

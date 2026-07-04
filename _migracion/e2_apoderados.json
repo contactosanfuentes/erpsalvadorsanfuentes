@@ -1,0 +1,17 @@
+{
+ "destino": "/home/claude/plataforma_v2",
+ "carpeta": "apoderados",
+ "pagina": "portal_apoderados.html",
+ "tagViejo": "<script src=\"apoderados/js/00_app.js\"></script>",
+ "grupos": [
+  {
+   "desde": 0,
+   "nombre": "nucleo_y_constantes"
+  },
+  {
+   "desde": 5,
+   "nombre": "busqueda_y_render"
+  }
+ ],
+ "wrapDesde": null
+}

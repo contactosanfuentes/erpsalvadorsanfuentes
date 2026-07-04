@@ -1,0 +1,41 @@
+{
+ "destino": "/home/claude/plataforma_v2",
+ "carpeta": "comunicaciones",
+ "pagina": "comunicaciones.html",
+ "tagViejo": "<script src=\"comunicaciones/js/00_app.js\"></script>",
+ "grupos": [
+  {
+   "desde": 0,
+   "nombre": "nucleo_y_acceso"
+  },
+  {
+   "desde": 7,
+   "nombre": "estado"
+  },
+  {
+   "desde": 9,
+   "nombre": "destinatarios_y_editor"
+  },
+  {
+   "desde": 17,
+   "nombre": "imagenes_y_adjuntos"
+  },
+  {
+   "desde": 23,
+   "nombre": "envio_email_e_historial"
+  },
+  {
+   "desde": 26,
+   "nombre": "config_whatsapp"
+  },
+  {
+   "desde": 31,
+   "nombre": "envio_whatsapp"
+  },
+  {
+   "desde": 38,
+   "nombre": "whatsapp_individual"
+  }
+ ],
+ "wrapDesde": 56
+}

@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <script src="auth-guard.js"></script>
+    <script src="permisos.js"></script>
+<script>
+(async function(){
+  // Esperar _sbClient + que Permisos se inicialice (auth-guard lo hace)
+  await new Promise(r=>{
+    const t=setInterval(()=>{if(window.Permisos&&Permisos.listo()){clearInterval(t);r();}},80);
+    setTimeout(()=>{clearInterval(t);r();},10000);
+  });
+  // Fallback: init manual si auth-guard no lo hizo
+  if(window.Permisos&&!Permisos.listo()&&window._sbClient){
+    await Permisos.init(window._sbClient);
+  }
+  if(window.Permisos&&Permisos.listo()&&!Permisos.puede('eventos')){
+    document.body.innerHTML='<div style="display:flex;align-items:center;justify-content:center;height:100vh;flex-direction:column;gap:14px;font-family:Arial;background:#f8fafc;"><div style="font-size:48px;">🔒</div><h2 style="color:#001558;margin:0;">Acceso restringido</h2><p style="color:#64748b;margin:0;">No tienes permiso para este módulo.</p></div>';
+  }
+})();
+</script>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Planificador de Reuniones — ERP Scout</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- FullCalendar v6 — cargado lazy en primera apertura de vista calendario -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<link rel="stylesheet" href="planificador/css/planificador.css">
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#0E2586">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="ERP Scout">
+    <link rel="stylesheet" href="mobile.css">
+</head>
+<body>
+
+<div class="topbar">
+    <i class="fas fa-clipboard-list" style="font-size:1.3rem;color:var(--amarillo)"></i>
+    <h1>Reuniones & Calendario</h1>
+    <button onclick="window._plAbrirFormNueva()" style="margin-left:auto;background:rgba(255,255,255,.18);color:white;border:1.5px solid rgba(255,255,255,.4);padding:7px 15px;border-radius:9px;font-size:0.82rem;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:6px;font-family:inherit;">
+        <i class="fas fa-plus"></i> Nueva Reunión
+    </button>
+</div>
+
+<!-- ══ VISTA CALENDARIO ══ -->
+<div id="splitLayout">
+<div><!-- col izquierda: calendario -->
+<div id="vistaCal">
+    <div class="cal-legend">
+        <span style="font-weight:700;color:#0E2586;margin-right:4px;">Leyenda:</span>
+        <span class="cal-leg-item"><span class="cal-dot" style="background:#0E2586"></span> Reuniones del grupo</span>
+        <span class="cal-leg-item"><span class="cal-dot" style="background:#d97706"></span> Google Calendar</span>
+        <span class="cal-leg-item"><span class="cal-dot" style="background:#16a34a"></span> Eventos/Campamentos</span>
+        <button onclick="recargarCalendario()" style="margin-left:auto;background:none;border:1px solid #e2e8f0;border-radius:6px;padding:3px 10px;font-size:.75rem;color:#64748b;cursor:pointer;display:flex;align-items:center;gap:4px"><i class="fas fa-sync-alt"></i> Actualizar</button>
+    </div>
+    <div id="fcWrapper"><div id="fcEl"></div></div>
+</div>
+</div><!-- fin col izquierda -->
+
+<!-- Panel lateral derecho -->
+<div id="panelLateral">
+    <div id="pl-header">
+        <div>
+            <div class="pl-title" id="pl-title-txt"><i class="fas fa-calendar-day" style="margin-right:5px;color:#0E2586"></i>Reuniones & Calendario</div>
+            <div class="pl-sub" id="pl-sub-txt">Selecciona una fecha o reunión del calendario</div>
+        </div>
+        <div class="pl-resize-btns">
+            <button class="pl-resize-btn" onclick="window._plResize(-80)" title="Reducir panel">‹</button>
+            <button class="pl-resize-btn" onclick="window._plResize(80)" title="Ampliar panel">›</button>
+        </div>
+        <button onclick="document.getElementById('panelLateral').classList.remove('activo')" style="background:none;border:none;cursor:pointer;color:#94a3b8;font-size:1rem;display:none" id="pl-cerrar-movil">✕</button>
+    </div>
+    <div id="pl-body">
+        <div id="pl-empty">
+            <i class="fas fa-calendar-alt"></i>
+            <p style="font-size:0.85rem;line-height:1.6">Haz clic en una fecha para ver<br>las reuniones de ese día</p>
+        </div>
+    </div>
+</div>
+</div><!-- fin splitLayout -->
+
+<!-- Vista lista: oculta, sirve de backend para CRUD -->
+<div class="layout" id="vistaLista">
+    <!-- COLUMNA IZQUIERDA -->
+    <div>
+        <div class="card" style="margin-bottom:14px">
+            <h2><i class="fas fa-plus-circle"></i> Nueva reunión</h2>
+            <div class="fg"><label>Título</label><input type="text" id="nTitulo" placeholder="Ej: Reunión Tropa — Sábado"></div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:9px">
+                <div class="fg"><label>Unidad</label>
+                    <select id="nUnidad">
+                        <option value="Grupo">Grupo (todas)</option>
+                        <option value="Manada">Manada</option>
+                        <option value="Tropa">Tropa</option>
+                        <option value="Compañía">Compañía</option>
+                        <option value="Avanzada">Avanzada</option>
+                        <option value="Clan">Clan</option>
+                        <option value="Dirigentes">Dirigentes</option>
+                    </select>
+                </div>
+                <div class="fg"><label>Fecha</label><input type="date" id="nFecha"></div>
+                <div class="fg"><label>Hora inicio</label><input type="time" id="nHoraI" value="09:00"></div>
+                <div class="fg"><label>Hora fin</label><input type="time" id="nHoraF" value="12:00"></div>
+            </div>
+            <div class="fg"><label>Lugar</label><input type="text" id="nLugar" placeholder="Sede, Plaza, Camping..."></div>
+            <div class="fg"><label>Objetivo</label><textarea id="nObjetivo" placeholder="¿Qué se espera lograr?"></textarea></div>
+            <button class="btn btn-p btn-full" onclick="crearReunion()"><i class="fas fa-save"></i> Guardar reunión</button>
+        </div>
+
+        <div class="card">
+            <h2><i class="fas fa-list"></i> Reuniones</h2>
+            <div class="filter-bar">
+                <select id="filtroUnidadR" onchange="cargarReuniones()">
+                    <option value="">Todas las unidades</option>
+                    <option value="Grupo">Grupo</option>
+                    <option value="Manada">Manada</option>
+                    <option value="Tropa">Tropa</option>
+                    <option value="Compañía">Compañía</option>
+                    <option value="Avanzada">Avanzada</option>
+                    <option value="Clan">Clan</option>
+                    <option value="Dirigentes">Dirigentes</option>
+                </select>
+                <select id="filtroEstado" onchange="cargarReuniones()">
+                    <option value="">Todos los estados</option>
+                    <option value="planificada">Planificadas</option>
+                    <option value="realizada">Realizadas</option>
+                    <option value="cancelada">Canceladas</option>
+                </select>
+            </div>
+            <div id="listaReuniones"><div class="empty"><i class="fas fa-circle-notch fa-spin"></i>Cargando...</div></div>
+        </div>
+    </div>
+
+    <!-- COLUMNA DERECHA: detalle -->
+    <div>
+        <div class="card" id="bienvenida">
+            <div class="welcome-box">
+                <i class="fas fa-clipboard-list"></i>
+                <p>Selecciona una reunión para ver su detalle<br>o crea una nueva desde el panel izquierdo.</p>
+            </div>
+        </div>
+        <div id="panelDetalle" style="display:none">
+            <div class="card" style="padding:0;overflow:hidden">
+                <div class="det-header">
+                    <h2 id="detTitulo">—</h2>
+                    <div class="det-meta">
+                        <span id="detFecha"><i class="far fa-calendar"></i>—</span>
+                        <span id="detHora"><i class="far fa-clock"></i>—</span>
+                        <span id="detLugar"><i class="fas fa-map-marker-alt"></i>—</span>
+                        <span id="detUnidad"><i class="fas fa-users"></i>—</span>
+                    </div>
+                    <div style="margin-top:10px;display:flex;gap:7px;flex-wrap:wrap">
+                        <button onclick="sincronizarGoogleCalendar()" id="btnSyncGC" style="background:#34a853;color:white;border:none;padding:6px 12px;border-radius:6px;font-size:0.78rem;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:5px" title="Sincroniza la reunión con el calendario del grupo"><i class="fab fa-google"></i> Sincronizar con Google Calendar</button>
+                        <button onclick="abrirEnGoogleCalendar()" style="background:#4285F4;color:white;border:none;padding:6px 12px;border-radius:6px;font-size:0.78rem;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:5px" title="Abre Google Calendar con el evento pre-llenado"><i class="far fa-calendar-plus"></i> Abrir en Google Calendar</button>
+                        <button onclick="descargarICS()" style="background:rgba(255,255,255,0.2);color:white;border:1px solid rgba(255,255,255,0.35);padding:6px 12px;border-radius:6px;font-size:0.78rem;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:5px" title="Archivo .ics compatible con Outlook, Apple Calendar"><i class="fas fa-download"></i> .ics</button>
+                        <a id="btnVerActa" href="#" target="_blank" style="display:none;background:rgba(255,255,255,0.15);color:white;border:1px solid rgba(255,255,255,0.4);padding:6px 12px;border-radius:6px;font-size:0.78rem;font-weight:600;text-decoration:none;align-items:center;gap:5px"><i class="fas fa-file-alt"></i> Ver Acta</a>
+                    </div>
+                </div>
+
+                <div style="padding:18px 20px">
+                    <div class="tabs">
+                        <button class="tab act" onclick="cambiarTab('programa',this)"><i class="fas fa-list-ol"></i> Programa</button>
+                        <button class="tab" onclick="cambiarTab('objetivo',this)"><i class="fas fa-bullseye"></i> Objetivo / Notas</button>
+                        <button class="tab" onclick="cambiarTab('invitados',this)"><i class="fas fa-envelope"></i> Invitados</button>
+                        <button class="tab" onclick="cambiarTab('estado',this)"><i class="fas fa-check-circle"></i> Estado</button>
+                    </div>
+
+                    <div class="panel vis" id="tProg">
+                        <h2 style="font-size:0.92rem;font-weight:600;color:var(--azul-profundo);margin-bottom:12px;display:flex;align-items:center;gap:6px"><i class="fas fa-list-ol"></i> Programa de actividades</h2>
+                        <div class="act-timeline" id="actTimeline"></div>
+                        <div class="add-act-form">
+                            <h4><i class="fas fa-plus"></i> Agregar actividad</h4>
+                            <div class="form-row-act">
+                                <div class="fg"><label>Hora</label><input type="time" id="actHora" value="09:00"></div>
+                                <div class="fg"><label>Tipo</label>
+                                    <select id="actTipo"><option value="apertura">Apertura</option><option value="desarrollo">Desarrollo</option><option value="cierre">Cierre</option><option value="otro">Otro</option></select>
+                                </div>
+                            </div>
+                            <div class="fg"><label>Actividad</label><input type="text" id="actNombre" placeholder="Ej: Juego de confianza, Técnica de primeros auxilios..."></div>
+                            <div class="fg" style="margin-bottom:10px"><label>Descripción</label><input type="text" id="actDesc" placeholder="Opcional"></div>
+                            <button class="btn btn-v btn-sm" onclick="agregarActividad()"><i class="fas fa-plus"></i> Agregar</button>
+                        </div>
+                    </div>
+
+                    <div class="panel" id="tObjetivo">
+                        <div class="fg"><label>Objetivo de la reunión</label><textarea id="editObjetivo" rows="4"></textarea></div>
+                        <div class="fg"><label>Notas</label><textarea id="editNotas" rows="4" placeholder="Anotaciones, acuerdos, pendientes..."></textarea></div>
+                        <button class="btn btn-p btn-sm" onclick="guardarObjetivo()"><i class="fas fa-save"></i> Guardar</button>
+                    </div>
+
+                    <div class="panel" id="tInvitados">
+                        <h2 style="font-size:0.92rem;font-weight:600;color:var(--azul-profundo);margin-bottom:12px;display:flex;align-items:center;gap:6px"><i class="fas fa-envelope"></i> Invitados a la reunión</h2>
+                        <p style="font-size:0.8rem;color:var(--texto-claro);margin-bottom:12px">Selecciona los miembros. Al sincronizar con Google Calendar recibirán la invitación por email.</p>
+
+                        <div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap">
+                            <input type="text" id="filtroInvitados" placeholder="🔎 Filtrar por nombre o email..." oninput="filtrarInvitados()" style="flex:1;min-width:160px;padding:7px 11px;border:2px solid var(--gris-claro);border-radius:7px;font-size:0.85rem;font-family:inherit;outline:none">
+                            <select id="filtroTipoInvitado" onchange="filtrarInvitados()" style="padding:7px 10px;border:2px solid var(--gris-claro);border-radius:7px;font-size:0.82rem;background:white">
+                                <option value="">Todos</option>
+                                <option value="adultos">Adultos / Dirigentes</option>
+                                <option value="apoderados">Apoderados (jóvenes)</option>
+                            </select>
+                            <button class="btn btn-sm" style="background:#f1f5f9;color:var(--texto-oscuro);border:1px solid var(--gris-claro)" onclick="toggleSelTodos()"><i class="fas fa-check-double"></i> Sel/Deseleccionar</button>
+                        </div>
+
+                        <div id="listaInvitables" style="max-height:320px;overflow-y:auto;border:1px solid var(--gris-claro);border-radius:9px;background:white">
+                            <div style="padding:22px;text-align:center;color:var(--texto-claro);font-size:0.85rem"><i class="fas fa-circle-notch fa-spin"></i> Cargando miembros...</div>
+                        </div>
+
+                        <div style="display:flex;justify-content:space-between;align-items:center;margin-top:12px;padding-top:10px;border-top:1px solid var(--gris-claro)">
+                            <span style="font-size:0.82rem;color:var(--texto-claro)" id="resumenInvitados">0 seleccionados</span>
+                            <button class="btn btn-p btn-sm" onclick="guardarInvitados()"><i class="fas fa-save"></i> Guardar invitados</button>
+                        </div>
+
+                        <div id="invitadosCustomBox" style="margin-top:14px;padding-top:10px;border-top:1px dashed var(--gris-claro)">
+                            <label style="font-size:0.82rem;font-weight:600;color:var(--azul-profundo);margin-bottom:6px;display:block"><i class="fas fa-plus-circle"></i> Agregar email adicional</label>
+                            <div style="display:flex;gap:7px">
+                                <input type="email" id="invitadoCustom" placeholder="correo@ejemplo.cl" style="flex:1;padding:7px 11px;border:2px solid var(--gris-claro);border-radius:7px;font-size:0.85rem;font-family:inherit;outline:none">
+                                <button class="btn btn-v btn-sm" onclick="agregarInvitadoCustom()"><i class="fas fa-plus"></i></button>
+                            </div>
+                            <div id="invitadosCustomLista" style="margin-top:8px;display:flex;flex-wrap:wrap;gap:5px"></div>
+                        </div>
+                    </div>
+
+                    <div class="panel" id="tEstado">
+                        <p style="font-size:0.85rem;color:var(--texto-claro);margin-bottom:14px">Actualiza el estado y registra cuántos asistentes participaron.</p>
+                        <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap">
+                            <button class="btn btn-sm" style="background:#dbeafe;color:#1e40af" onclick="cambiarEstado('planificada')"><i class="far fa-calendar"></i> Planificada</button>
+                            <button class="btn btn-v btn-sm" onclick="cambiarEstado('realizada')"><i class="fas fa-check"></i> Realizada</button>
+                            <button class="btn btn-r btn-sm" onclick="cambiarEstado('cancelada')"><i class="fas fa-times"></i> Cancelada</button>
+                        </div>
+                        <div class="fg"><label>Asistentes reales</label><input type="number" id="editAsistentes" min="0" placeholder="Nº de personas"></div>
+                        <button class="btn btn-p btn-sm" onclick="guardarAsistentes()"><i class="fas fa-save"></i> Guardar</button>
+
+                        <!-- Generar Acta -->
+                        <div style="margin-top:18px;padding-top:16px;border-top:1px solid var(--gris-claro)">
+                            <p style="font-size:0.82rem;font-weight:600;color:var(--azul-profundo);margin-bottom:8px"><i class="fas fa-file-alt" style="margin-right:5px"></i>Acta de Reunión</p>
+                            <div class="fg" style="margin-bottom:8px">
+                                <label style="font-size:0.78rem">Acuerdos / Compromisos (uno por línea)</label>
+                                <textarea id="actaAcuerdos" rows="4" placeholder="1. Traer materiales para la próxima reunión&#10;2. Coordinar con los apoderados&#10;3. ..."></textarea>
+                            </div>
+                            <div class="fg" style="margin-bottom:10px">
+                                <label style="font-size:0.78rem">Próxima reunión</label>
+                                <div style="display:grid;grid-template-columns:1fr 1fr;gap:7px">
+                                    <input type="date" id="actaProxFecha" style="padding:7px 10px;border:2px solid var(--gris-claro);border-radius:7px;font-family:inherit;font-size:0.82rem;outline:none">
+                                    <input type="text" id="actaProxLugar" placeholder="Lugar próxima reunión" style="padding:7px 10px;border:2px solid var(--gris-claro);border-radius:7px;font-family:inherit;font-size:0.82rem;outline:none">
+                                </div>
+                            </div>
+                            <button class="btn btn-sm" id="btnGenerarActa" onclick="generarActa()" style="background:linear-gradient(135deg,#1a3a8f,#0E2586);color:white;display:flex;align-items:center;gap:6px">
+                                <i class="fab fa-google"></i> Generar Acta en Google Docs
+                            </button>
+                        </div>
+
+                        <div style="margin-top:16px;padding-top:16px;border-top:1px solid var(--gris-claro)">
+                            <button class="btn btn-r btn-sm" onclick="eliminarReunion()"><i class="fas fa-trash"></i> Eliminar esta reunión</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+    <script src="planificador/js/00_nucleo_y_config.js"></script>
+    <script src="planificador/js/01_reuniones_crud.js"></script>
+    <script src="planificador/js/02_invitados.js"></script>
+    <script src="planificador/js/03_google_calendar.js"></script>
+    <script src="planificador/js/04_calendario_fullcalendar.js"></script>
+    <script src="planificador/js/05_acta_y_detalle.js"></script>
+    <script src="planificador/js/06_inicializacion.js"></script>
+<script>if('serviceWorker' in navigator){navigator.serviceWorker.register('/sw.js').catch(function(){});}</script>
+<script src="google-api-helper.js"></script>
+<script src="google-ui.js"></script>
+</body>
+</html>

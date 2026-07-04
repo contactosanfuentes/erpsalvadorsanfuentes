@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <script src="auth-guard.js"></script>
+    <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Inventario del Grupo — ERP Scout</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="drive-helper.js"></script>
+<script src="permisos.js"></script>
+<link rel="stylesheet" href="inventario/css/inventario.css">
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#0E2586">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="ERP Scout">
+    <link rel="stylesheet" href="mobile.css">
+</head>
+<body>
+
+<div class="topbar">
+    <i class="fas fa-boxes-stacked" style="font-size:1.3rem;color:var(--amarillo)"></i>
+    <h1>Inventario del Grupo</h1>
+
+    <button class="btn btn-p btn-sm" onclick="document.getElementById('modalNuevo').classList.add('show')"><i class="fas fa-plus"></i> Nuevo ítem</button>
+    <button class="btn btn-topbar btn-sm" onclick="exportarCSV()"><i class="fas fa-file-csv"></i> Exportar</button>
+    <button class="btn btn-topbar btn-sm" onclick="cargar()" title="Actualizar"><i class="fas fa-sync-alt"></i></button>
+</div>
+
+<div class="content">
+    <div class="stats-row">
+        <div class="stat"><div class="n" id="stTotal">—</div><div class="l">Ítems</div></div>
+        <div class="stat vd"><div class="n" id="stBueno">—</div><div class="l">Buen estado</div></div>
+        <div class="stat na"><div class="n" id="stDeter">—</div><div class="l">Deteriorados</div></div>
+        <div class="stat r"><div class="n" id="stRep">—</div><div class="l">Reparación</div></div>
+        <div class="stat mo"><div class="n" id="stPrest">—</div><div class="l">Prestados</div></div>
+        <div class="stat gr"><div class="n" id="stValor">—</div><div class="l">Valor total</div></div>
+    </div>
+
+    <div class="toolbar-row">
+        <input type="text" id="buscar" placeholder="Buscar producto, responsable o ubicación..." oninput="filtrar()" style="flex:1;min-width:200px">
+        <select id="filtCat" onchange="filtrar()">
+            <option value="">Todas las categorías</option>
+            <option value="Campamento">Campamento</option>
+            <option value="Cocina">Cocina</option>
+            <option value="Uniformes">Uniformes</option>
+            <option value="Herramientas">Herramientas</option>
+            <option value="Actividades">Actividades</option>
+            <option value="Documentos">Documentos</option>
+            <option value="General">General</option>
+        </select>
+        <select id="filtEst" onchange="filtrar()">
+            <option value="">Todos los estados</option>
+            <option value="bueno">Bueno</option>
+            <option value="deteriorado">Deteriorado</option>
+            <option value="reparacion">En reparación</option>
+            <option value="extraviado">Extraviado</option>
+        </select>
+        <select id="filtUnid" onchange="filtrar()">
+            <option value="">Todas las unidades</option>
+            <option value="Grupo">Grupo</option>
+            <option value="Bandada">Bandada</option>
+            <option value="Manada">Manada</option>
+            <option value="Tropa">Tropa</option>
+            <option value="Compañía">Compañía</option>
+            <option value="Avanzada">Avanzada</option>
+            <option value="Clan">Clan</option>
+        </select>
+        <select id="filtPrest" onchange="filtrar()">
+            <option value="">Todos los préstamos</option>
+            <option value="disponible">Solo disponibles</option>
+            <option value="prestado">Solo prestados</option>
+        </select>
+    </div>
+
+    <div class="tabla-wrap">
+        <table>
+            <thead>
+                <tr>
+                    <th>Producto</th>
+                    <th>Cantidad</th>
+                    <th>Préstamo</th>
+                    <th>Categoría</th>
+                    <th>Unidad</th>
+                    <th>Estado</th>
+                    <th>Responsable</th>
+                    <th>Ubicación</th>
+                    <th>Valor CLP</th>
+                    <th>Acción</th>
+                </tr>
+            </thead>
+            <tbody id="tbody">
+                <tr><td colspan="10"><div class="empty"><i class="fas fa-circle-notch fa-spin"></i>Cargando inventario...</div></td></tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- MODAL NUEVO ÍTEM -->
+<div class="modal-overlay" id="modalNuevo">
+    <div class="modal-box">
+        <h3><i class="fas fa-plus-circle"></i> Agregar ítem al inventario</h3>
+        <div class="mfg"><label>Producto</label><input type="text" id="nProd" placeholder="Ej: Carpa 4 personas, Cuerda 20m, Hacha..."></div>
+        <div class="mfg-row">
+            <div class="mfg"><label>Cantidad disponible</label><input type="number" id="nCantTotal" value="1" min="1"></div>
+            <div class="mfg"><label>Unidad / detalle</label><input type="text" id="nCantTxt" value="unidades" placeholder="Ej: unidades, metros, pares..."></div>
+        </div>
+        <div class="mfg-row">
+            <div class="mfg"><label>Categoría</label>
+                <select id="nCat"><option value="Campamento">Campamento</option><option value="Cocina">Cocina</option><option value="Uniformes">Uniformes</option><option value="Herramientas">Herramientas</option><option value="Actividades">Actividades</option><option value="Documentos">Documentos</option><option value="General" selected>General</option></select>
+            </div>
+            <div class="mfg"><label>Estado</label>
+                <select id="nEstado"><option value="bueno">Bueno</option><option value="deteriorado">Deteriorado</option><option value="reparacion">En reparación</option></select>
+            </div>
+        </div>
+
+        <!-- DISTRIBUCIÓN ENTRE UNIDADES -->
+        <div class="mfg">
+            <label style="display:flex;align-items:center;justify-content:space-between">
+                <span>Distribución entre unidades</span>
+                <span style="font-size:0.72rem;color:var(--texto-claro);font-weight:400">Total: <strong id="nDistTotal" style="color:var(--azul-profundo)">0</strong> / <span id="nDistMax">0</span></span>
+            </label>
+            <div id="nDistBox" style="background:#f8fafc;border:1px solid var(--gris-claro);border-radius:8px;padding:10px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:7px">
+                <label style="font-size:0.78rem;display:flex;align-items:center;gap:5px">Bandada <input type="number" min="0" value="0" class="dist-inp" data-unidad="Bandada" style="width:55px;padding:4px 6px;border:1px solid var(--gris-claro);border-radius:5px"></label>
+                <label style="font-size:0.78rem;display:flex;align-items:center;gap:5px">Manada <input type="number" min="0" value="0" class="dist-inp" data-unidad="Manada" style="width:55px;padding:4px 6px;border:1px solid var(--gris-claro);border-radius:5px"></label>
+                <label style="font-size:0.78rem;display:flex;align-items:center;gap:5px">Tropa <input type="number" min="0" value="0" class="dist-inp" data-unidad="Tropa" style="width:55px;padding:4px 6px;border:1px solid var(--gris-claro);border-radius:5px"></label>
+                <label style="font-size:0.78rem;display:flex;align-items:center;gap:5px">Compañía <input type="number" min="0" value="0" class="dist-inp" data-unidad="Compañía" style="width:55px;padding:4px 6px;border:1px solid var(--gris-claro);border-radius:5px"></label>
+                <label style="font-size:0.78rem;display:flex;align-items:center;gap:5px">Avanzada <input type="number" min="0" value="0" class="dist-inp" data-unidad="Avanzada" style="width:55px;padding:4px 6px;border:1px solid var(--gris-claro);border-radius:5px"></label>
+                <label style="font-size:0.78rem;display:flex;align-items:center;gap:5px">Clan <input type="number" min="0" value="0" class="dist-inp" data-unidad="Clan" style="width:55px;padding:4px 6px;border:1px solid var(--gris-claro);border-radius:5px"></label>
+                <label style="font-size:0.78rem;display:flex;align-items:center;gap:5px;grid-column:span 3">Grupo (general) <input type="number" min="0" value="0" class="dist-inp" data-unidad="Grupo" style="width:70px;padding:4px 6px;border:1px solid var(--gris-claro);border-radius:5px"> <span style="font-size:0.7rem;color:var(--texto-claro);margin-left:auto">Ítems compartidos por todo el grupo</span></label>
+            </div>
+        </div>
+
+        <div class="mfg-row">
+            <div class="mfg"><label>Responsable</label><input type="text" id="nResp" placeholder="Nombre"></div>
+            <div class="mfg"><label>Ubicación</label><input type="text" id="nUbic" placeholder="Bodega, Sala, Caja 3..."></div>
+        </div>
+        <div class="mfg-row">
+            <div class="mfg"><label>Valor CLP</label><input type="number" id="nValor" value="0" min="0"></div>
+            <div class="mfg"><label>Fecha adquisición</label><input type="date" id="nFecha"></div>
+        </div>
+        <div class="modal-btns">
+            <button class="btn btn-cancel btn-sm" onclick="document.getElementById('modalNuevo').classList.remove('show')">Cancelar</button>
+            <button class="btn btn-v btn-sm" onclick="agregarItem()"><i class="fas fa-plus"></i> Agregar</button>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL PRÉSTAMOS ACTIVOS -->
+<div class="modal-overlay" id="modalPrestamos">
+    <div class="modal-box" style="max-width:620px">
+        <h3><i class="fas fa-handshake"></i> Préstamos activos — <span id="prestItemNombre">—</span></h3>
+        <div class="prestamo-info"><i class="fas fa-info-circle"></i><span>Eventos que tienen prestada parte de este ítem. Puedes devolver cada préstamo desde aquí.</span></div>
+        <div id="prestListaBody"><div class="empty"><i class="fas fa-circle-notch fa-spin"></i>Cargando...</div></div>
+        <div class="modal-btns">
+            <button class="btn btn-cancel btn-sm" onclick="document.getElementById('modalPrestamos').classList.remove('show')">Cerrar</button>
+        </div>
+    </div>
+</div>
+
+    <script src="inventario/js/00_nucleo_y_acceso.js"></script>
+    <script src="inventario/js/01_carga_y_render.js"></script>
+    <script src="inventario/js/02_distribucion.js"></script>
+    <script src="inventario/js/03_items_y_prestamos.js"></script>
+    <script src="inventario/js/04_inicializacion.js"></script>
+<script>if('serviceWorker' in navigator){navigator.serviceWorker.register('/sw.js').catch(function(){});}</script>
+<script src="google-api-helper.js"></script>
+<script src="google-ui.js"></script>
+</body>
+</html>

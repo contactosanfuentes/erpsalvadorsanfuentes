@@ -1,0 +1,37 @@
+{
+  "origen": "/home/claude/erp_upload/erp_full/programa_jovenes.html",
+  "destino": "/home/claude/plataforma_v2",
+  "pagina": "programa_jovenes.html",
+  "carpeta": "programa_jovenes",
+  "scriptInicio": "    <script>\n",
+  "scriptFin": "\n    </script>",
+  "estilos": [
+    { "inicio": "    <style>\n", "fin": "    </style>", "archivo": "programa.css" },
+    { "inicio": "    <style>\n", "fin": "    </style>", "archivo": "cropper-extra.css" }
+  ],
+  "grupos": [
+    { "desde": 0,   "nombre": "nucleo_y_acceso" },
+    { "desde": 8,   "nombre": "constantes_agsch" },
+    { "desde": 22,  "nombre": "estado_y_utilidades" },
+    { "desde": 38,  "nombre": "carga_y_listado_jovenes" },
+    { "desde": 48,  "nombre": "notificaciones_hito" },
+    { "desde": 49,  "nombre": "expediente_beneficiario" },
+    { "desde": 52,  "nombre": "progresion_y_proyectos_db" },
+    { "desde": 60,  "nombre": "objetivos_educativos" },
+    { "desde": 77,  "nombre": "sonar_competencias_camino" },
+    { "desde": 85,  "nombre": "evaluacion_y_firmas" },
+    { "desde": 91,  "nombre": "especialidades_y_monitores" },
+    { "desde": 97,  "nombre": "proyectos_colectivos" },
+    { "desde": 108, "nombre": "proyectos_vigentes" },
+    { "desde": 122, "nombre": "ficha_extendida_presupuesto" },
+    { "desde": 133, "nombre": "evidencias_y_drive" },
+    { "desde": 141, "nombre": "toggles_estado" },
+    { "desde": 143, "nombre": "fotos_y_cropper" },
+    { "desde": 154, "nombre": "edicion_institucional" },
+    { "desde": 157, "nombre": "transferir_a_adultos" },
+    { "desde": 161, "nombre": "pase_de_unidad" },
+    { "desde": 164, "nombre": "expediente_pdf" },
+    { "desde": 167, "nombre": "dashboard_kpis" },
+    { "desde": 172, "nombre": "inicializacion" }
+  ]
+}

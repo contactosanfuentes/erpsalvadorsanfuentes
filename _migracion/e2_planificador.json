@@ -1,0 +1,33 @@
+{
+ "destino": "/home/claude/plataforma_v2",
+ "carpeta": "planificador",
+ "pagina": "planificador_reuniones.html",
+ "tagViejo": "<script src=\"planificador/js/00_app.js\"></script>",
+ "grupos": [
+  {
+   "desde": 0,
+   "nombre": "nucleo_y_config"
+  },
+  {
+   "desde": 8,
+   "nombre": "reuniones_crud"
+  },
+  {
+   "desde": 20,
+   "nombre": "invitados"
+  },
+  {
+   "desde": 33,
+   "nombre": "google_calendar"
+  },
+  {
+   "desde": 42,
+   "nombre": "calendario_fullcalendar"
+  },
+  {
+   "desde": 59,
+   "nombre": "acta_y_detalle"
+  }
+ ],
+ "wrapDesde": 61
+}

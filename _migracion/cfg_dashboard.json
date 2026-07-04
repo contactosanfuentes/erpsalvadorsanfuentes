@@ -1,0 +1,38 @@
+{
+ "origen": "/home/claude/erp_upload/erp_full/dashboard.html",
+ "destino": "/home/claude/plataforma_v2",
+ "pagina": "dashboard.html",
+ "carpeta": "dashboard",
+ "scriptInicio": "    <script>\n",
+ "scriptFin": "\n</script>",
+ "scriptOcurrencia": 1,
+ "estilos": [
+  {
+   "inicio": "    <style>\n",
+   "fin": "</style>",
+   "archivo": "dashboard.css"
+  }
+ ],
+ "grupos": [
+  {
+   "desde": 0,
+   "nombre": "constantes_y_nucleo"
+  },
+  {
+   "desde": 14,
+   "nombre": "navegacion_y_utilidades"
+  },
+  {
+   "desde": 19,
+   "nombre": "carga_de_datos"
+  },
+  {
+   "desde": 24,
+   "nombre": "vistas_paneles"
+  },
+  {
+   "desde": 29,
+   "nombre": "version_movil"
+  }
+ ]
+}

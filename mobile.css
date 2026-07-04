@@ -1,0 +1,324 @@
+/* ═══════════════════════════════════════════════════════════
+   mobile.css — Responsive compartido para todos los módulos
+   Solo actúa en pantallas ≤768px. Escritorio intacto.
+   ═══════════════════════════════════════════════════════════ */
+@media (max-width: 768px) {
+
+  /* ── 1. Grids inline multi-columna → 1 columna ──
+     Excluye auto-fit/auto-fill (ya son responsive) */
+  [style*="grid-template-columns"]:not([style*="auto-fit"]):not([style*="auto-fill"]) {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* ── 2. Clases de layout comunes en los módulos ── */
+  .layout, .form-grid, .fg-row, .stats-grid, .two-col, .grid-2, .grid-3 {
+    grid-template-columns: 1fr !important;
+    display: grid !important;
+  }
+  .layout > div { width: 100% !important; }
+
+  /* ── 3. Tablas → scroll horizontal sin romper la página ── */
+  .table-wrap, .tabla-container { overflow-x: auto !important; -webkit-overflow-scrolling: touch; }
+  table { max-width: 100%; }
+  /* Tablas anchas sueltas: contenedor scrolleable */
+  .card table, .panel table, main table {
+    display: block; overflow-x: auto; white-space: nowrap;
+    -webkit-overflow-scrolling: touch;
+  }
+  .card table td, .card table th { white-space: nowrap; }
+
+  /* ── 4. Topbars y headers compactos ── */
+  .topbar { flex-wrap: wrap !important; padding: 8px 10px !important; gap: 6px !important; }
+  .topbar h1 { font-size: 0.88rem !important; }
+  h1 { font-size: 1.05rem !important; }
+  h2 { font-size: 0.95rem !important; }
+
+  /* ── 5. Cards y paddings ── */
+  .card { padding: 12px !important; border-radius: 10px !important; }
+  body { padding: 0 !important; }
+  .main-wrap, .container, .content { padding: 8px !important; max-width: 100vw !important; }
+
+  /* ── 6. Modales a pantalla casi completa ── */
+  .modal, [id*="modal"] > div:first-child {
+    max-width: 96vw !important; width: 96vw !important;
+    max-height: 92vh !important; overflow-y: auto !important;
+  }
+
+  /* ── 7. Botones táctiles: más área de toque, wrap ── */
+  button, .btn { min-height: 40px; }
+  .btn-group, [style*="display:flex"][style*="gap"] { flex-wrap: wrap !important; }
+
+  /* ── 8. Inputs sin zoom automático en iOS (≥16px) ── */
+  input, select, textarea { font-size: 16px !important; }
+
+  /* ── 9. Imágenes y media nunca desbordan ── */
+  img, video, canvas, iframe { max-width: 100% !important; height: auto; }
+
+  /* ── 10. Ocultar elementos solo-escritorio ── */
+  .search-shortcut, .solo-escritorio, [data-desktop-only] { display: none !important; }
+
+  /* ── 11. Scroll horizontal de página: nunca ── */
+  html, body { overflow-x: hidden !important; }
+}
+
+/* Pantallas muy pequeñas */
+@media (max-width: 420px) {
+  .card { padding: 10px !important; }
+  button, .btn { font-size: 0.8rem !important; }
+}
+
+/* ═══════════════════════════════════════════════════════════
+   TEMA APP NATIVA — aplica a todos los módulos en ≤768px
+   ═══════════════════════════════════════════════════════════ */
+@media (max-width: 768px) {
+
+  /* ── Base: fondo de app, tipografía ── */
+  body {
+    background: #eef2f9 !important;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* ── Tarjetas: bordes generosos + sombra suave (estilo iOS/Material) ── */
+  .card, .panel, .mh-card, .modal,
+  [class*="card"], [class*="box"]:not(.search-box):not(.terms-box) {
+    border-radius: 18px !important;
+    box-shadow: 0 3px 14px rgba(15,23,42,.07) !important;
+    border: none !important;
+  }
+  .terms-box { border-radius: 14px !important; }
+
+  /* ── Headers/topbars de módulos: estilo app header ── */
+  .topbar {
+    border-radius: 0 0 20px 20px !important;
+    box-shadow: 0 4px 16px rgba(14,37,134,.18) !important;
+    position: sticky; top: 0; z-index: 50;
+  }
+  .det-header { border-radius: 18px 18px 0 0 !important; }
+
+  /* ── Botones: píldoras táctiles ── */
+  button, .btn, .btn-submit, input[type="submit"] {
+    border-radius: 12px !important;
+    font-weight: 700 !important;
+    -webkit-tap-highlight-color: transparent;
+    transition: transform .12s !important;
+  }
+  button:active, .btn:active { transform: scale(.96); }
+  .btn-full, .btn-submit { border-radius: 14px !important; min-height: 46px; }
+
+  /* ── Inputs: redondeados, fondo suave, foco visible ── */
+  input:not([type="checkbox"]):not([type="radio"]), select, textarea {
+    border-radius: 12px !important;
+    background: #f8fafc !important;
+    border: 1.5px solid #e2e8f0 !important;
+    padding: 11px 14px !important;
+  }
+  input:focus, select:focus, textarea:focus {
+    background: white !important;
+    border-color: #0E2586 !important;
+    box-shadow: 0 0 0 3px rgba(14,37,134,.12) !important;
+  }
+
+  /* ── Tabs: píldoras scrollables horizontales (patrón app) ── */
+  .tabs, .tabs-container, .filter-bar {
+    display: flex !important; overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch; scrollbar-width: none;
+    gap: 7px !important; padding: 4px 2px !important;
+    flex-wrap: nowrap !important;
+  }
+  .tabs::-webkit-scrollbar, .filter-bar::-webkit-scrollbar { display: none; }
+  .tab, .tab-button {
+    border-radius: 20px !important; white-space: nowrap;
+    padding: 8px 16px !important; flex-shrink: 0;
+    border: none !important; font-weight: 700 !important;
+  }
+  .tab.act, .tab-button.active {
+    background: #0E2586 !important; color: white !important;
+    box-shadow: 0 3px 10px rgba(14,37,134,.3) !important;
+  }
+
+  /* ── Items de lista: tarjetas individuales con separación ── */
+  .reunion-item, .ev-op, .nav-list-item, .list-item,
+  .resultado-item, .joven-item, .adulto-item {
+    border-radius: 14px !important;
+    margin-bottom: 8px !important;
+    box-shadow: 0 2px 8px rgba(15,23,42,.05) !important;
+    border: none !important;
+    background: white !important;
+  }
+  .reunion-item.sel, .ev-op.sel {
+    box-shadow: 0 0 0 2.5px #0E2586, 0 4px 14px rgba(14,37,134,.18) !important;
+  }
+
+  /* ── Badges y chips redondeados ── */
+  .estado-badge, .badge, [class*="badge"] { border-radius: 20px !important; }
+
+  /* ── Secciones de formularios coloreadas (salud/dieta) ── */
+  .sec-salud, .sec-dieta { border-radius: 16px !important; }
+
+  /* ── Modales: bottom-sheet style (suben desde abajo) ── */
+  .modal-bg, [id*="modalBg"], .modal-overlay {
+    align-items: flex-end !important; padding: 0 !important;
+  }
+  .modal-bg .modal, [id*="modalBg"] > div {
+    border-radius: 22px 22px 0 0 !important;
+    max-width: 100vw !important; width: 100vw !important;
+    max-height: 90vh !important;
+    animation: sheetUp .28s cubic-bezier(.32,.72,.35,1);
+  }
+  @keyframes sheetUp { from { transform: translateY(60%); opacity:.6 } to { transform: translateY(0); opacity:1 } }
+
+  /* ── Scrollbars invisibles (como apps nativas) ── */
+  ::-webkit-scrollbar { width: 0; height: 0; }
+
+  /* ── Headers de sección dentro de cards ── */
+  .card h2, .panel h2 {
+    font-size: 0.92rem !important; font-weight: 800 !important;
+  }
+
+  /* ── FullCalendar compacto en móvil ── */
+  .fc .fc-toolbar { flex-wrap: wrap; gap: 6px; }
+  .fc .fc-toolbar-title { font-size: 0.9rem !important; }
+  .fc .fc-button { border-radius: 10px !important; padding: 5px 9px !important; }
+}
+
+/* ════ MÓDULOS MAESTRO-DETALLE: Programa Jóvenes + Adultos ════ */
+@media (max-width: 768px) {
+
+  /* Layout: apilado vertical */
+  .programa-layout { display: block !important; }
+  .youth-list-panel, .adult-list-panel {
+    width: 100% !important; max-width: 100% !important;
+    height: auto !important; max-height: none !important;
+    border-radius: 14px !important; margin-bottom: 12px !important;
+  }
+
+  /* Panel de detalle: JS controla show/hide con style.display.
+     CSS solo define el layout cuando el panel está visible. */
+  .youth-profile-panel, .adult-profile-panel {
+    width: 100% !important;
+    padding-bottom: 70px !important;
+  }
+
+  /* Botón ← Volver */
+  .erp-btn-volver {
+    display: flex !important; align-items: center; gap: 9px;
+    position: sticky !important; top: 0 !important; z-index: 201 !important;
+    background: rgba(14,37,134,.95) !important;
+    backdrop-filter: blur(10px);
+    color: white !important; border: none !important;
+    padding: 13px 16px !important; width: 100% !important;
+    font-size: 0.92rem !important; font-weight: 700 !important;
+    cursor: pointer; font-family: inherit !important;
+    min-height: 50px !important; border-radius: 0 !important; margin: 0 !important;
+  }
+  .erp-btn-volver i { font-size: 1rem; }
+
+  /* Tabs del detalle: chips deslizables */
+  .profile-tabs {
+    display: flex !important; overflow-x: auto !important;
+    flex-wrap: nowrap !important; gap: 6px !important;
+    padding: 10px 12px 8px !important;
+    background: white !important;
+    position: sticky !important; top: 50px !important; z-index: 100 !important;
+    box-shadow: 0 2px 8px rgba(15,23,42,.07) !important;
+    -webkit-overflow-scrolling: touch; scrollbar-width: none;
+  }
+  .profile-tabs::-webkit-scrollbar { display: none; }
+  .profile-tab {
+    white-space: nowrap !important; flex-shrink: 0 !important;
+    border-radius: 20px !important; padding: 7px 14px !important;
+    font-size: 0.74rem !important; font-weight: 700 !important;
+    border: 2px solid #e2e8f0 !important; min-height: unset !important;
+  }
+  .profile-tab.active {
+    background: #0E2586 !important; border-color: #0E2586 !important; color: white !important;
+  }
+  .profile-tab i { display: none; }
+
+  /* Área de contenido */
+  .profile-content-area { padding: 14px 12px !important; }
+
+  /* Sub-tabs scrollables */
+  .sub-tab-btn {
+    white-space: nowrap !important; flex-shrink: 0 !important;
+    font-size: 0.76rem !important; padding: 8px 14px !important;
+  }
+}
+
+/* ── 1. Adultos: imagen de perfil en detalle móvil ── */
+@media (max-width: 768px) {
+  .profile-pic-large {
+    width: 88px !important; height: 88px !important;
+    flex-shrink: 0 !important;
+  }
+  .adult-profile-header { min-height: 120px !important; }
+}
+
+/* ── 5. Tesorería: tabs con scroll horizontal ── */
+@media (max-width: 768px) {
+  #tesoreriaTabs {
+    width: 100% !important; max-width: 100% !important;
+    overflow-x: auto !important; -webkit-overflow-scrolling: touch !important;
+    flex-wrap: nowrap !important;
+  }
+  #tesoreriaTabs button { flex-shrink: 0 !important; white-space: nowrap !important; }
+}
+
+/* ── 7. Certificados: tema oscuro — preservar colores originales ── */
+@media (max-width: 768px) {
+  body.cert-dark,
+  body.cert-dark .card { background: unset !important; }
+  body.cert-dark input,
+  body.cert-dark select,
+  body.cert-dark textarea {
+    background: #334155 !important;
+    color: white !important;
+    border-color: #475569 !important;
+  }
+  body.cert-dark input::placeholder { color: #94a3b8 !important; }
+}
+
+/* ── 8. Buscador: overlay no bloquea en móvil ── */
+@media (max-width: 768px) {
+  .global-overlay.active { backdrop-filter: none !important; background: rgba(14,37,134,.08) !important; }
+  .search-container { width: calc(100vw - 160px) !important; }
+  .search-container.focused { width: calc(100vw - 80px) !important; }
+  .search-results-panel { position: fixed !important; top: 56px !important; left: 8px !important; right: 8px !important; width: auto !important; max-height: 65vh !important; z-index: 9999 !important; }
+}
+
+/* ── Topbar móvil: ocultar nombre/cargo, solo mostrar avatar ── */
+@media (max-width: 768px) {
+  .user-info-text { display: none !important; }
+  .topbar-actions { gap: 8px !important; flex-shrink: 0; }
+  .topbar-left { min-width: 0; flex: 1; }
+  .search-container { min-width: 0 !important; width: 100% !important; }
+  .topbar { gap: 8px !important; overflow: hidden; }
+  .action-btn { width: 34px !important; height: 34px !important; flex-shrink: 0; }
+  .user-trigger { padding: 4px !important; gap: 0 !important; }
+}
+
+/* ── Dashboard: ocultar tabs desktop y compactar header en móvil ── */
+@media (max-width: 768px) {
+  /* Ocultar los botones de tab del escritorio (la navegación es por chip bar) */
+  #app-dashboard .tab-button { display: none !important; }
+
+  /* Ocultar el contenedor de tabs desktop (el flex con border-b) */
+  #app-dashboard .border-b.border-gray-200 { display: none !important; }
+
+  /* Header del dashboard: más compacto en móvil */
+  #app-dashboard .from-\[\#0E2586\] {
+    padding: 14px 16px !important;
+    border-radius: 14px !important;
+    margin-bottom: 14px !important;
+  }
+  #app-dashboard h1 { font-size: 1rem !important; }
+
+  /* Botones Exportar/Actualizar: más pequeños y en fila */
+  #app-dashboard .from-\[\#0E2586\] .flex.gap-3 {
+    gap: 8px !important; flex-wrap: wrap;
+  }
+  #app-dashboard .from-\[\#0E2586\] button {
+    padding: 7px 12px !important; font-size: 0.75rem !important;
+    min-height: unset !important;
+  }
+}

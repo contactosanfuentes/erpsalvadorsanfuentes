@@ -1,0 +1,22 @@
+{
+ "origen": "/home/claude/erp_upload/erp_full/comunicaciones.html",
+ "destino": "/home/claude/plataforma_v2",
+ "pagina": "comunicaciones.html",
+ "carpeta": "comunicaciones",
+ "scriptInicio": "<script>\n",
+ "scriptFin": "\n</script>",
+ "scriptOcurrencia": 1,
+ "estilos": [
+  {
+   "inicio": "    <style>\n",
+   "fin": "    </style>",
+   "archivo": "comunicaciones.css"
+  }
+ ],
+ "grupos": [
+  {
+   "desde": 0,
+   "nombre": "app"
+  }
+ ]
+}

@@ -1,0 +1,27 @@
+{
+  "origen": "/home/claude/erp_upload/erp_full/adulto_voluntario.html",
+  "destino": "/home/claude/plataforma_v2",
+  "pagina": "adulto_voluntario.html",
+  "carpeta": "adulto_voluntario",
+  "scriptInicio": "    <script>\n",
+  "scriptFin": "\n    </script>",
+  "estilos": [
+    { "inicio": "    <style>\n", "fin": "    </style>", "archivo": "adultos.css" },
+    { "inicio": "    <style>\n", "fin": "    </style>", "archivo": "cropper-extra.css" }
+  ],
+  "grupos": [
+    { "desde": 0,  "nombre": "diccionario_competencias" },
+    { "desde": 7,  "nombre": "nucleo_y_config" },
+    { "desde": 15, "nombre": "estado_y_utilidades" },
+    { "desde": 22, "nombre": "certificados_y_drive" },
+    { "desde": 25, "nombre": "competencias_ui" },
+    { "desde": 30, "nombre": "padron_y_carga" },
+    { "desde": 39, "nombre": "tabs_y_asesorados" },
+    { "desde": 46, "nombre": "perfil_y_steppers" },
+    { "desde": 49, "nombre": "fotos_y_cropper" },
+    { "desde": 59, "nombre": "edicion_ficha_ppf" },
+    { "desde": 69, "nombre": "guardar_edicion" },
+    { "desde": 70, "nombre": "expediente_documental" },
+    { "desde": 74, "nombre": "inicializacion" }
+  ]
+}

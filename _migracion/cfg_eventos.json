@@ -1,0 +1,35 @@
+{
+  "origen": "/home/claude/erp_upload/erp_full/eventos_iframe.html",
+  "destino": "/home/claude/plataforma_v2",
+  "pagina": "eventos_iframe.html",
+  "carpeta": "eventos",
+  "scriptInicio": "    <script>\n",
+  "scriptFin": "\n    </script>",
+  "estilos": [
+    { "inicio": "    <style>\n", "fin": "    </style>", "archivo": "eventos.css" }
+  ],
+  "grupos": [
+    { "desde": 0,   "nombre": "nucleo_y_config" },
+    { "desde": 6,   "nombre": "dialogos_e_impresion" },
+    { "desde": 13,  "nombre": "estado_global" },
+    { "desde": 38,  "nombre": "grupos_y_unidades" },
+    { "desde": 43,  "nombre": "carga_datos_y_eventos" },
+    { "desde": 52,  "nombre": "realtime" },
+    { "desde": 56,  "nombre": "edicion_evento" },
+    { "desde": 64,  "nombre": "participantes_jovenes" },
+    { "desde": 79,  "nombre": "participantes_adultos" },
+    { "desde": 88,  "nombre": "ingresos_y_gastos" },
+    { "desde": 99,  "nombre": "planilla_puntuacion" },
+    { "desde": 105, "nombre": "postas_y_objetivos" },
+    { "desde": 118, "nombre": "pasaporte" },
+    { "desde": 122, "nombre": "croquis" },
+    { "desde": 132, "nombre": "inventario_evento" },
+    { "desde": 139, "nombre": "menu_y_entregas" },
+    { "desde": 154, "nombre": "presupuesto" },
+    { "desde": 163, "nombre": "metas_e_indicadores" },
+    { "desde": 175, "nombre": "credenciales" },
+    { "desde": 182, "nombre": "comprobantes_y_email" },
+    { "desde": 186, "nombre": "navegacion_ui" },
+    { "desde": 196, "nombre": "inicializacion" }
+  ]
+}

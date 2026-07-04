@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <script src="auth-guard.js"></script>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+  <title>Gestión de Usuarios — ERP Scout</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="manifest" href="manifest.json">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<link rel="stylesheet" href="usuarios/css/usuarios.css">
+</head>
+<body>
+<div class="topbar">
+  <i class="fas fa-users-cog"></i>
+  <div><h1>Gestión de Usuarios y Permisos</h1></div>
+</div>
+
+<div class="container">
+  <div id="main-container">
+    <div class="loading"><i class="fas fa-spinner fa-spin" style="font-size:2rem;color:#0E2586;margin-bottom:16px;display:block;"></i>Cargando...</div>
+  </div>
+</div>
+
+<!-- Modal Nuevo Usuario -->
+<div class="modal-overlay" id="modal-nuevo">
+  <div class="modal">
+    <h3><i class="fas fa-user-plus" style="color:#0E2586;margin-right:8px;"></i>Crear Cuenta en Google Workspace</h3>
+    <p style="font-size:0.8rem;color:#64748b;margin-bottom:4px;">Se crea la cuenta <b>@salvadorsanfuentes.org</b> en Google. El usuario deberá iniciar sesión con Google para activar su perfil en el ERP.</p>
+    <label>Nombre</label>
+    <input type="text" id="nu-nombre" placeholder="Ej: María">
+    <label>Apellido</label>
+    <input type="text" id="nu-apellido" placeholder="Ej: González">
+    <label>Email (parte antes del @)</label>
+    <div style="display:flex;align-items:center;gap:6px;">
+      <input type="text" id="nu-alias" placeholder="maria.gonzalez" style="flex:1;">
+      <span style="color:#64748b;font-size:0.82rem;white-space:nowrap;">@salvadorsanfuentes.org</span>
+    </div>
+    <label>Contraseña temporal</label>
+    <input type="password" id="nu-password" placeholder="Mínimo 8 caracteres" value="Scout2026!">
+    <label>Rol inicial en ERP</label>
+    <select id="nu-rol">
+      <option value="pendiente">Pendiente (sin acceso)</option>
+      <option value="lectura">Solo Lectura</option>
+      <option value="comite">Comité de Grupo</option>
+      <option value="dirigente">Dirigente de Unidad</option>
+      <option value="coordinacion">Coordinación</option>
+      <option value="admin">Administrador</option>
+    </select>
+    <label>Unidad asignada (opcional)</label>
+    <input type="text" id="nu-unidad" placeholder="Ej: Tropa Manke Pillán">
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="cerrarModal('modal-nuevo')" style="flex:1;justify-content:center;">Cancelar</button>
+      <button class="btn btn-primary" onclick="crearUsuario()" style="flex:2;justify-content:center;" id="btn-crear"><i class="fas fa-check"></i> Crear Cuenta</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Reset Password -->
+<div class="modal-overlay" id="modal-reset">
+  <div class="modal">
+    <h3><i class="fas fa-key" style="color:#f59e0b;margin-right:8px;"></i>Resetear Contraseña Google</h3>
+    <p style="font-size:0.8rem;color:#64748b;margin-bottom:10px;">Usuario: <b id="reset-email-display"></b></p>
+    <label>Nueva contraseña temporal</label>
+    <input type="text" id="reset-password" value="Scout2026!" autocomplete="off">
+    <p style="font-size:0.75rem;color:#94a3b8;margin-top:4px;">El usuario deberá cambiarla en su próximo inicio de sesión.</p>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="cerrarModal('modal-reset')" style="flex:1;justify-content:center;">Cancelar</button>
+      <button class="btn btn-warn" onclick="confirmarReset()" style="flex:2;justify-content:center;"><i class="fas fa-key"></i> Resetear</button>
+    </div>
+  </div>
+</div>
+
+<script src="permisos.js"></script>
+<script src="google-api-helper.js"></script>
+    <script src="usuarios/js/00_nucleo_y_config.js"></script>
+    <script src="usuarios/js/01_carga_y_render.js"></script>
+    <script src="usuarios/js/02_permisos_y_roles.js"></script>
+    <script src="usuarios/js/03_cuentas_usuarios.js"></script>
+    <script src="usuarios/js/04_workspace.js"></script>
+    <script src="usuarios/js/05_asesorados.js"></script>
+    <script src="usuarios/js/06_inicializacion.js"></script>
+<script src="google-ui.js"></script>
+</body>
+</html>

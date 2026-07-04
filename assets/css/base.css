@@ -1,0 +1,27 @@
+/* ============================================================
+   base.css — Variables, reset y tipografía
+   ============================================================ */
+:root {
+  --azul-profundo: #0E2586;
+  --azul-secundario: #3B82F6;
+  --gris-fondo: #f8fafc;
+  --gris-borde: #e2e8f0;
+  --texto: #1E293B;
+  --texto-suave: #64748B;
+  --verde: #10B981;
+  --rojo: #EF4444;
+  --ambar: #F59E0B;
+  --radio: 16px;
+  --sombra: 0 4px 6px -1px rgba(0,0,0,0.05);
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: var(--gris-fondo);
+  font-family: 'Poppins', system-ui, sans-serif;
+  color: var(--texto);
+  font-size: 15px;
+}
+h1,h2,h3 { margin: 0 0 12px; color: var(--azul-profundo); }
+a { color: var(--azul-secundario); }
+code { background:#eef2ff; padding:2px 6px; border-radius:6px; }

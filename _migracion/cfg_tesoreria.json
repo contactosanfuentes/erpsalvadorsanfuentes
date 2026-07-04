@@ -1,0 +1,25 @@
+{
+  "origen": "/home/claude/erp_upload/erp_full/tesoreria.html",
+  "destino": "/home/claude/plataforma_v2",
+  "pagina": "tesoreria.html",
+  "carpeta": "tesoreria",
+  "scriptInicio": "    <script>\n",
+  "scriptFin": "\n    </script>",
+  "estilos": [
+    { "inicio": "    <style>\n", "fin": "    </style>", "archivo": "tesoreria.css" }
+  ],
+  "grupos": [
+    { "desde": 0,   "nombre": "nucleo_y_acceso" },
+    { "desde": 9,   "nombre": "estado_global" },
+    { "desde": 28,  "nombre": "cuentas_base_y_tabs" },
+    { "desde": 32,  "nombre": "dashboard_y_consolidado" },
+    { "desde": 36,  "nombre": "gestion_cuentas" },
+    { "desde": 50,  "nombre": "movimientos" },
+    { "desde": 61,  "nombre": "registro_anual" },
+    { "desde": 71,  "nombre": "transferencias" },
+    { "desde": 76,  "nombre": "planes_de_pago" },
+    { "desde": 95,  "nombre": "config_y_sync" },
+    { "desde": 100, "nombre": "complemento_pago" },
+    { "desde": 101, "nombre": "exports_globales" }
+  ]
+}

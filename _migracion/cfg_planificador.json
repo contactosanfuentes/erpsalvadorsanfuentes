@@ -1,0 +1,22 @@
+{
+ "origen": "/home/claude/erp_upload/erp_full/planificador_reuniones.html",
+ "destino": "/home/claude/plataforma_v2",
+ "pagina": "planificador_reuniones.html",
+ "carpeta": "planificador",
+ "scriptInicio": "<script>\n",
+ "scriptFin": "\n</script>",
+ "scriptOcurrencia": 2,
+ "estilos": [
+  {
+   "inicio": "    <style>\n",
+   "fin": "    </style>",
+   "archivo": "planificador.css"
+  }
+ ],
+ "grupos": [
+  {
+   "desde": 0,
+   "nombre": "app"
+  }
+ ]
+}

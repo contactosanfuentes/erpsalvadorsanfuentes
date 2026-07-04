@@ -1,0 +1,39 @@
+{
+ "origen": "/home/claude/erp_upload/erp_full/certificados_demo.html",
+ "destino": "/home/claude/plataforma_v2",
+ "pagina": "certificados_demo.html",
+ "carpeta": "certificados",
+ "scriptInicio": "<script>\n",
+ "scriptFin": "\n</script>",
+ "scriptOcurrencia": 2,
+ "estilos": [
+  {
+   "inicio": "<style>\n",
+   "fin": "</style>",
+   "archivo": "certificados_a.css"
+  },
+  {
+   "inicio": "<style>\n",
+   "fin": "</style>",
+   "archivo": "certificados_b.css"
+  }
+ ],
+ "grupos": [
+  {
+   "desde": 0,
+   "nombre": "impresion_y_nucleo"
+  },
+  {
+   "desde": 8,
+   "nombre": "busqueda_personas"
+  },
+  {
+   "desde": 13,
+   "nombre": "formulario_certificado"
+  },
+  {
+   "desde": 17,
+   "nombre": "generacion_y_envio"
+  }
+ ]
+}

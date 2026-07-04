@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <script src="auth-guard.js"></script>
+    <script src="permisos.js"></script>
+<script>
+(async function(){
+  // Esperar _sbClient + que Permisos se inicialice (auth-guard lo hace)
+  await new Promise(r=>{
+    const t=setInterval(()=>{if(window.Permisos&&Permisos.listo()){clearInterval(t);r();}},80);
+    setTimeout(()=>{clearInterval(t);r();},10000);
+  });
+  // Fallback: init manual si auth-guard no lo hizo
+  if(window.Permisos&&!Permisos.listo()&&window._sbClient){
+    await Permisos.init(window._sbClient);
+  }
+  if(window.Permisos&&Permisos.listo()&&!Permisos.puede('ver_jovenes')){
+    document.body.innerHTML='<div style="display:flex;align-items:center;justify-content:center;height:100vh;flex-direction:column;gap:14px;font-family:Arial;background:#f8fafc;"><div style="font-size:48px;">🔒</div><h2 style="color:#001558;margin:0;">Acceso restringido</h2><p style="color:#64748b;margin:0;">No tienes permiso para este módulo.</p></div>';
+  }
+})();
+</script>
+<meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Directorio General - ERP Scout AGSCh</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts: Poppins -->
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <!-- Supabase JS -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="wa_api.js"></script>
+    <!-- EmailJS SDK -->
+<link rel="stylesheet" href="directorio/css/directorio.css">
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#0E2586">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="ERP Scout">
+    <link rel="stylesheet" href="mobile.css">
+</head>
+<body>
+
+    <!-- Cabecera con Acciones Masivas -->
+    <div class="no-print" style="background: linear-gradient(135deg, var(--azul-profundo) 0%, #172554 100%); color: white; padding: 20px 30px; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 15px; margin-bottom: 25px; border-radius: 16px; box-shadow: 0 10px 25px -5px rgba(30, 58, 138, 0.3);">
+        <div style="display: flex; align-items: center; gap: 20px;">
+            <div class="bg-white/10 text-white w-14 h-14 rounded-xl flex items-center justify-center text-3xl shadow-inner border border-white/20 backdrop-blur-sm">
+                <i class="fas fa-address-book"></i>
+            </div>
+            <div>
+                <h1 class="text-2xl font-extrabold leading-tight tracking-tight">Directorio General</h1>
+
+                <p class="text-xs font-semibold text-blue-200 uppercase tracking-widest mt-1">Registro Centralizado Salvador Sanfuentes</p>
+            </div>
+        </div>
+        <div class="flex gap-3">
+            <button onclick="imprimirDirectorio()" class="btn-modern bg-gray-600/30 hover:bg-gray-600/50">
+                <i class="fas fa-print"></i> Imprimir Roster
+            </button>
+            <button onclick="copiarTelefonosMasivos()" class="btn-modern bg-teal-600/20 hover:bg-teal-600/40">
+                <i class="fab fa-whatsapp"></i> Copiar Teléfonos
+            </button>
+            <button onclick="enviarWhatsAppMasivo()" class="btn-modern bg-green-600/30 hover:bg-green-600/50" id="btn-wa-masivo">
+                <i class="fab fa-whatsapp"></i> Enviar WhatsApp
+            </button>
+            <button onclick="copiarCorreosMasivos()" class="btn-modern bg-blue-600/20 hover:bg-blue-600/40">
+                <i class="fas fa-envelope"></i> Copiar Correos
+            </button>
+            <button onclick="exportarCSV()" class="btn-modern bg-emerald-600/20 hover:bg-emerald-600/40">
+                <i class="fas fa-file-csv"></i> Exportar Data
+            </button>
+            <button onclick="cargarDatos()" class="btn-modern shadow-sm border border-white/30">
+                <i class="fas fa-sync-alt"></i> Actualizar
+            </button>
+        </div>
+    </div>
+
+    <div class="max-w-[1600px] mx-auto pb-10">
+        <div class="content-card">
+            
+            <!-- Filtros Completos -->
+            <div class="filtros no-print">
+                <div class="flex-1 min-w-[250px]">
+                    <label class="filtros-label"><i class="fas fa-search mr-1"></i> Búsqueda Universal</label>
+                    <input type="text" id="searchNombre" placeholder="Nombre, apellido, RUN o teléfono..." class="input-modern w-full border-blue-200">
+                </div>
+                <div>
+                    <label class="filtros-label">Rol</label>
+                    <select id="filtroTipo" class="input-modern w-32">
+                        <option value="todos">Todos</option>
+                        <option value="joven">Jóvenes</option>
+                        <option value="adulto">Adultos</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="filtros-label">Unidad / Rama</label>
+                    <select id="filtroUnidad" class="input-modern w-40">
+                        <option value="todas">Todas</option>
+                        <option value="Bandada">Bandada</option>
+                        <option value="Manada">Manada</option>
+                        <option value="Tropa">Tropa</option>
+                        <option value="Compañía">Compañía</option>
+                        <option value="Avanzada">Avanzada</option>
+                        <option value="Clan">Clan</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="filtros-label">Reconocimientos</label>
+                    <select id="filtroReconocimiento" class="input-modern w-40 bg-blue-50 border-blue-200 text-blue-900">
+                        <option value="todos">Todos</option>
+                        <option value="oro">🥇 Oro (8+)</option>
+                        <option value="plata">🥈 Plata (6+)</option>
+                        <option value="bronce">🥉 Bronce (2+)</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="filtros-label">Especiales</label>
+                    <select id="filtroEspecial" class="input-modern w-40">
+                        <option value="todos">Todos</option>
+                        <option value="medica">🚨 Alerta Médica</option>
+                        <option value="cumple">🎂 Cumpleaños (7d)</option>
+                        <option value="falta_tel">Falta Teléfono</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="filtros-label">Institucional</label>
+                    <select id="filtroEstado" class="input-modern w-36">
+                        <option value="todos">Todos</option>
+                        <option value="aldia">✅ Al día</option>
+                        <option value="pendiente">❌ Pendiente</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- KPIs -->
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6 no-print" id="mini-kpis"></div>
+
+            <div class="flex justify-between items-center text-xs text-gray-500 font-bold mb-2 no-print bg-white px-2">
+                <div class="flex items-center gap-3">
+                    <span id="selection-counter" class="text-blue-600 bg-blue-50 px-2 py-1 rounded hidden">0 seleccionados</span>
+                    <button class="hover:text-blue-600 hidden" id="btn-clear-selection" onclick="clearSelection()"><i class="fas fa-times-circle"></i> Limpiar</button>
+                </div>
+                <div>
+                    <i class="fas fa-hand-pointer"></i> Ordenar cabeceras | <span class="font-serif text-oro mx-1 text-base">&#x269C;&#xFE0E;</span> = Perseverancia
+                </div>
+            </div>
+
+            <!-- Tabla Detallada -->
+            <div class="table-container">
+                <table id="tablaDirectorio">
+                    <thead>
+                        <tr>
+                            <th class="w-10 text-center chk-col"><input type="checkbox" id="selectAll" class="row-checkbox" onclick="toggleSelectAll()"></th>
+                            <th class="w-16 text-center">Foto</th>
+                            <th class="sortable transition" onclick="sortData('nombre')">Nombre Completo <i class="fas fa-sort ml-1 text-gray-300" id="sort-icon-nombre"></i></th>
+                            <th class="sortable transition" onclick="sortData('tipo')">Tipo <i class="fas fa-sort ml-1 text-gray-300" id="sort-icon-tipo"></i></th>
+                            <th class="sortable transition" onclick="sortData('rama')">Rama / Cargo <i class="fas fa-sort ml-1 text-gray-300" id="sort-icon-rama"></i></th>
+                            <th class="sortable transition" onclick="sortData('unidad')">Unidad Asignada <i class="fas fa-sort ml-1 text-gray-300" id="sort-icon-unidad"></i></th>
+                            <th class="sortable transition" onclick="sortData('edad')">Edad <i class="fas fa-sort ml-1 text-gray-300" id="sort-icon-edad"></i></th>
+                            <th class="sortable transition" onclick="sortData('estadoInstitucional')">Institucional <i class="fas fa-sort ml-1 text-gray-300" id="sort-icon-estadoInstitucional"></i></th>
+                            <th>Progresión</th>
+                            <th>Contacto Principal</th>
+                            <th class="text-center w-36 acciones-rapidas">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tbodyDirectorio" class="divide-y divide-gray-100">
+                        <tr><td colspan="11" class="text-center py-12 text-gray-400 font-bold"><i class="fas fa-circle-notch fa-spin text-3xl mb-3 text-blue-500 block"></i> Sincronizando datos...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL MENSAJERÍA -->
+    <div id="modal-correo" class="modal-overlay no-print">
+        <div class="modal-box">
+            <h3 class="text-xl font-extrabold text-blue-900 border-b pb-3 mb-4"><i class="fas fa-envelope text-blue-500 mr-2"></i> Mensaje Directo</h3>
+            <div class="mb-4">
+                <label class="block font-bold text-sm text-gray-700 mb-1">Para:</label>
+                <div class="bg-gray-100 p-2.5 rounded-lg text-sm font-bold text-gray-600" id="correo-destinatario-label"></div>
+                <input type="hidden" id="correo-destinatario-email">
+            </div>
+            <div class="mb-4">
+                <label class="block font-bold text-sm text-gray-700 mb-1">Asunto:</label>
+                <input type="text" id="correo-asunto" class="w-full border-2 border-gray-200 p-2.5 rounded-lg outline-none focus:border-blue-500">
+            </div>
+            <div class="mb-6">
+                <label class="block font-bold text-sm text-gray-700 mb-1">Mensaje:</label>
+                <textarea id="correo-mensaje" rows="5" class="w-full border-2 border-gray-200 p-3 rounded-lg outline-none focus:border-blue-500"></textarea>
+            </div>
+            <div class="flex justify-end gap-3 border-t pt-4">
+                <button class="btn btn-outline" onclick="cerrarModalCorreo()">Cancelar</button>
+                <button class="btn btn-primary" id="btn-enviar-correo-interno" onclick="enviarCorreoInterno()"><i class="fas fa-paper-plane"></i> Enviar Correo</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="toast-container" class="toast-container no-print"></div>
+
+    <script src="directorio/js/00_nucleo_y_constantes.js"></script>
+    <script src="directorio/js/01_estado_y_utilidades.js"></script>
+    <script src="directorio/js/02_carga_y_tabla.js"></script>
+    <script src="directorio/js/03_acciones_masivas.js"></script>
+    <script src="directorio/js/04_filtros_e_inicio.js"></script>
+<script>if('serviceWorker' in navigator){navigator.serviceWorker.register('/sw.js').catch(function(){});}</script>
+<script src="google-api-helper.js"></script>
+<script src="google-ui.js"></script>
+</body>
+</html>

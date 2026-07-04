@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <script src="auth-guard.js"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>Tesorería - Sistema de Gestión Financiera</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- SheetJS (Excel) -->
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js"></script>
+    <!-- SortableJS (drag & drop) -->
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
+    <!-- EmailJS -->
+    <!-- Supabase JS -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="drive-helper.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="permisos.js"></script>
+<link rel="stylesheet" href="tesoreria/css/tesoreria.css">
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#0E2586">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="ERP Scout">
+    <link rel="stylesheet" href="mobile.css">
+</head>
+<body class="h-screen overflow-hidden bg-slate-100">
+
+    <!-- Topbar -->
+    <header class="h-16 bg-white border-b border-slate-200 px-6 flex items-center justify-between shrink-0 shadow-sm">
+        <div class="flex items-center gap-3">
+            <h2 class="text-lg font-bold text-slate-800">Tesorería General</h2>
+
+            <div id="syncBadge" class="flex items-center gap-1.5 text-[9px] font-bold px-2.5 py-1 rounded-full bg-slate-100 text-slate-400 uppercase tracking-wider">
+                <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> Online
+            </div>
+        </div>
+        <div class="flex items-center gap-2">
+            <button onclick="syncData()" class="flex items-center gap-1 px-3 py-1.5 bg-indigo-50 text-indigo-700 rounded-lg text-xs font-bold border border-indigo-100">
+                <i class="fas fa-sync fa-xs" id="syncIcon"></i> Sinc.
+            </button>
+            <button onclick="openAddAccountModal()" class="flex items-center gap-1 px-3 py-1.5 bg-indigo-600 text-white rounded-lg text-xs font-bold">+ Nueva Cuenta</button>
+        </div>
+    </header>
+
+    <!-- Pestañas -->
+    <div class="px-6 pt-4">
+        <div class="flex items-center gap-2 p-1 bg-slate-200/50 rounded-2xl w-fit overflow-x-auto no-scrollbar mb-4" id="tesoreriaTabs">
+            <button class="px-4 py-1.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all active-tab" onclick="switchTesoreriaTab('dashboard')">Dashboard</button>
+            <button class="px-4 py-1.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all text-slate-500 hover:bg-slate-300/50" onclick="switchTesoreriaTab('consolidado')">Consolidado</button>
+            <button class="px-4 py-1.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all text-slate-500 hover:bg-slate-300/50" onclick="switchTesoreriaTab('cuentas')">Cuentas</button>
+            <button class="px-4 py-1.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all text-slate-500 hover:bg-slate-300/50" onclick="switchTesoreriaTab('registro')">Registro Anual</button>
+            <button class="px-4 py-1.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all text-slate-500 hover:bg-slate-300/50" onclick="switchTesoreriaTab('transferencias')">Transferencias</button>
+            <button class="px-4 py-1.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all text-slate-500 hover:bg-slate-300/50" onclick="switchTesoreriaTab('config')">Config</button>
+            <button class="px-4 py-1.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all text-slate-500 hover:bg-slate-300/50" onclick="checkTesoreroAndSwitch()">Planes Pago</button>
+        </div>
+    </div>
+
+    <!-- Contenido principal -->
+    <div class="px-6 pb-6 h-[calc(100vh-8rem)] overflow-y-auto custom-scrollbar">
+        <div id="tesoreriaContent" class="space-y-6"></div>
+    </div>
+
+    <!-- Toast container -->
+    <div id="toastContainer" class="fixed bottom-5 right-5 space-y-2 z-50"></div>
+
+    <!-- ==================== MODALES ==================== -->
+    <!-- Modal Nueva Cuenta (con tipos de cuota para evento/proyecto) -->
+    <div id="modalAddAccount" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4 modal">
+        <div class="bg-white w-full max-w-2xl rounded-3xl p-8 shadow-2xl max-h-[90vh] overflow-y-auto">
+            <h3 class="text-2xl font-bold mb-6">Nueva Cuenta</h3>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div><label class="block text-sm font-bold mb-1">Nombre *</label><input type="text" id="newAccName" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl"></div>
+                <div><label class="block text-sm font-bold mb-1">Tipo *</label>
+                    <select id="newAccType" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl" onchange="toggleTiposCuotaEnCreacion()">
+                        <option value="general">General</option>
+                        <option value="unidad">Unidad</option>
+                        <option value="proyecto">Proyecto</option>
+                        <option value="evento">Evento</option>
+                    </select>
+                </div>
+            </div>
+            <!-- Sección para tipos de cuota (visible solo si tipo es evento o proyecto) -->
+            <div id="tiposCuotaContainerCreacion" class="mt-6 hidden">
+                <h4 class="font-bold mb-2">Tipos de cuota para esta cuenta</h4>
+                <div id="tiposCuotaListCreacion" class="space-y-2 mb-4"></div>
+                <div class="flex gap-2">
+                    <input type="text" id="nuevoTipoNombre" placeholder="Nombre (ej: Inscripción)" class="flex-1 px-3 py-2 border rounded-lg">
+                    <input type="number" id="nuevoTipoMonto" placeholder="Monto" class="w-32 px-3 py-2 border rounded-lg">
+                    <button type="button" onclick="agregarTipoCuotaTemporal()" class="px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm">Agregar</button>
+                </div>
+                <p class="text-xs text-slate-500 mt-2">Los tipos de cuota se guardarán junto con la cuenta.</p>
+            </div>
+            <div class="flex gap-3 mt-6">
+                <button onclick="closeModal('modalAddAccount')" class="flex-1 py-3 text-slate-400 font-bold">Cancelar</button>
+                <button onclick="guardarNuevaCuentaConTipos()" class="flex-1 py-3 bg-indigo-600 text-white font-bold rounded-xl">Crear</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Nueva Transacción (mejorado: opción Corriente/Cuota y tipos de cuota) -->
+    <div id="modalAddTx" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4 modal">
+        <div class="bg-white w-full max-w-md rounded-3xl p-8 shadow-2xl">
+            <h3 class="text-2xl font-bold mb-1">Nuevo Movimiento</h3>
+            <p id="txTarget" class="text-xs text-indigo-500 font-bold mb-6 uppercase"></p>
+            <div class="mb-3">
+                <label class="text-xs font-bold">Buscar persona por RUT (opcional)</label>
+                <input type="text" id="searchRut" placeholder="Ingrese RUT" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl">
+                <div id="searchResults" class="mt-2 text-sm max-h-32 overflow-y-auto"></div>
+                <input type="hidden" id="personaData">
+            </div>
+            <!-- Nuevo: selector tipo de movimiento -->
+            <div class="mb-3">
+                <label class="text-xs font-bold">Tipo de movimiento</label>
+                <select id="txTipoMovimiento" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl" onchange="toggleTipoCuota()">
+                    <option value="corriente">Corriente</option>
+                    <option value="cuota">Cuota (asociada a tipo de cuota)</option>
+                </select>
+            </div>
+            <!-- Selector de tipo de cuota (oculto por defecto) -->
+            <div id="txTipoCuotaContainer" class="mb-3 hidden">
+                <label class="text-xs font-bold">Tipo de cuota</label>
+                <select id="txTipoCuota" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl">
+                    <option value="">Seleccione un tipo</option>
+                </select>
+            </div>
+            <input type="text" id="txConcepto" placeholder="Concepto" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl mb-3">
+            <div class="flex gap-2 mb-3">
+                <input type="number" id="txMonto" placeholder="Monto" class="flex-1 px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl">
+                <select id="txTipo" class="px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl">
+                    <option value="ingreso">Ingreso</option>
+                    <option value="egreso">Egreso</option>
+                </select>
+            </div>
+            <div class="flex gap-2 mb-3">
+                <select id="txMoneda" class="px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl">
+                    <option value="CLP">CLP</option>
+                    <option value="USD">USD</option>
+                    <option value="Bs">Bs</option>
+                </select>
+                <input type="text" id="txRef" placeholder="Referencia" class="flex-1 px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl">
+            </div>
+            <div class="mb-4">
+                <label class="file-input-label flex items-center gap-2 w-full px-4 py-3 border border-slate-200 rounded-xl cursor-pointer">
+                    <i class="fas fa-paperclip text-slate-400"></i>
+                    <span id="fileLabel">Adjuntar comprobante (opcional)</span>
+                    <input type="file" id="txFile" class="hidden" accept=".pdf,.jpg,.jpeg,.png" onchange="handleFileSelect(this)">
+                </label>
+            </div>
+            <div class="flex gap-3">
+                <button onclick="closeModal('modalAddTx')" class="flex-1 py-3 text-slate-400 font-bold">Cancelar</button>
+                <button onclick="addTransaction()" class="flex-1 py-3 bg-indigo-600 text-white font-bold rounded-xl">Registrar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Configurar tipos de cuota para una cuenta existente -->
+    <div id="modalConfigTiposCuotaCuenta" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4 modal">
+        <div class="bg-white w-full max-w-2xl rounded-3xl p-8 shadow-2xl max-h-[90vh] overflow-y-auto">
+            <h3 class="text-2xl font-bold mb-6">Tipos de cuota para <span id="cuentaNombreConfig"></span></h3>
+            <input type="hidden" id="cuentaIdConfig">
+            <div id="tiposCuotaCuentaList" class="space-y-2 mb-4"></div>
+            <div class="flex gap-2">
+                <input type="text" id="nuevoTipoCuentaNombre" placeholder="Nombre" class="flex-1 px-3 py-2 border rounded-lg">
+                <input type="number" id="nuevoTipoCuentaMonto" placeholder="Monto" class="w-32 px-3 py-2 border rounded-lg">
+                <button type="button" onclick="agregarTipoCuotaCuenta()" class="px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm">Agregar</button>
+            </div>
+            <div class="flex gap-3 mt-6">
+                <button onclick="closeModal('modalConfigTiposCuotaCuenta')" class="flex-1 py-3 text-slate-400 font-bold">Cerrar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Transferencia -->
+    <div id="modalTransfer" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4 modal">
+        <div class="bg-white w-full max-w-md rounded-3xl p-8 shadow-2xl">
+            <h3 class="text-2xl font-bold mb-6">Transferir Fondos</h3>
+            <select id="transferFrom" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl mb-3"><option value="">Origen</option></select>
+            <select id="transferTo" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl mb-3"><option value="">Destino</option></select>
+            <input type="number" id="transferAmount" placeholder="Monto" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl mb-3">
+            <input type="text" id="transferConcept" placeholder="Concepto" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl mb-4">
+            <div class="flex gap-3">
+                <button onclick="closeModal('modalTransfer')" class="flex-1 py-3 text-slate-400 font-bold">Cancelar</button>
+                <button onclick="executeTransfer()" class="flex-1 py-3 bg-indigo-600 text-white font-bold rounded-xl">Transferir</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Editar Movimiento -->
+    <div id="modalEditTx" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4 modal">
+        <div class="bg-white w-full max-w-md rounded-3xl p-8 shadow-2xl">
+            <h3 class="text-2xl font-bold mb-6">Editar Movimiento</h3>
+            <input type="hidden" id="editTxId"><input type="hidden" id="editAccountId">
+            <input type="text" id="editConcepto" placeholder="Concepto" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl mb-3">
+            <input type="number" id="editMonto" placeholder="Monto" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl mb-3">
+            <select id="editMoneda" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl mb-3">
+                <option value="CLP">CLP</option><option value="USD">USD</option><option value="Bs">Bs</option>
+            </select>
+            <input type="text" id="editRef" placeholder="Referencia" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl mb-4">
+            <div class="flex gap-3">
+                <button onclick="closeModal('modalEditTx')" class="flex-1 py-3 text-slate-400 font-bold">Cancelar</button>
+                <button onclick="updateTransaction()" class="flex-1 py-3 bg-indigo-600 text-white font-bold rounded-xl">Guardar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Agregar Persona Manual -->
+    <div id="modalAgregarPersona" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4 modal">
+        <div class="bg-white w-full max-w-md rounded-3xl p-8 shadow-2xl">
+            <h3 class="text-2xl font-bold mb-6">Agregar Persona</h3>
+            <input type="text" id="manualRun" placeholder="RUN" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl mb-3">
+            <input type="text" id="manualNombre" placeholder="Nombre completo" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl mb-3">
+            <input type="text" id="manualUnidad" placeholder="Unidad" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl mb-3">
+            <select id="manualTipo" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl mb-3">
+                <option value="nuevo">Nuevo</option><option value="regular">Regular</option>
+            </select>
+            <input type="number" id="manualMonto" placeholder="Monto pagado (opcional)" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl mb-4">
+            <div class="flex gap-3">
+                <button onclick="cerrarModalPersona()" class="flex-1 py-3 text-slate-400 font-bold">Cancelar</button>
+                <button onclick="agregarPersonaManual()" class="flex-1 py-3 bg-indigo-600 text-white font-bold rounded-xl">Agregar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Config Cuotas por Cuenta (compatibilidad) -->
+    <div id="modalConfigCuotas" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4 modal">
+        <div class="bg-white w-full max-w-4xl rounded-3xl p-8 shadow-2xl max-h-[90vh] overflow-y-auto">
+            <h3 class="text-2xl font-bold mb-6">Tipos de cuota por cuenta</h3>
+            <div id="configCuotasContent"></div>
+            <div class="flex gap-3 mt-6">
+                <button onclick="cerrarModalConfigCuotas()" class="flex-1 py-3 text-slate-400 font-bold">Cerrar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Pago Registro Anual -->
+    <div id="modalPagoRegistro" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4 modal">
+        <div class="bg-white w-full max-w-md rounded-3xl p-8 shadow-2xl">
+            <h3 class="text-2xl font-bold mb-6">Registrar Pago</h3>
+            <p id="pagoRegistroNombre" class="text-sm text-indigo-600 font-bold mb-4"></p>
+            <input type="hidden" id="pagoRegistroId">
+            <input type="number" id="pagoRegistroMonto" placeholder="Monto" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl mb-4">
+            <label class="file-input-label flex items-center gap-2 w-full px-4 py-3 border border-slate-200 rounded-xl cursor-pointer mb-4">
+                <i class="fas fa-file-pdf text-red-500"></i>
+                <span id="pagoRegistroFileLabel">Comprobante (opcional)</span>
+                <input type="file" id="pagoRegistroFile" class="hidden" accept=".pdf,.jpg,.jpeg,.png" onchange="handlePagoRegistroFile(this)">
+            </label>
+            <div class="flex gap-3">
+                <button onclick="cerrarModalPagoRegistro()" class="flex-1 py-3 text-slate-400 font-bold">Cancelar</button>
+                <button onclick="guardarPagoRegistro()" class="flex-1 py-3 bg-indigo-600 text-white font-bold rounded-xl">Registrar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Plan de Pago -->
+    <div id="modalPlanPago" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4 modal">
+        <div class="bg-white w-full max-w-5xl rounded-3xl p-8 shadow-2xl max-h-[90vh] overflow-y-auto">
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="text-2xl font-bold">Crear Plan de Pago</h3>
+                <button onclick="cerrarModalPlanPago()" class="text-slate-400 hover:text-slate-600"><i class="fas fa-times text-2xl"></i></button>
+            </div>
+            <!-- Datos Personales -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                <div><label class="block text-sm font-bold mb-1">RUN Responsable *</label><input type="text" id="planRunResp" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl" oninput="buscarPersonaPlan(this.value)"><div id="planSearchResults" class="text-sm mt-1 max-h-32 overflow-y-auto"></div></div>
+                <div><label class="block text-sm font-bold mb-1">Nombre Responsable *</label><input type="text" id="planNombreResp" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl"></div>
+                <div><label class="block text-sm font-bold mb-1">Email Responsable *</label><input type="email" id="planEmailResp" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl"></div>
+                <div><label class="block text-sm font-bold mb-1">Teléfono Responsable</label><input type="text" id="planTelefonoResp" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl"></div>
+                <div><label class="block text-sm font-bold mb-1">Dirección Responsable</label><input type="text" id="planDireccionResp" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl"></div>
+                <div><label class="block text-sm font-bold mb-1">RUN Tesorero *</label><input type="text" id="planRunTes" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl"></div>
+                <div><label class="block text-sm font-bold mb-1">Nombre Tesorero *</label><input type="text" id="planNombreTes" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl"></div>
+                <div class="md:col-span-2"><label class="block text-sm font-bold mb-1">Observaciones</label><textarea id="planObservaciones" rows="2" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl"></textarea></div>
+            </div>
+            <!-- Configuración de Cuotas -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                <div><label class="block text-sm font-bold mb-1">Monto Total *</label><input type="number" id="planMontoTotal" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl" onchange="recalcularCuotasPorMontoTotal()"></div>
+                <div><label class="block text-sm font-bold mb-1">Número de Cuotas *</label><input type="number" id="planNumCuotas" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl" onchange="generarTablaCuotas()"></div>
+                <div><label class="block text-sm font-bold mb-1">Fecha Inicio *</label><input type="date" id="planFechaInicio" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl" onchange="generarTablaCuotas()"></div>
+                <div><label class="block text-sm font-bold mb-1">Fecha Fin *</label><input type="date" id="planFechaFin" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl"></div>
+                <div><label class="block text-sm font-bold mb-1">Tipo de Cuota</label><select id="planTipoCuota" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl" onchange="cambiarTipoCuota()"><option value="fija">Fija (todas iguales)</option><option value="variable">Variable (personalizar)</option></select></div>
+                <div><label class="block text-sm font-bold mb-1">Período entre cuotas</label><select id="planPeriodo" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl" onchange="generarTablaCuotas()"><option value="mensual">Mensual</option><option value="quincenal">Quincenal</option><option value="semanal">Semanal</option></select></div>
+            </div>
+            <!-- Tabla de cuotas -->
+            <div class="mt-6" id="cuotasContainer" style="display: none;">
+                <h4 class="font-bold mb-2">Detalle de cuotas</h4>
+                <div class="overflow-x-auto"><table class="w-full text-sm border"><thead class="bg-slate-100"> <th class="px-4 py-2">N°</th><th class="px-4 py-2">Monto</th><th class="px-4 py-2">Fecha Vencimiento</th><th class="px-4 py-2">Acciones</th> </thead><tbody id="cuotasList"></tbody>   </table></div>
+                <div class="mt-4 flex justify-between items-center text-sm font-bold"><span>Total: <span id="resumenTotal">$0</span></span><span>Promedio: <span id="resumenPromedio">$0</span></span></div>
+            </div>
+            <!-- Declaración de compromiso -->
+            <div class="mt-6 p-4 bg-blue-50 border-l-4 border-blue-500 text-sm"><i class="fas fa-handshake text-blue-600 mr-2"></i><strong>Declaración de compromiso:</strong> El responsable declara conocer y aceptar las condiciones del plan de pagos, comprometiéndose a cumplir con el pago de las cuotas en las fechas establecidas. El incumplimiento podrá derivar en la suspensión de beneficios o actividades, según lo estipulado en el reglamento interno del grupo.</div>
+            <!-- Firmas -->
+            <div class="mt-6"><label class="block text-sm font-bold mb-2">Firma del Tesorero *</label><div class="signature-canvas-container"><canvas class="signature-canvas" id="firmaTesoreroCanvas" width="800" height="200"></canvas><div class="signature-placeholder" id="firmaTesoreroPlaceholder">Firme aquí</div></div><div class="flex gap-2 mt-2"><button class="signature-btn clear" id="clearFirmaTesorero"><i class="fas fa-eraser"></i> Limpiar</button><button class="signature-btn save" id="saveFirmaTesorero"><i class="fas fa-save"></i> Guardar</button></div><div class="signature-preview" id="firmaTesoreroPreview"><img class="signature-image" id="firmaTesoreroImage"><p id="firmaTesoreroTimestamp"></p></div></div>
+            <div class="mt-6"><label class="block text-sm font-bold mb-2">Firma del Responsable *</label><div class="signature-canvas-container"><canvas class="signature-canvas" id="firmaResponsableCanvas" width="800" height="200"></canvas><div class="signature-placeholder" id="firmaResponsablePlaceholder">Firme aquí</div></div><div class="flex gap-2 mt-2"><button class="signature-btn clear" id="clearFirmaResponsable"><i class="fas fa-eraser"></i> Limpiar</button><button class="signature-btn save" id="saveFirmaResponsable"><i class="fas fa-save"></i> Guardar</button></div><div class="signature-preview" id="firmaResponsablePreview"><img class="signature-image" id="firmaResponsableImage"><p id="firmaResponsableTimestamp"></p></div></div>
+            <div class="flex gap-3 mt-8"><button onclick="cerrarModalPlanPago()" class="flex-1 py-3 text-slate-400 font-bold">Cancelar</button><button onclick="guardarPlanPago()" class="flex-1 py-3 bg-indigo-600 text-white font-bold rounded-xl">Guardar Plan y Enviar Correo</button></div>
+        </div>
+    </div>
+
+    <!-- Modal Ver Detalle del Plan -->
+    <div id="modalVerPlan" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4 modal">
+        <div class="bg-white w-full max-w-4xl rounded-3xl p-8 shadow-2xl max-h-[90vh] overflow-y-auto">
+            <div class="flex justify-between items-center mb-4"><h3 class="text-2xl font-bold">Detalle del Plan de Pago</h3><button onclick="cerrarModalVerPlan()" class="text-slate-400 hover:text-slate-600"><i class="fas fa-times text-2xl"></i></button></div>
+            <div id="detallePlanInfo" class="mb-4 p-4 bg-slate-50 rounded-xl"></div>
+            <h4 class="font-bold mb-2">Cuotas</h4>
+            <div id="detalleCuotas" class="space-y-2 max-h-96 overflow-y-auto"></div>
+            <div class="flex gap-3 mt-6"><button onclick="cerrarModalVerPlan()" class="flex-1 py-3 bg-indigo-600 text-white font-bold rounded-xl">Cerrar</button></div>
+        </div>
+    </div>
+
+    <!-- Modal Pago Cuota (para pagos parciales) -->
+    <div id="modalPagoCuota" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4 modal">
+        <div class="bg-white w-full max-w-md rounded-3xl p-8 shadow-2xl">
+            <h3 class="text-2xl font-bold mb-6">Registrar Pago de Cuota</h3>
+            <p id="pagoCuotaInfo" class="text-sm text-indigo-600 font-bold mb-4"></p>
+            <input type="hidden" id="pagoCuotaId">
+            <input type="number" id="pagoCuotaMonto" placeholder="Monto pagado" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl mb-4">
+            <label class="file-input-label flex items-center gap-2 w-full px-4 py-3 border border-slate-200 rounded-xl cursor-pointer mb-4"><i class="fas fa-file-pdf text-red-500"></i><span id="pagoCuotaFileLabel">Comprobante (opcional)</span><input type="file" id="pagoCuotaFile" class="hidden" accept=".pdf,.jpg,.jpeg,.png" onchange="handlePagoCuotaFile(this)"></label>
+            <div class="flex gap-3"><button onclick="cerrarModalPagoCuota()" class="flex-1 py-3 text-slate-400 font-bold">Cancelar</button><button onclick="guardarPagoCuota()" class="flex-1 py-3 bg-indigo-600 text-white font-bold rounded-xl">Registrar</button></div>
+        </div>
+    </div>
+
+    <script src="tesoreria/js/00_nucleo_y_acceso.js"></script>
+    <script src="tesoreria/js/01_estado_global.js"></script>
+    <script src="tesoreria/js/02_cuentas_base_y_tabs.js"></script>
+    <script src="tesoreria/js/03_dashboard_y_consolidado.js"></script>
+    <script src="tesoreria/js/04_gestion_cuentas.js"></script>
+    <script src="tesoreria/js/05_movimientos.js"></script>
+    <script src="tesoreria/js/06_registro_anual.js"></script>
+    <script src="tesoreria/js/07_transferencias.js"></script>
+    <script src="tesoreria/js/08_planes_de_pago.js"></script>
+    <script src="tesoreria/js/09_config_y_sync.js"></script>
+    <script src="tesoreria/js/10_complemento_pago.js"></script>
+    <script src="tesoreria/js/11_exports_globales.js"></script>
+<script>if('serviceWorker' in navigator){navigator.serviceWorker.register('/sw.js').catch(function(){});}</script>
+<script src="google-api-helper.js"></script>
+<script src="google-ui.js"></script>
+</body>
+</html>

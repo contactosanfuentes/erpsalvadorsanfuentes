@@ -1,0 +1,22 @@
+{
+ "origen": "/home/claude/erp_upload/erp_full/checkin_qr.html",
+ "destino": "/home/claude/plataforma_v2",
+ "pagina": "checkin_qr.html",
+ "carpeta": "checkin",
+ "scriptInicio": "<script>\n",
+ "scriptFin": "\n</script>",
+ "scriptOcurrencia": 2,
+ "estilos": [
+  {
+   "inicio": "    <style>\n",
+   "fin": "    </style>",
+   "archivo": "checkin.css"
+  }
+ ],
+ "grupos": [
+  {
+   "desde": 0,
+   "nombre": "app"
+  }
+ ]
+}

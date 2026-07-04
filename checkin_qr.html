@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <script src="auth-guard.js"></script>
+    <script src="permisos.js"></script>
+<script>
+(async function(){
+  // Esperar _sbClient + que Permisos se inicialice (auth-guard lo hace)
+  await new Promise(r=>{
+    const t=setInterval(()=>{if(window.Permisos&&Permisos.listo()){clearInterval(t);r();}},80);
+    setTimeout(()=>{clearInterval(t);r();},10000);
+  });
+  // Fallback: init manual si auth-guard no lo hizo
+  if(window.Permisos&&!Permisos.listo()&&window._sbClient){
+    await Permisos.init(window._sbClient);
+  }
+  if(window.Permisos&&Permisos.listo()&&!Permisos.puede('checkin')){
+    document.body.innerHTML='<div style="display:flex;align-items:center;justify-content:center;height:100vh;flex-direction:column;gap:14px;font-family:Arial;background:#f8fafc;"><div style="font-size:48px;">🔒</div><h2 style="color:#001558;margin:0;">Acceso restringido</h2><p style="color:#64748b;margin:0;">No tienes permiso para este módulo.</p></div>';
+  }
+})();
+</script>
+<meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+    <title>Check-in QR — ERP Scout</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html5-qrcode/2.3.8/html5-qrcode.min.js"></script>
+<link rel="stylesheet" href="checkin/css/checkin.css">
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#0E2586">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="ERP Scout">
+    <link rel="stylesheet" href="mobile.css">
+</head>
+<body>
+<div class="topbar">
+    <i class="fas fa-qrcode"></i>
+    <div><h1>Check-in QR — Confirmación de Inscripciones</h1><p id="topbarEv">Selecciona un evento para comenzar</p></div>
+</div>
+<div class="content">
+    <div class="card">
+        <h2><i class="fas fa-calendar-check" style="color:var(--azul-claro)"></i> Evento activo</h2>
+        <div class="row">
+            <select id="selEv" onchange="cambiarEv()"><option value="">— Cargando eventos —</option></select>
+            <button class="btn btn-p" onclick="recargar()"><i class="fas fa-sync-alt"></i></button>
+        </div>
+    </div>
+
+    <div id="tabsBar" style="display:none">
+        <div class="tabs">
+            <button class="tab act" onclick="cambiarTab('scanner',this)"><i class="fas fa-camera"></i> Escáner QR</button>
+            <button class="tab" onclick="cambiarTab('manual',this)"><i class="fas fa-keyboard"></i> Código manual</button>
+            <button class="tab" onclick="cambiarTab('lista',this)"><i class="fas fa-list-check"></i> Lista de pendientes</button>
+        </div>
+    </div>
+
+    <div class="card panel vis" id="panelScanner">
+        <h2><i class="fas fa-camera" style="color:var(--azul-claro)"></i> Escanear código QR</h2>
+        <div class="scanner-wrap">
+            <div id="reader"></div>
+            <div class="scan-ol"><div class="sf"><div class="ctr"></div><div class="cbl"></div><div class="sl"></div></div></div>
+        </div>
+        <div class="sc-btns">
+            <button class="btn btn-p" id="btnI" onclick="iniciar()"><i class="fas fa-play"></i> Iniciar cámara</button>
+            <button class="btn btn-r" id="btnD" style="display:none" onclick="detener()"><i class="fas fa-stop"></i> Detener</button>
+        </div>
+        <div class="res" id="resS"></div>
+    </div>
+
+    <div class="card panel" id="panelManual">
+        <h2><i class="fas fa-keyboard" style="color:var(--azul-claro)"></i> Buscar código manualmente</h2>
+        <div class="row">
+            <input type="text" id="cManual" placeholder="Ej: GSS-M8X3K2-A1B" style="text-transform:uppercase" onkeydown="if(event.key==='Enter')buscarM()">
+            <button class="btn btn-p" onclick="buscarM()"><i class="fas fa-search"></i> Buscar</button>
+        </div>
+        <div class="res" id="resM"></div>
+    </div>
+
+    <div class="panel" id="panelLista">
+        <div class="stats-row">
+            <div class="stat az"><div class="n" id="sTotal">0</div><div class="l">Total inscritos</div></div>
+            <div class="stat vd"><div class="n" id="sConf">0</div><div class="l">Confirmados</div></div>
+            <div class="stat na"><div class="n" id="sPend">0</div><div class="l">Pendientes</div></div>
+            <div class="stat gr"><div class="n" id="sPct">0%</div><div class="l">Confirmación</div></div>
+        </div>
+        <div class="card" style="padding:13px">
+            <div class="sub-tabs">
+                <button class="sub-tab act" onclick="cambiarSubTab('jovenes',this)"><i class="fas fa-users"></i> Jóvenes / Patrullas</button>
+                <button class="sub-tab" onclick="cambiarSubTab('adultos',this)"><i class="fas fa-user-tie"></i> Adultos / Staff</button>
+            </div>
+            <div class="sr">
+                <input type="text" id="filtro" placeholder="Buscar..." oninput="filtrarLista()">
+                <button class="btn btn-sm btn-v" onclick="exportarCSV()"><i class="fas fa-file-csv"></i> Exportar</button>
+                <button class="btn btn-sm btn-p" onclick="recargar()"><i class="fas fa-sync-alt"></i></button>
+            </div>
+            <div class="tw">
+                <table>
+                    <thead><tr id="tHead"></tr></thead>
+                    <tbody id="tbody"><tr><td colspan="7"><div class="empty"><i class="fas fa-circle-notch fa-spin"></i>Esperando evento...</div></td></tr></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+    <script src="checkin/js/00_nucleo_y_estado.js"></script>
+    <script src="checkin/js/01_inicializacion.js"></script>
+<script>if('serviceWorker' in navigator){navigator.serviceWorker.register('/sw.js').catch(function(){});}</script>
+<script src="google-api-helper.js"></script>
+<script src="google-ui.js"></script>
+</body>
+</html>

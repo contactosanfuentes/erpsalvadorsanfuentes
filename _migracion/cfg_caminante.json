@@ -1,0 +1,46 @@
+{
+ "origen": "/home/claude/erp_upload/erp_full/portal_caminante.html",
+ "destino": "/home/claude/plataforma_v2",
+ "pagina": "portal_caminante.html",
+ "carpeta": "caminante",
+ "scriptInicio": "<script>\n",
+ "scriptFin": "\n</script>",
+ "scriptOcurrencia": 1,
+ "estilos": [
+  {
+   "inicio": "<style>\n",
+   "fin": "</style>",
+   "archivo": "caminante.css"
+  }
+ ],
+ "grupos": [
+  {
+   "desde": 0,
+   "nombre": "nucleo_y_acceso"
+  },
+  {
+   "desde": 13,
+   "nombre": "camino_y_manifiesto"
+  },
+  {
+   "desde": 21,
+   "nombre": "modal_proyecto"
+  },
+  {
+   "desde": 29,
+   "nombre": "responsables_y_participantes"
+  },
+  {
+   "desde": 35,
+   "nombre": "evidencias_y_drive"
+  },
+  {
+   "desde": 41,
+   "nombre": "proyectos"
+  },
+  {
+   "desde": 51,
+   "nombre": "calendario_y_portafolio"
+  }
+ ]
+}

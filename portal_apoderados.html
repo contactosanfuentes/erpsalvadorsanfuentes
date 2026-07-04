@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Portal Apoderados — Grupo Scout</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<link rel="stylesheet" href="apoderados/css/apoderados.css">
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#0E2586">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="ERP Scout">
+    <link rel="stylesheet" href="mobile.css">
+</head>
+<body>
+<div class="header"><div class="hi"><div class="lc"><img src="https://i.imgur.com/11u9rUD.png" alt="Logo"></div><h1>Portal de Apoderados</h1><p>Grupo Guías y Scouts Salvador Sanfuentes</p></div></div>
+<div class="wrapper">
+    <div class="sc">
+        <h2><i class="fas fa-search" style="color:var(--azul-claro)"></i> Consultar participante</h2>
+        <div class="sr">
+            <input type="text" id="q" placeholder="Nombre o RUN del joven..." autocomplete="off" onkeydown="if(event.key==='Enter')buscar()">
+            <button class="btn btn-p" id="btnB" onclick="buscar()"><i class="fas fa-search"></i> Buscar</button>
+        </div>
+        <p style="font-size:0.77rem;color:var(--texto-claro);margin-top:8px;display:flex;align-items:center;gap:5px"><i class="fas fa-shield-alt"></i> Solo se muestran datos del joven consultado.</p>
+    </div>
+    <div class="aviso"><i class="fas fa-info-circle"></i><span>Portal de solo lectura. Para modificar cualquier dato, contacta a la directiva del grupo.</span></div>
+    <div id="res"></div>
+</div>
+
+    <script src="apoderados/js/00_nucleo_y_constantes.js"></script>
+    <script src="apoderados/js/01_busqueda_y_render.js"></script>
+<script>if('serviceWorker' in navigator){navigator.serviceWorker.register('/sw.js').catch(function(){});}</script>
+<script src="google-api-helper.js"></script>
+<script src="google-ui.js"></script>
+</body>
+</html>

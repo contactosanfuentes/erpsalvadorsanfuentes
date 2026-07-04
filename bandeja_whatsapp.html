@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <script src="auth-guard.js"></script>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bandeja WhatsApp — ERP Scout</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<link rel="manifest" href="manifest.json">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="permisos.js"></script>
+<script src="wa_api.js"></script>
+<link rel="stylesheet" href="bandeja_whatsapp/css/bandeja.css">
+</head>
+<body>
+
+<div class="topbar">
+    <i class="fab fa-whatsapp"></i>
+    <div>
+        <h1>Bandeja de Entrada WhatsApp</h1>
+        <p>Mensajes del Grupo Scout Salvador Sanfuentes</p>
+    </div>
+    <span class="realtime-badge"><i class="fas fa-circle" style="font-size:0.5rem;"></i> EN VIVO</span>
+    <a class='back-btn' href='/'><i class="fas fa-arrow-left"></i> Volver</a>
+</div>
+
+<div class="main">
+    <!-- Lista de conversaciones -->
+    <div class="conv-list" id="conv-list-panel">
+        <div class="conv-header">
+            <h2><i class="fab fa-whatsapp" style="color:#25D366;margin-right:4px;"></i> Conversaciones</h2>
+            <span class="badge-total" id="badge-noLeidos" style="display:none;">0</span>
+            <button onclick="recargarConversaciones()" style="background:none;border:none;color:#94a3b8;cursor:pointer;font-size:0.85rem;" title="Recargar"><i class="fas fa-sync-alt"></i></button>
+        </div>
+        <div class="search-conv">
+            <input type="text" id="search-conv" placeholder="Buscar conversación..." oninput="filtrarConversaciones()">
+        </div>
+        <div class="filter-tabs">
+            <button class="filter-tab active" onclick="setFiltro('todos',this)">Todos</button>
+            <button class="filter-tab" onclick="setFiltro('noLeidos',this)">No leídos</button>
+            <button class="filter-tab" onclick="setFiltro('joven',this)">Jóvenes</button>
+            <button class="filter-tab" onclick="setFiltro('adulto',this)">Adultos</button>
+        </div>
+        <div class="conv-items" id="conv-items"></div>
+    </div>
+
+    <!-- Panel de chat -->
+    <div class="chat-panel" id="chat-panel">
+        <div class="no-chat" id="no-chat">
+            <i class="fab fa-whatsapp"></i>
+            <h3>ERP Scout — WhatsApp</h3>
+            <p>Selecciona una conversación para comenzar</p>
+        </div>
+        <div id="chat-active" style="display:none;flex-direction:column;height:100%;">
+            <div class="chat-header" id="chat-header"></div>
+            <div class="messages-area" id="messages-area"></div>
+            <div id="typing-area" class="typing-indicator" style="display:none;">Escribiendo...</div>
+            <div class="chat-input-area">
+                <button onclick="toggleWAMediaPanel()" title="Adjuntar" id="btn-adjuntar" style="background:none;border:none;cursor:pointer;color:#64748b;font-size:1.05rem;padding:4px 6px;flex-shrink:0;-webkit-tap-highlight-color:transparent"><i class="fas fa-paperclip"></i></button>
+                <textarea class="chat-input" id="chat-input" placeholder="Escribe un mensaje..." rows="1" oninput="autoResizeTA(this)" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();enviarRespuesta();}"></textarea>
+                <button class="send-btn" id="send-btn" onclick="enviarRespuesta()" title="Enviar"><i class="fas fa-paper-plane"></i></button>
+            </div>
+        </div>
+    </div>
+</div>
+
+    <script src="bandeja_whatsapp/js/00_nucleo_y_acceso.js"></script>
+    <script src="bandeja_whatsapp/js/01_estado.js"></script>
+    <script src="bandeja_whatsapp/js/02_conversaciones.js"></script>
+    <script src="bandeja_whatsapp/js/03_mensajes.js"></script>
+    <script src="bandeja_whatsapp/js/04_realtime_e_inicio.js"></script>
+
+<!-- Panel de multimedia/contacto para Bandeja WA -->
+<div id="waMediaPanel" style="display:none;position:fixed;bottom:72px;left:0;right:0;background:white;border-top:2px solid #e2e8f0;border-radius:14px 14px 0 0;padding:14px;box-shadow:0 -6px 20px rgba(0,0,0,.12);z-index:200;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+        <span style="font-weight:700;color:#0E2586;font-size:0.88rem"><i class="fas fa-paperclip" style="margin-right:6px"></i>Adjuntar</span>
+        <button onclick="toggleWAMediaPanel()" style="background:none;border:none;cursor:pointer;color:#94a3b8;font-size:1.1rem">✕</button>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:10px">
+        <button onclick="document.getElementById('wa-file-img').click()" style="background:#e8f5ee;color:#166534;border:none;border-radius:12px;padding:14px 8px;cursor:pointer;font-size:0.75rem;font-weight:700;font-family:inherit;display:flex;flex-direction:column;align-items:center;gap:6px">
+            <i class="fas fa-image" style="font-size:1.3rem;color:#16a34a"></i>Imagen
+        </button>
+        <button onclick="document.getElementById('wa-file-doc').click()" style="background:#eff6ff;color:#1d4ed8;border:none;border-radius:12px;padding:14px 8px;cursor:pointer;font-size:0.75rem;font-weight:700;font-family:inherit;display:flex;flex-direction:column;align-items:center;gap:6px">
+            <i class="fas fa-file-pdf" style="font-size:1.3rem;color:#2563eb"></i>Documento
+        </button>
+        <button onclick="abrirBuscadorContactoWA()" style="background:#f5f3ff;color:#5b21b6;border:none;border-radius:12px;padding:14px 8px;cursor:pointer;font-size:0.75rem;font-weight:700;font-family:inherit;display:flex;flex-direction:column;align-items:center;gap:6px">
+            <i class="fas fa-address-card" style="font-size:1.3rem;color:#7c3aed"></i>Contacto
+        </button>
+    </div>
+    <!-- Vista previa del archivo seleccionado -->
+    <div id="waFilePreview" style="display:none;background:#f8fafc;border-radius:10px;padding:10px;margin-bottom:8px">
+        <div style="display:flex;align-items:center;gap:8px">
+            <i id="waFileIcon" class="fas fa-file" style="font-size:1.2rem;color:#2563eb;flex-shrink:0"></i>
+            <div style="flex:1;min-width:0">
+                <div id="waFileName" style="font-size:0.82rem;font-weight:700;color:#1e293b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis"></div>
+                <div id="waFileSize" style="font-size:0.71rem;color:#64748b"></div>
+            </div>
+            <button onclick="waQuitarArchivo()" style="background:none;border:none;cursor:pointer;color:#ef4444;font-size:1rem">✕</button>
+        </div>
+        <input type="text" id="waFileCaption" placeholder="Descripción (opcional)..." style="width:100%;margin-top:7px;border:1.5px solid #e2e8f0;border-radius:7px;padding:7px 10px;font-size:0.82rem;font-family:inherit;outline:none;box-sizing:border-box">
+    </div>
+    <!-- Buscador de contactos de la BD -->
+    <div id="waContactoPanel" style="display:none">
+        <input type="text" id="waContactoBuscar" placeholder="Buscar adulto o apoderado..." oninput="buscarContactoWA()" style="width:100%;border:2px solid #e2e8f0;border-radius:9px;padding:9px 12px;font-size:0.84rem;font-family:inherit;outline:none;box-sizing:border-box;margin-bottom:6px">
+        <div id="waContactoLista" style="max-height:140px;overflow-y:auto;border:1px solid #e2e8f0;border-radius:9px;background:white"></div>
+    </div>
+    <button onclick="enviarAdjunto()" id="btnEnviarAdjunto" style="display:none;width:100%;background:linear-gradient(135deg,#075e54,#25D366);color:white;border:none;padding:11px;border-radius:10px;font-size:0.87rem;font-weight:700;cursor:pointer;font-family:inherit;margin-top:6px">
+        <i class="fab fa-whatsapp"></i> Enviar
+    </button>
+    <input type="file" id="wa-file-img" accept="image/*,video/*" style="display:none" onchange="waArchivoSeleccionado(this,'media')">
+    <input type="file" id="wa-file-doc" accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt" style="display:none" onchange="waArchivoSeleccionado(this,'document')">
+</div>
+
+<script>
+var _waArchivoActual = null;
+var _waContactosSel = [];
+var _waTipoEnvio = 'texto';
+
+function toggleWAMediaPanel(){
+    var p = document.getElementById('waMediaPanel');
+    p.style.display = p.style.display === 'none' ? 'block' : 'none';
+}
+
+function waArchivoSeleccionado(input, tipo){
+    var f = input.files[0]; if(!f) return;
+    _waArchivoActual = { file:f, tipo:tipo };
+    _waTipoEnvio = tipo;
+    document.getElementById('waFilePreview').style.display = 'block';
+    document.getElementById('btnEnviarAdjunto').style.display = 'block';
+    document.getElementById('waContactoPanel').style.display = 'none';
+    var iconos = { 'image':'fa-image', 'video':'fa-video', 'audio':'fa-music', 'application/pdf':'fa-file-pdf', 'document':'fa-file-word' };
+    var ic = f.type.startsWith('image') ? 'fa-image' : f.type.startsWith('video') ? 'fa-video' : 'fa-file-alt';
+    document.getElementById('waFileIcon').className = 'fas ' + ic + ' fa-fw';
+    document.getElementById('waFileName').textContent = f.name;
+    document.getElementById('waFileSize').textContent = (f.size/1024 < 1000 ? (f.size/1024).toFixed(1)+' KB' : (f.size/1024/1024).toFixed(1)+' MB');
+}
+
+function waQuitarArchivo(){
+    _waArchivoActual = null; _waTipoEnvio = 'texto';
+    document.getElementById('waFilePreview').style.display = 'none';
+    document.getElementById('btnEnviarAdjunto').style.display = 'none';
+    document.getElementById('wa-file-img').value = '';
+    document.getElementById('wa-file-doc').value = '';
+}
+
+function abrirBuscadorContactoWA(){
+    _waTipoEnvio = 'contacto';
+    document.getElementById('waContactoPanel').style.display = 'block';
+    document.getElementById('waFilePreview').style.display = 'none';
+    document.getElementById('btnEnviarAdjunto').style.display = 'block';
+    document.getElementById('waContactoBuscar').focus();
+}
+
+var _wcTimer;
+async function buscarContactoWA(){
+    clearTimeout(_wcTimer);
+    const q = document.getElementById('waContactoBuscar').value.trim();
+    const lista = document.getElementById('waContactoLista');
+    if(q.length < 2){ lista.innerHTML = ''; return; }
+    _wcTimer = setTimeout(async function(){
+        lista.innerHTML = '<div style="padding:8px;font-size:0.8rem;color:#64748b">Buscando...</div>';
+        try {
+            const {data:adultos} = await supabaseClient.from('adultos_registros').select('nombres,apellidos,telefono').ilike('nombres','%'+q+'%').limit(6);
+            if(!adultos||!adultos.length){ lista.innerHTML='<div style="padding:8px;font-size:0.8rem;color:#64748b">Sin resultados</div>'; return; }
+            lista.innerHTML = adultos.map(a=>`<div onclick="selContactoWA(this,'${a.nombres} ${a.apellidos}','${a.telefono||''}')" style="padding:8px 10px;cursor:pointer;font-size:0.82rem;border-bottom:1px solid #f1f5f9" onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background=''">
+                <b>${a.nombres} ${a.apellidos}</b><br><span style="color:#64748b;font-size:0.75rem">${a.telefono||'Sin teléfono'}</span></div>`).join('');
+        } catch(e){ lista.innerHTML='<div style="padding:8px;font-size:0.8rem;color:#ef4444">Error: '+e.message+'</div>'; }
+    }, 300);
+}
+
+function selContactoWA(el, nombre, tel){
+    _waContactosSel = [{nombre:nombre, telefono:tel}];
+    document.getElementById('waContactoBuscar').value = nombre;
+    document.getElementById('waContactoLista').innerHTML = '';
+    el.style.background = '#dbeafe';
+}
+
+async function enviarAdjunto(){
+    if(!contactoActivo){ alert('Selecciona un contacto primero'); return; }
+    const btn = document.getElementById('btnEnviarAdjunto');
+    btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Enviando...';
+    try {
+        const nombre = contactoActivo.name || contactoActivo.number;
+
+        if(_waTipoEnvio === 'contacto'){
+            if(!_waContactosSel.length){
+                alert('Selecciona un contacto de la BD');
+                btn.disabled=false; btn.innerHTML='<i class="fab fa-whatsapp"></i> Enviar';
+                return;
+            }
+            const res = await WA.enviarContactos(contactoActivo.number, nombre, _waContactosSel);
+            if(res && !res.ok) throw new Error(res.error || 'Error al enviar contacto');
+
+        } else if(_waArchivoActual){
+            const file = _waArchivoActual.file;
+            const caption = document.getElementById('waFileCaption').value || '';
+
+            // Validar tamaño
+            const maxMB = file.type.startsWith('image/') ? 5 : file.type.startsWith('video/') ? 16 : 100;
+            if(file.size > maxMB * 1024 * 1024){
+                throw new Error('Archivo demasiado grande ('+( file.size/1024/1024).toFixed(1)+' MB). Máximo: '+maxMB+' MB.');
+            }
+
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Preparando...';
+            const b64 = await WA.fileToBase64(file);
+            const tipo = WA.tipoDesdeFile(file);
+
+            const mediaData = { tipo: tipo, b64: b64, mimeType: file.type, filename: file.name, caption: caption };
+
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Enviando...';
+            const res = await WA.enviarMedia(contactoActivo.number, nombre, mediaData);
+            if(res && !res.ok) throw new Error(res.error || 'Error al enviar archivo');
+        }
+
+        btn.innerHTML = '<i class="fas fa-check"></i> ¡Enviado!';
+        setTimeout(function(){ waQuitarArchivo(); toggleWAMediaPanel(); btn.disabled=false; btn.innerHTML='<i class="fab fa-whatsapp"></i> Enviar'; }, 1800);
+
+    } catch(e){
+        alert('Error: '+e.message);
+        btn.disabled=false; btn.innerHTML='<i class="fab fa-whatsapp"></i> Enviar';
+    }
+}
+</script>
+</body>
+</html>

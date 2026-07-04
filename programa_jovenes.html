@@ -1,0 +1,1070 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <script src="auth-guard.js"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ERP Scout - Sistema de Gestión Educativa | Grupo Guías y Scouts Salvador Sanfuentes</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Supabase JS -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="permisos.js"></script>
+<script src="drive-helper.js"></script>
+<script src="certificados.js"></script>
+    <!-- EmailJS SDK -->
+    <script src="wa_api.js"></script>
+<link rel="stylesheet" href="programa_jovenes/css/programa.css">
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#0E2586">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="ERP Scout">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.2/cropper.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.2/cropper.min.js"></script>
+<link rel="stylesheet" href="programa_jovenes/css/cropper-extra.css">
+    <link rel="stylesheet" href="mobile.css">
+</head>
+<body>
+
+<!-- MODAL EDITOR DE FOTO -->
+<div id="modal-editor-foto">
+    <div class="foto-editor-box">
+        <div class="foto-editor-header">
+            <h3><i class="fas fa-crop-alt mr-2"></i> Editar Foto de Perfil</h3>
+            <button onclick="cerrarEditorFoto()" style="background:rgba(255,255,255,0.15);border:none;color:white;width:32px;height:32px;border-radius:50%;cursor:pointer;font-size:1rem;">✕</button>
+        </div>
+        <div class="foto-editor-area">
+            <div class="img-container" id="foto-crop-container">
+                <img id="foto-crop-img" src="" alt="Foto a editar">
+            </div>
+        </div>
+        <div class="foto-aspect-row">
+            <button class="aspect-btn active" onclick="setAspecto(1,this)">⬤ Círculo (1:1)</button>
+            <button class="aspect-btn" onclick="setAspecto(4/3,this)">📷 4:3</button>
+            <button class="aspect-btn" onclick="setAspecto(NaN,this)">✂️ Libre</button>
+        </div>
+        <div class="foto-editor-controls">
+            <button class="foto-ctrl-btn" onclick="rotarImagenReal(-90)" title="Rotar izquierda"><i class="fas fa-undo"></i> -90°</button>
+            <button class="foto-ctrl-btn" onclick="rotarImagenReal(90)" title="Rotar derecha"><i class="fas fa-redo"></i> +90°</button>
+            <button class="foto-ctrl-btn" onclick="cropperInstance.scaleX(-cropperInstance.getData().scaleX||1)" title="Voltear horizontal"><i class="fas fa-arrows-alt-h"></i> Voltear</button>
+            <button class="foto-ctrl-btn" onclick="cropperInstance.zoom(0.1)"><i class="fas fa-search-plus"></i> Zoom+</button>
+            <button class="foto-ctrl-btn" onclick="cropperInstance.zoom(-0.1)"><i class="fas fa-search-minus"></i> Zoom-</button>
+            <button class="foto-ctrl-btn" onclick="cropperInstance.reset()"><i class="fas fa-sync"></i> Reset</button>
+            <button class="foto-ctrl-btn primary" onclick="confirmarFotoEditada()"><i class="fas fa-check"></i> Guardar Foto</button>
+        </div>
+    </div>
+</div>
+
+    <!-- Menú de Navegación Superior -->
+    <div style="background: linear-gradient(135deg, var(--azul-profundo) 0%, #1e3a8a 100%); color: white; padding: 18px 25px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-radius: 12px; box-shadow: 0 10px 15px -3px rgba(14,37,134,0.3);">
+        <div style="display: flex; align-items: center; gap: 18px;">
+            <div class="bg-white text-blue-900 w-12 h-12 rounded-full flex items-center justify-center text-2xl shadow-inner">
+                <i class="fas fa-campground"></i>
+            </div>
+            <div>
+                <h1 class="text-xl font-extrabold leading-tight tracking-tight">Sistema de Gestión Educativa</h1>
+
+                <p class="text-xs font-medium text-blue-200 mt-0.5 uppercase letter-spacing-wide">Grupo Guías y Scouts Salvador Sanfuentes</p>
+            </div>
+        </div>
+        <div style="display: flex; gap: 12px;">
+            <button class="btn bg-white/20 hover:bg-white/30 text-white border border-white/10 backdrop-blur-sm" onclick="toggleView('profiles')"><i class="fas fa-users"></i> Expedientes y Progresión</button>
+            <button class="btn bg-amber-500 hover:bg-amber-400 text-white border-none shadow-lg" onclick="toggleView('dashboard')"><i class="fas fa-chart-pie"></i> Analítica y KPIs</button>
+        </div>
+    </div>
+
+    <!-- VISTA PRINCIPAL: PERFILES -->
+    <div class="programa-layout" id="view-profiles">
+        <!-- Panel izquierdo: directorio -->
+        <div class="youth-list-panel">
+            <div class="youth-list-header">
+                <div class="flex justify-between items-center mb-2">
+                    <h3 style="margin-bottom:0"><i class="fas fa-search mr-2"></i> Directorio de Beneficiarios</h3>
+                    <button onclick="abrirModalProyectosVigentes()" class="bg-gradient-to-r from-purple-600 to-red-600 text-white border-none rounded-lg px-3 py-1.5 text-xs font-bold cursor-pointer shadow-md hover:shadow-lg transition flex items-center gap-1" title="Ver proyectos vigentes de Avanzada y Clan"><i class="fas fa-rocket"></i> Proyectos Vigentes</button>
+                </div>
+                <div class="search-wrapper">
+                    <i class="fas fa-search"></i>
+                    <input type="text" id="search-youth" placeholder="Buscar por nombre o unidad..." onkeyup="filterYouthList()">
+                </div>
+                <div style="display:flex;align-items:center;gap:6px;margin:8px 0 4px;">
+                    <button id="btn-toggle-inactivos" onclick="toggleMostrarInactivos()" style="font-size:0.68rem;font-weight:700;padding:3px 10px;border-radius:6px;border:1px solid #e2e8f0;background:white;color:#64748b;cursor:pointer;transition:all 0.2s;"><i class="fas fa-eye"></i> Ver inactivos</button>
+                    <span id="badge-inactivos" style="font-size:0.65rem;color:#94a3b8;font-weight:600;"></span>
+                </div>
+                <div class="youth-filter-tags" id="filter-tags">
+                    <span class="youth-tag active" style="background:#1e293b;" data-unit="Todas" onclick="filterByUnit('Todas', this)">Todos</span>
+                    <span class="youth-tag" style="background:var(--color-bandada); color:white;" data-unit="Bandada" onclick="filterByUnit('Bandada', this)">Bandada</span>
+                    <span class="youth-tag" style="background:var(--color-manada); color:#4E110B;" data-unit="Manada" onclick="filterByUnit('Manada', this)">Manada</span>
+                    <span class="youth-tag" style="background:var(--color-tropa);" data-unit="Tropa" onclick="filterByUnit('Tropa', this)">Tropa</span>
+                    <span class="youth-tag" style="background:var(--color-compania);" data-unit="Compañía" onclick="filterByUnit('Compañía', this)">Compañía</span>
+                    <span class="youth-tag" style="background:var(--color-avanzada);" data-unit="Avanzada" onclick="filterByUnit('Avanzada', this)">Avanzada</span>
+                    <span class="youth-tag" style="background:var(--color-clan);" data-unit="Clan" onclick="filterByUnit('Clan', this)">Clan</span>
+                </div>
+            </div>
+            <ul class="youth-list" id="youth-ul-list"></ul>
+        </div>
+
+        <!-- Panel derecho: ficha detallada -->
+        <div class="youth-profile-panel" id="youth-profile-view">
+            <div style="display:flex; height:100%; justify-content:center; align-items:center; flex-direction:column; color:var(--texto-claro); background:white;">
+                <div class="bg-gray-50 p-10 rounded-full mb-6 border-4 border-dashed border-gray-200">
+                    <i class="fas fa-id-card-alt" style="font-size:4rem; color:#cbd5e0;"></i>
+                </div>
+                <h2 class="text-2xl font-bold text-gray-800 mb-2">Seleccione un Expediente</h2>
+                <p class="text-center text-sm font-medium text-gray-500 max-w-sm">Explore el historial de progresión, evaluación de pares, competencias técnicas, proyectos de vida e información general del beneficiario.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- VISTA DASHBOARD (KPIs Institucionales) -->
+    <div class="dashboard-panel" id="view-dashboard">
+        <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 35px; border-bottom: 2px solid #e2e8f0; padding-bottom: 20px;">
+            <div>
+                <h2 class="text-3xl font-extrabold" style="color: var(--azul-profundo); letter-spacing:-0.02em;"><i class="fas fa-chart-line mr-2"></i> Analítica Institucional de Progresión</h2>
+                <p class="text-gray-500 text-sm mt-2 font-medium">Métricas procesables para auditar la eficacia curricular, evitar el estancamiento y orientar la planificación del próximo Ciclo de Programa.</p>
+            </div>
+            <div class="flex flex-col">
+                <label class="text-xs font-bold text-gray-500 mb-1 uppercase tracking-wide">Filtrar Datos Globales por Rama</label>
+                <select class="border-2 border-blue-200 p-2.5 rounded-lg font-bold text-blue-900 bg-blue-50 focus:ring-4 focus:ring-blue-100 outline-none transition" id="kpi-unit-filter" onchange="renderDashboardKPIs()">
+                    <option value="Todas">Todas las Ramas (Visión Grupo)</option>
+                    <option value="Bandada">Bandada (Golondrinas)</option>
+                    <option value="Manada">Manada (Lobatos)</option>
+                    <option value="Tropa">Tropa (Scouts)</option>
+                    <option value="Compañía">Compañía (Guías)</option>
+                    <option value="Avanzada">Avanzada (Pioneros/as)</option>
+                    <option value="Clan">Clan (Caminantes)</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            <div class="kpi-card border-l-8 border-blue-500">
+                <i class="fas fa-users absolute top-4 right-4 text-3xl text-gray-100"></i>
+                <div class="kpi-label">Población Activa Evaluada</div>
+                <div class="kpi-value" id="kpi-total-jovenes">0</div>
+                <div class="text-xs font-bold text-gray-400 uppercase">Jóvenes inscritos en el ciclo</div>
+            </div>
+            <div class="kpi-card border-l-8 border-red-500" title="Tiempo promedio desde la última validación o transacción de progreso. Alertas preventivas.">
+                <i class="fas fa-stopwatch absolute top-4 right-4 text-3xl text-gray-100"></i>
+                <div class="kpi-label">Índice Estancamiento (IEE)</div>
+                <div class="kpi-value text-red-500" id="kpi-iee">0 <span class="text-xl font-bold">días</span></div>
+                <div class="text-xs font-bold text-gray-400 uppercase">Promedio de inactividad técnica</div>
+            </div>
+            <div class="kpi-card border-l-8 border-green-500">
+                <i class="fas fa-user-shield absolute top-4 right-4 text-3xl text-gray-100"></i>
+                <div class="kpi-label">Cobertura Liderazgo (Audit)</div>
+                <div class="kpi-value text-green-600" id="kpi-ratio">1:<span id="kpi-ratio-val">6</span></div>
+                <div class="text-xs font-bold text-gray-400 uppercase">Ratio Adulto/Joven (Ideal 1:6)</div>
+            </div>
+            <div class="kpi-card border-l-8 border-purple-500" title="Porcentaje de traspaso efectivo de usuarios activos a la unidad etaria posterior.">
+                <i class="fas fa-exchange-alt absolute top-4 right-4 text-3xl text-gray-100"></i>
+                <div class="kpi-label">Retención Inter-Ramas</div>
+                <div class="kpi-value text-purple-600" id="kpi-retencion">87%</div>
+                <div class="text-xs font-bold text-gray-400 uppercase">Salud estructural traspaso etario</div>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <div class="kpi-card lg:col-span-1 flex flex-col border border-gray-200">
+                <h3 class="font-extrabold text-gray-800 mb-2 text-center text-lg">Eficiencia Curricular Radial</h3>
+                <p class="text-xs text-gray-500 text-center mb-6 font-medium px-4">Audita el equilibrio metodológico global. Previene el sesgo educativo hacia una sola área de crecimiento, garantizando desarrollo integral.</p>
+                <div style="position: relative; flex: 1; min-height: 280px; display: flex; justify-content: center;">
+                    <canvas id="kpi-radar-chart"></canvas>
+                </div>
+            </div>
+            
+            <div class="kpi-card lg:col-span-1 flex flex-col border border-gray-200">
+                <h3 class="font-extrabold text-gray-800 mb-2 text-center text-lg">Diversificación Especialidades</h3>
+                <p class="text-xs text-gray-500 text-center mb-6 font-medium px-4">Identifica empíricamente los intereses temáticos y técnicos de la juventud actual, orientando convenios externos.</p>
+                <div style="position: relative; flex: 1; min-height: 280px; display: flex; justify-content: center;">
+                    <canvas id="kpi-pie-chart"></canvas>
+                </div>
+            </div>
+
+            <div class="flex flex-col gap-6 lg:col-span-1">
+                <div class="kpi-card flex-1 border border-gray-200">
+                    <h3 class="font-extrabold text-gray-800 mb-4 border-b border-gray-100 pb-3 text-sm uppercase tracking-wide">Distribución Demográfica por Etapas</h3>
+                    <div style="position: relative; height: 180px; width: 100%;">
+                        <canvas id="kpi-bar-chart"></canvas>
+                    </div>
+                </div>
+                <div class="kpi-card bg-gradient-to-br from-indigo-50 to-blue-50 border-indigo-200 shadow-inner">
+                    <h3 class="font-extrabold text-indigo-900 mb-3 border-b border-indigo-200 pb-2"><i class="fas fa-robot text-indigo-500 mr-2"></i> Auditoría Heurística (AI Insight)</h3>
+                    <p class="text-sm text-indigo-800 font-medium leading-relaxed" id="kpi-insight-text">Sincronizando y procesando volumen de datos transaccionales del ciclo...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ================= CONTENEDORES PARA TOASTS Y MODALES ================= -->
+    <div id="toast-container" class="toast-container"></div>
+    
+    <!-- Modal Selección Objetivos de Malla Educativa -->
+    <div id="modal-objetivos" class="modal-overlay">
+        <div class="modal-box">
+            <h3><i class="fas fa-bullseye mr-2"></i> Declarar / Seleccionar Desafío</h3>
+            <p id="modal-objetivos-desc" class="text-sm text-gray-600 mb-5 font-medium border-b pb-4">El joven propone su objetivo educativo, el cual será monitoreado en terreno.</p>
+            <div class="form-item mb-5">
+                <label class="font-bold mb-2 block text-gray-700">Área de Desarrollo: <span id="mo-area-label" class="text-blue-600 ml-1 bg-blue-50 px-2 py-1 rounded"></span></label>
+                <select id="mo-select" class="w-full border-2 border-gray-200 p-3 rounded-xl bg-gray-50 focus:bg-white focus:border-blue-500 outline-none transition font-medium text-gray-700" onchange="checkOtroObjetivo()">
+                </select>
+            </div>
+            <div class="form-item mt-4" id="mo-otro-container" style="display:none;">
+                <label class="font-bold mb-2 block text-gray-700">Redacción de desafío personalizado:</label>
+                <textarea id="mo-otro-input" rows="3" class="w-full border-2 border-gray-200 p-3 rounded-xl focus:border-blue-500 outline-none transition font-medium text-gray-700" placeholder="Ej: Me comprometo a organizar una campaña de reciclaje en el colegio..."></textarea>
+            </div>
+            <div class="mt-6 flex justify-end gap-3 pt-4 border-t border-gray-100">
+                <button class="btn btn-outline" onclick="cerrarModalObjetivos()">Descartar</button>
+                <button class="btn btn-primary" onclick="guardarObjetivoSeleccionado()"><i class="fas fa-save"></i> Registrar Propuesta</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Edición de Objetivo (para Tropa/Compañía) -->
+    <div id="modal-editar-objetivo" class="modal-overlay">
+        <div class="modal-box">
+            <h3><i class="fas fa-edit mr-2"></i> Editar Objetivo Educativo</h3>
+            <input type="hidden" id="edit-obj-joven-id">
+            <input type="hidden" id="edit-obj-area">
+            <input type="hidden" id="edit-obj-id">
+            <div class="form-item mb-5">
+                <label class="font-bold mb-2 block text-gray-700">Texto del objetivo:</label>
+                <textarea id="edit-obj-texto" rows="3" class="w-full border-2 border-gray-200 p-3 rounded-xl focus:border-blue-500 outline-none transition font-medium text-gray-700"></textarea>
+            </div>
+            <div class="mt-6 flex justify-end gap-3 pt-4 border-t border-gray-100">
+                <button class="btn btn-outline" onclick="cerrarModalEditarObjetivo()">Cancelar</button>
+                <button class="btn btn-primary" onclick="guardarEdicionObjetivo()"><i class="fas fa-save"></i> Guardar Cambios</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Formulación Actividades (Tropa/Cía) -->
+    <div id="modal-actividad-tropa" class="modal-overlay">
+        <div class="modal-box" style="max-width: 600px;">
+            <h3><i class="fas fa-hiking mr-2 text-green-600"></i> Organizar Actividad de Patrulla/Equipo</h3>
+            <p class="text-sm text-gray-600 mb-5 font-medium border-b pb-4">Registra las actividades donde el joven lidera o asume cargos específicos, sirviendo como evidencia para sus objetivos.</p>
+            <input type="hidden" id="edit-actividad-id" value="">
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                <div class="md:col-span-2">
+                    <label class="font-extrabold text-xs text-gray-700 uppercase tracking-wide block mb-1">Nombre de la Actividad *</label>
+                    <input type="text" id="act-nombre" class="w-full border-2 border-gray-200 rounded-lg p-2.5 focus:border-green-400 outline-none font-bold text-gray-800" placeholder="Ej: Excursión Cerro La Cruz, Taller de Nudos">
+                </div>
+                <div>
+                    <label class="font-extrabold text-xs text-gray-700 uppercase tracking-wide block mb-1">Tipo de Actividad</label>
+                    <select id="act-tipo" class="w-full border-2 border-gray-200 rounded-lg p-2.5 focus:border-green-400 outline-none font-bold text-gray-800">
+                        <option value="Reunión">Reunión de Patrulla</option>
+                        <option value="Excursión">Excursión / Salida</option>
+                        <option value="Campamento">Campamento</option>
+                        <option value="Servicio">Servicio a la Comunidad</option>
+                        <option value="Especialidad">Taller de Especialidad</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="font-extrabold text-xs text-gray-700 uppercase tracking-wide block mb-1">Fecha *</label>
+                    <input type="date" id="act-fecha" class="w-full border-2 border-gray-200 rounded-lg p-2.5 focus:border-green-400 outline-none font-medium">
+                </div>
+                <div class="md:col-span-2">
+                    <label class="font-extrabold text-xs text-gray-700 uppercase tracking-wide block mb-1">Cargo / Rol del Joven en la Actividad *</label>
+                    <input type="text" id="act-rol" class="w-full border-2 border-gray-200 rounded-lg p-2.5 focus:border-green-400 outline-none font-medium" placeholder="Ej: Encargado de Intendencia, Cocinero, Navegante...">
+                </div>
+                <div class="md:col-span-2">
+                    <label class="font-extrabold text-xs text-gray-700 uppercase tracking-wide block mb-1">Evaluación / Observaciones</label>
+                    <textarea id="act-obs" rows="2" class="w-full border-2 border-gray-200 rounded-lg p-2.5 focus:border-green-400 outline-none font-medium text-gray-800" placeholder="El joven demostró habilidad para..."></textarea>
+                </div>
+            </div>
+            <div class="flex gap-4 mt-6 pt-5 border-t border-gray-200">
+                <button onclick="document.getElementById('modal-actividad-tropa').classList.remove('active')" class="btn btn-outline flex-1 py-2">Cancelar</button>
+                <button onclick="guardarActividadTropa()" class="btn btn-success flex-1 py-2 shadow-lg"><i class="fas fa-save mr-1"></i> Guardar Actividad</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Consejo de Patrulla (Peer Review) -->
+    <div id="modal-consejo-patrulla" class="modal-overlay">
+        <div class="modal-box">
+            <h3><i class="fas fa-users mr-2 text-amber-500"></i> Acta del Consejo de Patrulla (Co-Evaluación)</h3>
+            <p class="text-sm text-gray-600 mb-5 font-medium border-b pb-4">El Guía de Patrulla y los pares validan empíricamente la conducta de su compañero. El escultismo se fundamenta en la educación entre iguales.</p>
+            <div class="bg-amber-50 p-4 rounded-xl border border-amber-200 mb-5 shadow-inner">
+                <p class="text-xs text-amber-700 uppercase tracking-wider font-extrabold mb-1">Objetivo sometido a evaluación de pares:</p>
+                <p class="font-bold text-gray-800 text-lg leading-tight" id="mcp-objetivo-texto">...</p>
+            </div>
+            <div class="form-item">
+                <label class="font-bold mb-2 block text-gray-700">Observaciones del Consejo de Patrulla:</label>
+                <textarea id="mcp-comentarios" rows="3" class="w-full border-2 border-gray-200 p-3 rounded-xl focus:border-amber-400 outline-none transition font-medium text-gray-700" placeholder="Registra aquí los comentarios de la patrulla. Ej: Hemos observado que en los últimos campamentos..."></textarea>
+            </div>
+            <input type="hidden" id="mcp-joven-id"><input type="hidden" id="mcp-area"><input type="hidden" id="mcp-obj-id">
+            <div class="mt-6 flex justify-between items-center pt-4 border-t border-gray-100">
+                <span class="text-xs font-bold text-amber-600 bg-amber-100 px-3 py-1 rounded-full"><i class="fas fa-lock mr-1"></i> Rol: Guía de Patrulla</span>
+                <div class="flex gap-3">
+                    <button class="btn btn-outline" onclick="document.getElementById('modal-consejo-patrulla').classList.remove('active')">Cancelar</button>
+                    <button class="btn btn-warning" onclick="confirmarConsejoPatrulla()"><i class="fas fa-check-double"></i> Validar Progreso</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Firmas Digitales (Corte de Honor / Consejo Unidad) -->
+    <div id="modal-firmas-unidad" class="modal-overlay">
+        <div class="modal-box" style="max-width: 750px;">
+            <h3><i class="fas fa-file-signature mr-2 text-green-600"></i> Acta Oficial del Consejo de Unidad</h3>
+            <p class="text-sm text-gray-600 mb-5 font-medium border-b pb-4">Las determinaciones unilaterales están metodológicamente proscritas. La validación final y certificación de este hito requiere la rúbrica colegiada del Equipo de Dirigentes.</p>
+            
+            <div class="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 p-5 rounded-xl mb-6 shadow-sm">
+                <p class="text-sm font-extrabold text-blue-900 uppercase tracking-wide mb-1 flex items-center gap-2"><i class="fas fa-info-circle"></i> <span id="mfu-accion-titulo">Aprobar Objetivo de Desarrollo</span></p>
+                <p class="text-sm text-blue-800 font-medium leading-snug" id="mfu-accion-detalle">...</p>
+            </div>
+
+            <p class="font-extrabold text-gray-800 mb-3 uppercase tracking-wide text-sm">Requerimiento de Firmas Criptográficas (Mín. 2):</p>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-5 mb-6">
+                <div class="firma-slot flex flex-col items-center justify-center" id="firma-1" onclick="firmarSlot(1)">
+                    <i class="fas fa-pen-nib text-3xl text-gray-300 mb-3"></i>
+                    <span class="text-sm font-extrabold text-gray-700">Clic para Adherir Firma</span>
+                    <span class="text-xs font-bold text-gray-400 uppercase tracking-widest mt-1">Jefe de Unidad</span>
+                </div>
+                <div class="firma-slot flex flex-col items-center justify-center" id="firma-2" onclick="firmarSlot(2)">
+                    <i class="fas fa-pen-nib text-3xl text-gray-300 mb-3"></i>
+                    <span class="text-sm font-extrabold text-gray-700">Clic para Adherir Firma</span>
+                    <span class="text-xs font-bold text-gray-400 uppercase tracking-widest mt-1">Dirigente Asistente</span>
+                </div>
+                <div class="firma-slot flex flex-col items-center justify-center opacity-60 cursor-not-allowed bg-gray-100 border-gray-300">
+                    <i class="fas fa-user-lock text-3xl text-gray-400 mb-3"></i>
+                    <span class="text-sm font-extrabold text-gray-500">Credencial Inactiva</span>
+                    <span class="text-xs font-bold text-red-500 uppercase tracking-widest mt-1">Nivel Básico Pendiente</span>
+                </div>
+            </div>
+
+            <div class="flex justify-end gap-3 mt-6 pt-5 border-t border-gray-100">
+                <button class="btn btn-outline" onclick="cancelarFirmas()">Descartar Acta</button>
+                <button class="btn btn-success opacity-50 cursor-not-allowed transition-all" id="btn-ejecutar-acta" disabled onclick="ejecutarAccionFirmada()"><i class="fas fa-gavel"></i> Sancionar y Actualizar Historial DB</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Evaluación para el Desarrollo (Caminantes) -->
+    <div id="modal-evaluacion-caminante" class="modal-overlay">
+        <div class="modal-box" style="max-width: 800px;">
+            <h3><i class="fas fa-clipboard-list mr-2 text-red-600"></i> Evaluación para el Desarrollo</h3>
+            <p class="text-sm text-gray-600 mb-5 font-medium border-b pb-4">Metodología heurística que rehúye las calificaciones numéricas. El tutor sostiene el proyecto del joven desde la periferia mediante el diálogo mayéutico.</p>
+            
+            <div class="space-y-5">
+                <div class="bg-gray-50 p-4 rounded-xl border border-gray-200">
+                    <label class="font-extrabold text-sm text-gray-800 block mb-1 uppercase tracking-wide"><i class="fas fa-eye text-red-500 mr-1"></i> 1. Observación Empírica</label>
+                    <p class="text-xs text-gray-500 mb-2 font-medium">Registro de interacciones y hechos presenciados directamente durante la ejecución del proyecto en terreno.</p>
+                    <textarea class="w-full border border-gray-300 p-3 rounded-lg outline-none focus:border-red-400 focus:ring-2 focus:ring-red-100 transition font-medium" rows="3" placeholder="Se observó al joven liderar la asamblea comunitaria con gran desplante..."></textarea>
+                </div>
+                <div class="bg-gray-50 p-4 rounded-xl border border-gray-200">
+                    <label class="font-extrabold text-sm text-gray-800 block mb-1 uppercase tracking-wide"><i class="fas fa-folder-open text-red-500 mr-1"></i> 2. Registro Documental Objetivo</label>
+                    <p class="text-xs text-gray-500 mb-2 font-medium">Análisis de evidencias tangibles aportadas (repositorios, fotos, bitácoras, presupuestos) sin emitir juicios de valor.</p>
+                    <textarea class="w-full border border-gray-300 p-3 rounded-lg outline-none focus:border-red-400 focus:ring-2 focus:ring-red-100 transition font-medium" rows="2" placeholder="El joven entregó 3 informes de avance fotográfico y el Excel con el balance financiero finalizado..."></textarea>
+                </div>
+                <div class="bg-red-50 p-4 rounded-xl border border-red-200 shadow-inner">
+                    <label class="font-extrabold text-sm text-red-900 block mb-1 uppercase tracking-wide"><i class="fas fa-comments text-red-600 mr-1"></i> 3. Retroalimentación Dialógica</label>
+                    <p class="text-xs text-red-700 mb-2 font-medium">Conclusiones finales consensuadas tras debatir los hechos evidenciados cara a cara para calibrar expectativas.</p>
+                    <textarea class="w-full border-2 border-red-200 p-3 rounded-lg outline-none focus:border-red-500 focus:ring-2 focus:ring-red-200 transition font-medium bg-white text-gray-800" rows="3" placeholder="En la entrevista, acordamos que la meta de financiamiento fue subestimada al inicio, pero el impacto logrado en la comunidad superó las expectativas..."></textarea>
+                </div>
+            </div>
+            <div class="mt-6 flex justify-between items-center pt-5 border-t border-gray-200">
+                <span class="badge-estado estado-aprobado text-xs px-3 py-1.5"><i class="fas fa-shield-check mr-1"></i> Metodología Validada</span>
+                <div class="flex gap-3">
+                    <button class="btn btn-outline" onclick="document.getElementById('modal-evaluacion-caminante').classList.remove('active')">Cerrar Borrador</button>
+                    <button class="btn btn-danger bg-red-600 shadow-lg" onclick="mostrarNotificacion('exito', 'Evaluación Heurística firmada y archivada definitivamente en el Portafolio Digital.'); document.getElementById('modal-evaluacion-caminante').classList.remove('active');"><i class="fas fa-archive"></i> Archivar en Portafolio DB</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Gestión de Especialidades (4 Pilares) -->
+    <div id="modal-especialidad" class="modal-overlay">
+        <div class="modal-box" style="max-width: 750px;">
+            <h3><i class="fas fa-medal mr-2 text-blue-600"></i> Central de Certificación de Especialidades</h3>
+            <p class="text-sm text-gray-600 mb-5 font-medium border-b pb-4">El éxito no se mide memorizando un manual teórico, sino demostrando empíricamente la destreza adquirida mediante la "evaluación por acción".</p>
+            <input type="hidden" id="mesp-joven-id"><input type="hidden" id="mesp-id">
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-5">
+                <div>
+                    <label class="block font-extrabold text-xs mb-1 text-gray-700 uppercase tracking-wide">Nombre de la Disciplina</label>
+                    <input type="text" id="mesp-nombre" class="w-full border-2 border-gray-200 p-2.5 rounded-lg bg-gray-50 focus:bg-white focus:border-blue-400 outline-none transition font-bold text-gray-800" placeholder="Ej: Astronomía, Lenguaje de Señas...">
+                </div>
+                <div>
+                    <label class="block font-extrabold text-xs mb-1 text-gray-700 uppercase tracking-wide">Categoría Temática (Para KPI)</label>
+                    <select id="mesp-categoria" class="w-full border-2 border-gray-200 p-2.5 rounded-lg bg-gray-50 focus:bg-white focus:border-blue-400 outline-none transition font-bold text-gray-800">
+                        <option value="Deportes">Deportes y Vida Sana</option>
+                        <option value="Ciencia">Ciencia y Tecnología</option>
+                        <option value="Ecología">Ecología y Medio Ambiente</option>
+                        <option value="Arte">Arte y Expresión</option>
+                        <option value="Servicio">Servicio y Rescate</option>
+                        <option value="Humanidades">Humanidades y Coleccionismo</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="mb-6 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 p-5 rounded-xl shadow-sm relative">
+                <label class="block font-extrabold text-sm mb-1 text-blue-900 uppercase tracking-wide"><i class="fas fa-chalkboard-teacher mr-1"></i> Asignación de Monitor Externo</label>
+                <p class="text-xs text-blue-700 mb-3 font-medium leading-relaxed">Garante de excelencia técnica. Puede ser un profesional civil, académico o experto externo a la institución que guiará al joven.</p>
+                <div class="flex flex-wrap md:flex-nowrap gap-3 items-start">
+                    <div class="flex-1 relative">
+                        <input type="text" id="mesp-monitor" class="w-full border border-blue-200 p-2.5 rounded-lg font-medium text-blue-900 outline-none focus:ring-2 focus:ring-blue-300" placeholder="Nombre completo del Especialista">
+                        <div id="resultados-monitor-especialidad" class="search-results hidden absolute left-0 right-0 mt-1"></div>
+                    </div>
+                    <div class="flex-1 relative">
+                        <input type="email" id="mesp-monitor-email" class="w-full border border-blue-200 p-2.5 rounded-lg font-medium text-blue-900 outline-none focus:ring-2 focus:ring-blue-300" placeholder="Correo electrónico del contacto">
+                    </div>
+                    <div class="flex gap-2 flex-wrap">
+                        <button class="btn btn-info text-xs font-bold px-3 shadow whitespace-nowrap" onclick="buscarMonitorExterno('especialidad')"><i class="fas fa-search"></i> Buscar</button>
+                        <button class="btn btn-info text-xs font-bold px-3 shadow whitespace-nowrap" onclick="notificarMonitorExterno('especialidad')"><i class="fas fa-paper-plane"></i> Notificar</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mb-5">
+                <label class="block font-extrabold text-sm mb-3 text-gray-800 border-b border-gray-200 pb-2 uppercase tracking-wide"><i class="fas fa-tasks mr-1"></i> Validación de los 4 Pilares (Aprender Haciendo)</label>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-3 bg-gray-50 p-4 rounded-xl border border-gray-200">
+                    <label class="flex items-center gap-3 cursor-pointer p-3 bg-white border border-gray-100 hover:border-blue-300 rounded-lg transition shadow-sm">
+                        <input type="checkbox" id="mesp-p-explorar" class="w-5 h-5 text-blue-600 rounded cursor-pointer">
+                        <div class="flex flex-col"><strong class="text-gray-800 text-sm">1. Explorar</strong> <span class="text-[0.65rem] text-gray-500 font-medium">Investigación bibliográfica previa</span></div>
+                    </label>
+                    <label class="flex items-center gap-3 cursor-pointer p-3 bg-white border border-gray-100 hover:border-blue-300 rounded-lg transition shadow-sm">
+                        <input type="checkbox" id="mesp-p-conocer" class="w-5 h-5 text-blue-600 rounded cursor-pointer">
+                        <div class="flex flex-col"><strong class="text-gray-800 text-sm">2. Conocer</strong> <span class="text-[0.65rem] text-gray-500 font-medium">Dominio técnico autodidacta</span></div>
+                    </label>
+                    <label class="flex items-center gap-3 cursor-pointer p-3 bg-white border border-gray-100 hover:border-blue-300 rounded-lg transition shadow-sm">
+                        <input type="checkbox" id="mesp-p-hacer" class="w-5 h-5 text-blue-600 rounded cursor-pointer">
+                        <div class="flex flex-col"><strong class="text-gray-800 text-sm">3. Hacer</strong> <span class="text-[0.65rem] text-gray-500 font-medium">Ejecución práctica (Praxis real)</span></div>
+                    </label>
+                    <label class="flex items-center gap-3 cursor-pointer p-3 bg-white border border-gray-100 hover:border-blue-300 rounded-lg transition shadow-sm">
+                        <input type="checkbox" id="mesp-p-servir" class="w-5 h-5 text-blue-600 rounded cursor-pointer">
+                        <div class="flex flex-col"><strong class="text-gray-800 text-sm">4. Servir</strong> <span class="text-[0.65rem] text-gray-500 font-medium">Aplicar lo aprendido en pro de 3ros</span></div>
+                    </label>
+                </div>
+            </div>
+            
+            <div class="flex justify-between items-center mt-6 pt-5 border-t border-gray-200">
+                <button class="btn btn-danger bg-red-500 hover:bg-red-600 text-sm shadow" id="mesp-btn-eliminar" onclick="eliminarEspecialidadActual()"><i class="fas fa-trash-alt"></i> Anular Proceso</button>
+                <div class="flex gap-3">
+                    <button class="btn btn-outline" onclick="document.getElementById('modal-especialidad').classList.remove('active')">Cerrar</button>
+                    <button class="btn btn-success shadow-lg font-bold" onclick="guardarEdicionEspecialidad()"><i class="fas fa-file-contract"></i> Guardar Avance / Certificar Oficialmente</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Modal Gestión de Competencias (Pioneros y Caminantes) -->
+    <div id="modal-competencia" class="modal-overlay">
+        <div class="modal-box" style="max-width: 750px;">
+            <h3><i class="fas fa-award mr-2 text-blue-600"></i> Gestión de Competencia</h3>
+            <p class="text-sm text-gray-600 mb-5 font-medium border-b pb-4">Registra la competencia adquirida vinculándola a un proyecto real ejecutado por el joven.</p>
+            <input type="hidden" id="mcomp-joven-id"><input type="hidden" id="mcomp-id">
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-5">
+                <div>
+                    <label class="block font-extrabold text-xs mb-1 text-gray-700 uppercase tracking-wide">Nombre de la Competencia</label>
+                    <input type="text" id="mcomp-nombre" class="w-full border-2 border-gray-200 p-2.5 rounded-lg bg-gray-50 focus:bg-white focus:border-blue-400 outline-none transition font-bold text-gray-800" placeholder="Ej: Liderazgo de Equipos, Oratoria...">
+                </div>
+                <div>
+                    <label class="block font-extrabold text-xs mb-1 text-gray-700 uppercase tracking-wide">Área Estratégica</label>
+                    <select id="mcomp-area" class="w-full border-2 border-gray-200 p-2.5 rounded-lg bg-gray-50 focus:bg-white focus:border-blue-400 outline-none transition font-bold text-gray-800">
+                        <option value="Cultura y Artes">Cultura y Artes</option>
+                        <option value="Actividad Física">Actividad Física</option>
+                        <option value="Trabajo en Equipo">Trabajo en Equipo</option>
+                        <option value="Innovación / Técnica">Innovación / Técnica</option>
+                        <option value="Ciudadanía">Ciudadanía</option>
+                        <option value="Comunicaciones">Comunicaciones</option>
+                        <option value="Medio Ambiente">Medio Ambiente</option>
+                        <option value="General">Otra / General</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div class="mb-5">
+                <label class="block font-extrabold text-xs mb-1 text-gray-700 uppercase tracking-wide">Proyecto o Acción que valida la Competencia</label>
+                <textarea id="mcomp-proyecto" rows="2" class="w-full border-2 border-gray-200 p-2.5 rounded-lg focus:bg-white focus:border-blue-400 outline-none transition font-medium text-gray-800" placeholder="Describe brevemente el proyecto o acción donde el joven demostró esta competencia..."></textarea>
+            </div>
+            
+            <div class="mb-6 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 p-5 rounded-xl shadow-sm relative">
+                <label class="block font-extrabold text-sm mb-1 text-blue-900 uppercase tracking-wide"><i class="fas fa-chalkboard-teacher mr-1"></i> Tutor / Asesor (Opcional)</label>
+                <p class="text-xs text-blue-700 mb-3 font-medium leading-relaxed">Puede ser un dirigente, adulto o experto externo que acompaña el desarrollo de la competencia.</p>
+                <div class="flex flex-wrap md:flex-nowrap gap-3 items-start">
+                    <div class="flex-1 relative">
+                        <input type="text" id="mcomp-tutor" class="w-full border border-blue-200 p-2.5 rounded-lg font-medium text-blue-900 outline-none focus:ring-2 focus:ring-blue-300" placeholder="Nombre completo del Tutor/Asesor">
+                        <div id="resultados-monitor-competencia" class="search-results hidden absolute left-0 right-0 mt-1"></div>
+                    </div>
+                    <div class="flex-1 relative">
+                        <input type="email" id="mcomp-tutor-email" class="w-full border border-blue-200 p-2.5 rounded-lg font-medium text-blue-900 outline-none focus:ring-2 focus:ring-blue-300" placeholder="Correo electrónico del contacto">
+                    </div>
+                    <div class="flex gap-2 flex-wrap">
+                        <button class="btn btn-info text-xs font-bold px-3 shadow whitespace-nowrap" onclick="buscarMonitorExterno('competencia')"><i class="fas fa-search"></i> Buscar</button>
+                        <button class="btn btn-info text-xs font-bold px-3 shadow whitespace-nowrap" onclick="notificarMonitorExterno('competencia')"><i class="fas fa-paper-plane"></i> Notificar</button>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-5">
+                <div>
+                    <label class="block font-extrabold text-xs mb-1 text-gray-700 uppercase tracking-wide">Nivel de Dominio Observado</label>
+                    <select id="mcomp-nivel" class="w-full border-2 border-gray-200 p-2.5 rounded-lg bg-gray-50 focus:bg-white focus:border-blue-400 outline-none transition font-medium">
+                        <option value="Exploración">Exploración (Básico)</option>
+                        <option value="Desarrollo">Desarrollo (Intermedio)</option>
+                        <option value="Maestría">Maestría (Avanzado)</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div class="flex justify-between items-center mt-6 pt-5 border-t border-gray-200">
+                <button class="btn btn-danger bg-red-500 hover:bg-red-600 text-sm shadow" id="mcomp-btn-eliminar" onclick="eliminarCompetenciaActual()"><i class="fas fa-trash-alt"></i> Eliminar</button>
+                <div class="flex gap-3">
+                    <button class="btn btn-outline" onclick="document.getElementById('modal-competencia').classList.remove('active')">Cancelar</button>
+                    <button class="btn btn-success shadow-lg font-bold" onclick="guardarEdicionCompetencia()"><i class="fas fa-save"></i> Guardar Competencia</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Formulación Proyectos Colectivos y de Avanzada -->
+    <div id="modal-proyecto" class="modal-overlay">
+        <div class="modal-box" style="max-width: 850px;">
+            <h3 id="modal-proyecto-title"><i class="fas fa-project-diagram mr-2 text-indigo-600"></i> Estructuración de Proyecto</h3>
+            <p class="text-sm text-gray-600 mb-5 font-medium border-b pb-4">Herramienta de formulación de proyectos adaptada a la pedagogía scout, forzando la vinculación con los campos de acción dictaminados por el programa nacional.</p>
+            <input type="hidden" id="edit-proyecto-id" value="">
+            <input type="hidden" id="edit-proyecto-contexto" value="">
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-5">
+                <div class="md:col-span-2">
+                    <label class="font-extrabold text-xs text-gray-700 uppercase tracking-wide block mb-1">Nombre Oficial del Proyecto *</label>
+                    <input type="text" id="proyecto-nombre" class="w-full border-2 border-gray-200 rounded-lg p-2.5 focus:border-indigo-400 outline-none font-bold text-gray-800" placeholder="Ej: Operativo Reforestación Cerro Renca">
+                </div>
+                <div class="md:col-span-2">
+                    <label class="font-extrabold text-xs text-gray-700 uppercase tracking-wide block mb-1">Objetivo General (SMART) *</label>
+                    <textarea id="proyecto-objetivo" rows="2" class="w-full border-2 border-gray-200 rounded-lg p-2.5 focus:border-indigo-400 outline-none font-medium text-gray-800" placeholder="Meta específica, medible y alcanzable a lograr con este proyecto..."></textarea>
+                </div>
+                <div>
+                    <label class="font-extrabold text-xs text-gray-700 uppercase tracking-wide block mb-1">Área / Campo Estratégico *</label>
+                    <select id="proyecto-campo" class="w-full border-2 border-gray-200 rounded-lg p-2.5 focus:border-indigo-400 outline-none font-bold text-indigo-800 bg-indigo-50" onchange="document.getElementById('proyecto-campo-otro').style.display = this.value === 'Otros' ? 'block' : 'none';">
+                        <option value="Servicio">Intervención de Servicio / Comunitaria</option>
+                        <option value="Trabajo">Mundo del Trabajo / Emprendimiento</option>
+                        <option value="Viaje">Viaje / Inmersión Cultural</option>
+                        <option value="Naturaleza">Naturaleza / Sustentabilidad (ODS)</option>
+                        <option value="Cultura y Artes">Cultura y Artes (Pioneros)</option>
+                        <option value="Innovación / Técnica">Innovación / Técnica (Pioneros)</option>
+                        <option value="Otros">Otros (especificar)</option>
+                    </select>
+                    <input type="text" id="proyecto-campo-otro" style="display:none;" class="w-full border-2 border-indigo-200 rounded-lg p-2.5 mt-2 focus:border-indigo-400 outline-none font-bold text-indigo-800" placeholder="Especifica el campo estratégico...">
+                </div>
+                <div class="flex gap-3">
+                    <div class="flex-1"><label class="font-extrabold text-xs text-gray-700 uppercase tracking-wide block mb-1">Inicio (Gantt) *</label><input type="date" id="proyecto-inicio" class="w-full border-2 border-gray-200 rounded-lg p-2.5 focus:border-indigo-400 outline-none font-medium"></div>
+                    <div class="flex-1"><label class="font-extrabold text-xs text-gray-700 uppercase tracking-wide block mb-1">Término Est.</label><input type="date" id="proyecto-termino" class="w-full border-2 border-gray-200 rounded-lg p-2.5 focus:border-indigo-400 outline-none font-medium"></div>
+                </div>
+            </div>
+
+            <div class="bg-gray-50 border border-gray-200 rounded-xl p-5 mb-5">
+                <h4 class="font-extrabold text-gray-800 mb-3 border-b border-gray-200 pb-2 uppercase tracking-wide text-sm"><i class="fas fa-sitemap mr-1"></i> Organigrama y Responsables por Área</h4>
+                <div id="responsables-container" class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4"></div>
+            </div>
+
+            <div class="bg-gray-50 border border-gray-200 rounded-xl p-5 mb-5">
+                <h4 class="font-extrabold text-gray-800 mb-3 border-b border-gray-200 pb-2 uppercase tracking-wide text-sm"><i class="fas fa-users mr-1"></i> Ficha de Participantes y Voluntarios</h4>
+                <div class="flex gap-2 mb-3">
+                    <input type="text" id="buscar-participante" placeholder="Ingresa RUN o Apellidos para buscar en DB (Jóvenes y Adultos)..." class="flex-1 border border-gray-300 rounded-lg p-2.5 outline-none focus:border-indigo-400 font-medium text-sm">
+                    <button onclick="buscarPersonaParticipante()" class="btn btn-info bg-indigo-600 hover:bg-indigo-700 shadow px-5"><i class="fas fa-search"></i> Buscar en API</button>
+                </div>
+                <div id="resultados-busqueda" class="search-results hidden bg-white border border-gray-200 rounded-lg p-2 max-h-40 overflow-y-auto mb-3 shadow-inner"></div>
+                <div id="participantes-list" class="grid grid-cols-1 sm:grid-cols-2 gap-2"></div>
+            </div>
+
+            <!-- Evidencias del proyecto -->
+            <div class="bg-gray-50 border border-gray-200 rounded-xl p-5 mb-5">
+                <h4 class="font-extrabold text-gray-800 mb-3 border-b border-gray-200 pb-2 uppercase tracking-wide text-sm"><i class="fas fa-paperclip mr-1"></i> Evidencias del Proyecto (archivos)</h4>
+                <div class="flex gap-2 mb-3">
+                    <input type="file" id="evidencia-file" multiple class="flex-1 border border-gray-300 rounded-lg p-2.5 outline-none focus:border-indigo-400 font-medium text-sm">
+                    <button onclick="subirEvidenciaProyecto()" class="btn btn-info bg-indigo-600 hover:bg-indigo-700 shadow px-5"><i class="fas fa-upload"></i> Subir</button>
+                </div>
+                <div id="evidencias-list" class="flex flex-wrap gap-2"></div>
+            </div>
+
+            <!-- FICHA DE PROYECTO CAMINANTES (se activa con checkbox) -->
+            <div class="bg-amber-50 border border-amber-200 rounded-xl p-5 mb-5">
+                <label class="flex items-center gap-3 cursor-pointer mb-0" id="toggle-ficha-proy-label">
+                    <input type="checkbox" id="toggle-ficha-proyecto" onchange="document.getElementById('ficha-proyecto-detalle').style.display = this.checked ? 'block' : 'none';" class="w-5 h-5 accent-amber-600 cursor-pointer">
+                    <span class="font-extrabold text-amber-900 uppercase tracking-wide text-sm"><i class="fas fa-clipboard-list mr-1"></i> Activar Ficha de Proyecto Caminantes (Formulario Extendido)</span>
+                </label>
+                <div id="ficha-proyecto-detalle" style="display:none;" class="mt-5">
+                    
+                    <!-- SECCIÓN 1: Identificación del Proyecto -->
+                    <div class="bg-white border border-amber-100 rounded-xl p-5 mb-4 shadow-sm">
+                        <h4 class="font-extrabold text-amber-900 text-sm uppercase tracking-wide mb-3 border-b border-amber-100 pb-2"><i class="fas fa-tag mr-1"></i> 1. Identificación y Contexto</h4>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div class="md:col-span-2">
+                                <label class="font-bold text-xs text-gray-700 block mb-1">Justificación del Proyecto</label>
+                                <textarea id="ficha-justificacion" rows="2" class="w-full border border-gray-200 rounded-lg p-2.5 text-sm focus:border-amber-400 outline-none" placeholder="¿Por qué este proyecto es necesario? ¿Qué situación queremos cambiar?"></textarea>
+                            </div>
+                            <div>
+                                <label class="font-bold text-xs text-gray-700 block mb-1">Beneficiarios Directos</label>
+                                <input type="text" id="ficha-beneficiarios" class="w-full border border-gray-200 rounded-lg p-2.5 text-sm focus:border-amber-400 outline-none" placeholder="Ej: 50 familias del sector La Pintana">
+                            </div>
+                            <div>
+                                <label class="font-bold text-xs text-gray-700 block mb-1">Lugar de Ejecución</label>
+                                <input type="text" id="ficha-lugar" class="w-full border border-gray-200 rounded-lg p-2.5 text-sm focus:border-amber-400 outline-none" placeholder="Ej: Cerro San Cristóbal, Santiago">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- SECCIÓN 2: Campos de Acción -->
+                    <div class="bg-white border border-amber-100 rounded-xl p-5 mb-4 shadow-sm">
+                        <h4 class="font-extrabold text-amber-900 text-sm uppercase tracking-wide mb-3 border-b border-amber-100 pb-2"><i class="fas fa-compass mr-1"></i> 2. Campos de Acción Prioritarios</h4>
+                        <div id="ficha-campos-container">
+                            <div class="flex gap-2 mb-2 items-center ficha-campo-row">
+                                <input type="text" class="ficha-campo-item flex-1 border border-gray-200 rounded-lg p-2 text-sm focus:border-amber-400 outline-none" placeholder="Campo de acción 1 (Ej: Medio Ambiente - ODS 13)">
+                                <button onclick="this.parentElement.remove()" class="text-red-400 hover:text-red-600 text-sm px-2"><i class="fas fa-times"></i></button>
+                            </div>
+                            <div class="flex gap-2 mb-2 items-center ficha-campo-row">
+                                <input type="text" class="ficha-campo-item flex-1 border border-gray-200 rounded-lg p-2 text-sm focus:border-amber-400 outline-none" placeholder="Campo de acción 2 (Ej: Educación - ODS 4)">
+                                <button onclick="this.parentElement.remove()" class="text-red-400 hover:text-red-600 text-sm px-2"><i class="fas fa-times"></i></button>
+                            </div>
+                        </div>
+                        <button onclick="document.getElementById('ficha-campos-container').insertAdjacentHTML('beforeend','<div class=\'flex gap-2 mb-2 items-center ficha-campo-row\'><input type=\'text\' class=\'ficha-campo-item flex-1 border border-gray-200 rounded-lg p-2 text-sm focus:border-amber-400 outline-none\' placeholder=\'Otro campo de acción...\'><button onclick=\'this.parentElement.remove()\' class=\'text-red-400 hover:text-red-600 text-sm px-2\'><i class=\'fas fa-times\'></i></button></div>')" class="text-amber-700 text-xs font-bold hover:text-amber-900 mt-1"><i class="fas fa-plus mr-1"></i> Agregar Campo de Acción</button>
+                    </div>
+
+                    <!-- SECCIÓN 3: Objetivos Específicos -->
+                    <div class="bg-white border border-amber-100 rounded-xl p-5 mb-4 shadow-sm">
+                        <h4 class="font-extrabold text-amber-900 text-sm uppercase tracking-wide mb-3 border-b border-amber-100 pb-2"><i class="fas fa-bullseye mr-1"></i> 3. Objetivos Específicos</h4>
+                        <div id="ficha-objetivos-container">
+                            <div class="flex gap-2 mb-2 items-start ficha-obj-row">
+                                <span class="bg-amber-200 text-amber-900 font-extrabold text-xs w-6 h-6 rounded-full flex items-center justify-center mt-2 shrink-0">1</span>
+                                <textarea class="ficha-obj-item flex-1 border border-gray-200 rounded-lg p-2 text-sm focus:border-amber-400 outline-none" rows="1" placeholder="Objetivo específico 1..."></textarea>
+                                <button onclick="this.parentElement.remove();reindexarObjetivos()" class="text-red-400 hover:text-red-600 text-sm px-2 mt-2"><i class="fas fa-times"></i></button>
+                            </div>
+                            <div class="flex gap-2 mb-2 items-start ficha-obj-row">
+                                <span class="bg-amber-200 text-amber-900 font-extrabold text-xs w-6 h-6 rounded-full flex items-center justify-center mt-2 shrink-0">2</span>
+                                <textarea class="ficha-obj-item flex-1 border border-gray-200 rounded-lg p-2 text-sm focus:border-amber-400 outline-none" rows="1" placeholder="Objetivo específico 2..."></textarea>
+                                <button onclick="this.parentElement.remove();reindexarObjetivos()" class="text-red-400 hover:text-red-600 text-sm px-2 mt-2"><i class="fas fa-times"></i></button>
+                            </div>
+                            <div class="flex gap-2 mb-2 items-start ficha-obj-row">
+                                <span class="bg-amber-200 text-amber-900 font-extrabold text-xs w-6 h-6 rounded-full flex items-center justify-center mt-2 shrink-0">3</span>
+                                <textarea class="ficha-obj-item flex-1 border border-gray-200 rounded-lg p-2 text-sm focus:border-amber-400 outline-none" rows="1" placeholder="Objetivo específico 3..."></textarea>
+                                <button onclick="this.parentElement.remove();reindexarObjetivos()" class="text-red-400 hover:text-red-600 text-sm px-2 mt-2"><i class="fas fa-times"></i></button>
+                            </div>
+                        </div>
+                        <button onclick="agregarObjetivoFicha()" class="text-amber-700 text-xs font-bold hover:text-amber-900 mt-1"><i class="fas fa-plus mr-1"></i> Agregar Objetivo</button>
+                    </div>
+
+                    <!-- SECCIÓN 4: Definición - Acciones, Recursos, Cronograma, Responsable -->
+                    <div class="bg-white border border-amber-100 rounded-xl p-5 mb-4 shadow-sm">
+                        <h4 class="font-extrabold text-amber-900 text-sm uppercase tracking-wide mb-3 border-b border-amber-100 pb-2"><i class="fas fa-tasks mr-1"></i> 4. Definición del Proyecto: Plan de Acción</h4>
+                        <div class="overflow-x-auto">
+                            <div class="grid grid-cols-[auto_1fr_1fr_1fr_1fr_auto] gap-1 font-bold text-xs text-amber-900 mb-2 min-w-[700px] bg-amber-100 rounded-lg p-2">
+                                <span class="px-2">#</span><span>Acción / Actividad</span><span>Recursos o materiales</span><span>Responsable</span><span>Cronograma</span><span class="px-2"></span>
+                            </div>
+                            <div id="ficha-acciones-rows" class="min-w-[700px]">
+                                <div class="grid grid-cols-[auto_1fr_1fr_1fr_1fr_auto] gap-1 mb-1.5 ficha-accion-row items-center">
+                                    <span class="ficha-row-num bg-gray-100 text-gray-600 font-bold text-xs w-6 h-8 rounded flex items-center justify-center">1</span>
+                                    <input type="text" class="ficha-accion border border-gray-200 rounded p-1.5 text-sm" placeholder="Acción a realizar...">
+                                    <input type="text" class="ficha-recurso border border-gray-200 rounded p-1.5 text-sm" placeholder="Materiales necesarios...">
+                                    <input type="text" class="ficha-responsable border border-gray-200 rounded p-1.5 text-sm" placeholder="¿Quién lo hace?">
+                                    <input type="text" class="ficha-crono border border-gray-200 rounded p-1.5 text-sm" placeholder="Fecha o período">
+                                    <button onclick="this.parentElement.remove();reindexarAcciones()" class="text-red-400 hover:text-red-600 text-sm px-1"><i class="fas fa-times"></i></button>
+                                </div>
+                                <div class="grid grid-cols-[auto_1fr_1fr_1fr_1fr_auto] gap-1 mb-1.5 ficha-accion-row items-center">
+                                    <span class="ficha-row-num bg-gray-100 text-gray-600 font-bold text-xs w-6 h-8 rounded flex items-center justify-center">2</span>
+                                    <input type="text" class="ficha-accion border border-gray-200 rounded p-1.5 text-sm" placeholder="Acción a realizar...">
+                                    <input type="text" class="ficha-recurso border border-gray-200 rounded p-1.5 text-sm" placeholder="Materiales necesarios...">
+                                    <input type="text" class="ficha-responsable border border-gray-200 rounded p-1.5 text-sm" placeholder="¿Quién lo hace?">
+                                    <input type="text" class="ficha-crono border border-gray-200 rounded p-1.5 text-sm" placeholder="Fecha o período">
+                                    <button onclick="this.parentElement.remove();reindexarAcciones()" class="text-red-400 hover:text-red-600 text-sm px-1"><i class="fas fa-times"></i></button>
+                                </div>
+                                <div class="grid grid-cols-[auto_1fr_1fr_1fr_1fr_auto] gap-1 mb-1.5 ficha-accion-row items-center">
+                                    <span class="ficha-row-num bg-gray-100 text-gray-600 font-bold text-xs w-6 h-8 rounded flex items-center justify-center">3</span>
+                                    <input type="text" class="ficha-accion border border-gray-200 rounded p-1.5 text-sm" placeholder="Acción a realizar...">
+                                    <input type="text" class="ficha-recurso border border-gray-200 rounded p-1.5 text-sm" placeholder="Materiales necesarios...">
+                                    <input type="text" class="ficha-responsable border border-gray-200 rounded p-1.5 text-sm" placeholder="¿Quién lo hace?">
+                                    <input type="text" class="ficha-crono border border-gray-200 rounded p-1.5 text-sm" placeholder="Fecha o período">
+                                    <button onclick="this.parentElement.remove();reindexarAcciones()" class="text-red-400 hover:text-red-600 text-sm px-1"><i class="fas fa-times"></i></button>
+                                </div>
+                                <div class="grid grid-cols-[auto_1fr_1fr_1fr_1fr_auto] gap-1 mb-1.5 ficha-accion-row items-center">
+                                    <span class="ficha-row-num bg-gray-100 text-gray-600 font-bold text-xs w-6 h-8 rounded flex items-center justify-center">4</span>
+                                    <input type="text" class="ficha-accion border border-gray-200 rounded p-1.5 text-sm" placeholder="Acción a realizar...">
+                                    <input type="text" class="ficha-recurso border border-gray-200 rounded p-1.5 text-sm" placeholder="Materiales necesarios...">
+                                    <input type="text" class="ficha-responsable border border-gray-200 rounded p-1.5 text-sm" placeholder="¿Quién lo hace?">
+                                    <input type="text" class="ficha-crono border border-gray-200 rounded p-1.5 text-sm" placeholder="Fecha o período">
+                                    <button onclick="this.parentElement.remove();reindexarAcciones()" class="text-red-400 hover:text-red-600 text-sm px-1"><i class="fas fa-times"></i></button>
+                                </div>
+                                <div class="grid grid-cols-[auto_1fr_1fr_1fr_1fr_auto] gap-1 mb-1.5 ficha-accion-row items-center">
+                                    <span class="ficha-row-num bg-gray-100 text-gray-600 font-bold text-xs w-6 h-8 rounded flex items-center justify-center">5</span>
+                                    <input type="text" class="ficha-accion border border-gray-200 rounded p-1.5 text-sm" placeholder="Acción a realizar...">
+                                    <input type="text" class="ficha-recurso border border-gray-200 rounded p-1.5 text-sm" placeholder="Materiales necesarios...">
+                                    <input type="text" class="ficha-responsable border border-gray-200 rounded p-1.5 text-sm" placeholder="¿Quién lo hace?">
+                                    <input type="text" class="ficha-crono border border-gray-200 rounded p-1.5 text-sm" placeholder="Fecha o período">
+                                    <button onclick="this.parentElement.remove();reindexarAcciones()" class="text-red-400 hover:text-red-600 text-sm px-1"><i class="fas fa-times"></i></button>
+                                </div>
+                                <div class="grid grid-cols-[auto_1fr_1fr_1fr_1fr_auto] gap-1 mb-1.5 ficha-accion-row items-center">
+                                    <span class="ficha-row-num bg-gray-100 text-gray-600 font-bold text-xs w-6 h-8 rounded flex items-center justify-center">6</span>
+                                    <input type="text" class="ficha-accion border border-gray-200 rounded p-1.5 text-sm" placeholder="Acción a realizar...">
+                                    <input type="text" class="ficha-recurso border border-gray-200 rounded p-1.5 text-sm" placeholder="Materiales necesarios...">
+                                    <input type="text" class="ficha-responsable border border-gray-200 rounded p-1.5 text-sm" placeholder="¿Quién lo hace?">
+                                    <input type="text" class="ficha-crono border border-gray-200 rounded p-1.5 text-sm" placeholder="Fecha o período">
+                                    <button onclick="this.parentElement.remove();reindexarAcciones()" class="text-red-400 hover:text-red-600 text-sm px-1"><i class="fas fa-times"></i></button>
+                                </div>
+                            </div>
+                        </div>
+                        <button onclick="agregarFilaAccion()" class="text-amber-700 text-xs font-bold mt-2 hover:text-amber-900 transition"><i class="fas fa-plus mr-1"></i> Agregar fila de acción</button>
+                    </div>
+
+                    <!-- SECCIÓN 5: Presupuesto Estimado -->
+                    <div class="bg-white border border-amber-100 rounded-xl p-5 mb-4 shadow-sm">
+                        <h4 class="font-extrabold text-amber-900 text-sm uppercase tracking-wide mb-3 border-b border-amber-100 pb-2"><i class="fas fa-coins mr-1"></i> 5. Presupuesto Estimado</h4>
+                        <div class="overflow-x-auto">
+                            <div class="grid grid-cols-[1fr_100px_100px_100px_auto] gap-1 font-bold text-xs text-amber-900 mb-2 min-w-[500px] bg-amber-100 rounded-lg p-2">
+                                <span>Ítem / Concepto</span><span>Cantidad</span><span>Costo Unit.</span><span>Subtotal</span><span class="px-2"></span>
+                            </div>
+                            <div id="ficha-presupuesto-rows" class="min-w-[500px]">
+                                <div class="grid grid-cols-[1fr_100px_100px_100px_auto] gap-1 mb-1.5 ficha-ppto-row items-center">
+                                    <input type="text" class="ficha-ppto-item border border-gray-200 rounded p-1.5 text-sm" placeholder="Concepto...">
+                                    <input type="number" class="ficha-ppto-cant border border-gray-200 rounded p-1.5 text-sm text-center" placeholder="0" oninput="calcSubtotalFicha(this)">
+                                    <input type="number" class="ficha-ppto-unit border border-gray-200 rounded p-1.5 text-sm text-center" placeholder="$0" oninput="calcSubtotalFicha(this)">
+                                    <span class="ficha-ppto-sub text-center font-bold text-sm text-gray-700">$0</span>
+                                    <button onclick="this.parentElement.remove()" class="text-red-400 hover:text-red-600 text-sm px-1"><i class="fas fa-times"></i></button>
+                                </div>
+                                <div class="grid grid-cols-[1fr_100px_100px_100px_auto] gap-1 mb-1.5 ficha-ppto-row items-center">
+                                    <input type="text" class="ficha-ppto-item border border-gray-200 rounded p-1.5 text-sm" placeholder="Concepto...">
+                                    <input type="number" class="ficha-ppto-cant border border-gray-200 rounded p-1.5 text-sm text-center" placeholder="0" oninput="calcSubtotalFicha(this)">
+                                    <input type="number" class="ficha-ppto-unit border border-gray-200 rounded p-1.5 text-sm text-center" placeholder="$0" oninput="calcSubtotalFicha(this)">
+                                    <span class="ficha-ppto-sub text-center font-bold text-sm text-gray-700">$0</span>
+                                    <button onclick="this.parentElement.remove()" class="text-red-400 hover:text-red-600 text-sm px-1"><i class="fas fa-times"></i></button>
+                                </div>
+                                <div class="grid grid-cols-[1fr_100px_100px_100px_auto] gap-1 mb-1.5 ficha-ppto-row items-center">
+                                    <input type="text" class="ficha-ppto-item border border-gray-200 rounded p-1.5 text-sm" placeholder="Concepto...">
+                                    <input type="number" class="ficha-ppto-cant border border-gray-200 rounded p-1.5 text-sm text-center" placeholder="0" oninput="calcSubtotalFicha(this)">
+                                    <input type="number" class="ficha-ppto-unit border border-gray-200 rounded p-1.5 text-sm text-center" placeholder="$0" oninput="calcSubtotalFicha(this)">
+                                    <span class="ficha-ppto-sub text-center font-bold text-sm text-gray-700">$0</span>
+                                    <button onclick="this.parentElement.remove()" class="text-red-400 hover:text-red-600 text-sm px-1"><i class="fas fa-times"></i></button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="flex justify-between items-center mt-2">
+                            <button onclick="agregarFilaPresupuesto()" class="text-amber-700 text-xs font-bold hover:text-amber-900"><i class="fas fa-plus mr-1"></i> Agregar ítem</button>
+                            <span class="font-extrabold text-amber-900 text-sm" id="ficha-ppto-total">Total: $0</span>
+                        </div>
+                    </div>
+
+                    <!-- SECCIÓN 6: Evaluación -->
+                    <div class="bg-white border border-amber-100 rounded-xl p-5 mb-4 shadow-sm">
+                        <h4 class="font-extrabold text-amber-900 text-sm uppercase tracking-wide mb-3 border-b border-amber-100 pb-2"><i class="fas fa-chart-bar mr-1"></i> 6. Indicadores de Evaluación</h4>
+                        <div id="ficha-indicadores-container">
+                            <div class="flex gap-2 mb-2 items-center ficha-ind-row">
+                                <input type="text" class="flex-1 border border-gray-200 rounded-lg p-2 text-sm focus:border-amber-400 outline-none" placeholder="Indicador 1 (Ej: Nº de árboles plantados)">
+                                <input type="text" class="w-28 border border-gray-200 rounded-lg p-2 text-sm focus:border-amber-400 outline-none" placeholder="Meta">
+                                <button onclick="this.parentElement.remove()" class="text-red-400 hover:text-red-600 text-sm px-2"><i class="fas fa-times"></i></button>
+                            </div>
+                            <div class="flex gap-2 mb-2 items-center ficha-ind-row">
+                                <input type="text" class="flex-1 border border-gray-200 rounded-lg p-2 text-sm focus:border-amber-400 outline-none" placeholder="Indicador 2 (Ej: % de asistencia de voluntarios)">
+                                <input type="text" class="w-28 border border-gray-200 rounded-lg p-2 text-sm focus:border-amber-400 outline-none" placeholder="Meta">
+                                <button onclick="this.parentElement.remove()" class="text-red-400 hover:text-red-600 text-sm px-2"><i class="fas fa-times"></i></button>
+                            </div>
+                        </div>
+                        <button onclick="document.getElementById('ficha-indicadores-container').insertAdjacentHTML('beforeend','<div class=\'flex gap-2 mb-2 items-center ficha-ind-row\'><input type=\'text\' class=\'flex-1 border border-gray-200 rounded-lg p-2 text-sm focus:border-amber-400 outline-none\' placeholder=\'Nuevo indicador...\'><input type=\'text\' class=\'w-28 border border-gray-200 rounded-lg p-2 text-sm focus:border-amber-400 outline-none\' placeholder=\'Meta\'><button onclick=\'this.parentElement.remove()\' class=\'text-red-400 hover:text-red-600 text-sm px-2\'><i class=\'fas fa-times\'></i></button></div>')" class="text-amber-700 text-xs font-bold hover:text-amber-900 mt-1"><i class="fas fa-plus mr-1"></i> Agregar Indicador</button>
+                    </div>
+
+                    <!-- SECCIÓN 7: ÁRBOL DEL PROBLEMA (con gráfica de árbol) -->
+                    <div class="rounded-xl overflow-hidden mb-4 shadow-sm" style="border:2px solid #92400e;">
+                        <div class="bg-amber-800 text-white px-5 py-3 flex items-center gap-2">
+                            <i class="fas fa-tree text-amber-300"></i>
+                            <h4 class="font-extrabold text-sm uppercase tracking-wide">7. Árbol del Problema</h4>
+                            <span class="text-amber-300 text-xs ml-auto font-medium">Diagnóstico participativo</span>
+                        </div>
+                        <div style="position:relative;background:linear-gradient(180deg,#87CEEB 0%,#87CEEB 30%,#c1e6c1 30%,#8fbc8f 50%,#6b4423 50%,#5a3a1a 100%);padding:30px 20px;min-height:500px;">
+                            
+                            <!-- SVG del árbol de fondo -->
+                            <svg viewBox="0 0 800 600" style="position:absolute;inset:0;width:100%;height:100%;opacity:0.15;pointer-events:none;" xmlns="http://www.w3.org/2000/svg">
+                                <!-- Copa -->
+                                <ellipse cx="400" cy="140" rx="280" ry="130" fill="#2d5a1e"/>
+                                <ellipse cx="320" cy="120" rx="160" ry="100" fill="#3a7a2a"/>
+                                <ellipse cx="480" cy="130" rx="150" ry="90" fill="#3a7a2a"/>
+                                <ellipse cx="400" cy="100" rx="200" ry="95" fill="#4a8c3a"/>
+                                <!-- Tronco -->
+                                <rect x="360" y="230" width="80" height="160" rx="8" fill="#5a3a1a"/>
+                                <rect x="370" y="240" width="15" height="140" rx="4" fill="#4a2a10" opacity="0.3"/>
+                                <!-- Raíces -->
+                                <path d="M360 390 Q300 420 250 450 Q220 465 200 490" stroke="#5a3a1a" fill="none" stroke-width="12" stroke-linecap="round"/>
+                                <path d="M380 390 Q350 440 320 480 Q310 500 290 530" stroke="#5a3a1a" fill="none" stroke-width="10" stroke-linecap="round"/>
+                                <path d="M400 390 Q400 440 400 490 Q400 520 400 560" stroke="#5a3a1a" fill="none" stroke-width="14" stroke-linecap="round"/>
+                                <path d="M420 390 Q450 440 480 480 Q500 510 520 540" stroke="#5a3a1a" fill="none" stroke-width="10" stroke-linecap="round"/>
+                                <path d="M440 390 Q500 420 550 450 Q580 465 600 490" stroke="#5a3a1a" fill="none" stroke-width="12" stroke-linecap="round"/>
+                                <!-- Nubes -->
+                                <ellipse cx="120" cy="60" rx="60" ry="30" fill="white" opacity="0.5"/>
+                                <ellipse cx="680" cy="45" rx="50" ry="25" fill="white" opacity="0.4"/>
+                            </svg>
+
+                            <div style="position:relative;z-index:1;display:flex;flex-direction:column;align-items:center;gap:0;">
+                                
+                                <!-- CONSECUENCIAS / EFECTOS (copa) -->
+                                <div style="background:rgba(254,243,199,0.95);backdrop-filter:blur(4px);border:2px solid #f59e0b;border-radius:20px;padding:16px 20px;width:100%;max-width:650px;text-align:center;box-shadow:0 4px 15px rgba(0,0,0,0.15);">
+                                    <div style="font-weight:800;font-size:0.78rem;text-transform:uppercase;color:#92400e;margin-bottom:10px;letter-spacing:1.5px;display:flex;align-items:center;justify-content:center;gap:6px;">
+                                        <i class="fas fa-cloud-sun"></i> Consecuencias / Efectos <span style="font-size:0.65rem;opacity:0.7;font-weight:500;">(frutos del árbol)</span>
+                                    </div>
+                                    <div id="arbol-consecuencias">
+                                        <div class="flex gap-2 mb-2 items-center arbol-item-row"><span class="bg-amber-400 text-amber-900 font-bold text-xs w-5 h-5 rounded-full flex items-center justify-center shrink-0">1</span><input type="text" class="flex-1 border border-amber-300 rounded-lg p-2 text-sm focus:border-amber-600 outline-none bg-white/80" placeholder="Consecuencia / efecto 1..."><button onclick="this.parentElement.remove();reindexarItems('arbol-consecuencias')" class="text-amber-700 hover:text-red-600 text-sm px-1"><i class="fas fa-times"></i></button></div>
+                                        <div class="flex gap-2 mb-2 items-center arbol-item-row"><span class="bg-amber-400 text-amber-900 font-bold text-xs w-5 h-5 rounded-full flex items-center justify-center shrink-0">2</span><input type="text" class="flex-1 border border-amber-300 rounded-lg p-2 text-sm focus:border-amber-600 outline-none bg-white/80" placeholder="Consecuencia / efecto 2..."><button onclick="this.parentElement.remove();reindexarItems('arbol-consecuencias')" class="text-amber-700 hover:text-red-600 text-sm px-1"><i class="fas fa-times"></i></button></div>
+                                        <div class="flex gap-2 mb-2 items-center arbol-item-row"><span class="bg-amber-400 text-amber-900 font-bold text-xs w-5 h-5 rounded-full flex items-center justify-center shrink-0">3</span><input type="text" class="flex-1 border border-amber-300 rounded-lg p-2 text-sm focus:border-amber-600 outline-none bg-white/80" placeholder="Consecuencia / efecto 3..."><button onclick="this.parentElement.remove();reindexarItems('arbol-consecuencias')" class="text-amber-700 hover:text-red-600 text-sm px-1"><i class="fas fa-times"></i></button></div>
+                                    </div>
+                                    <button onclick="agregarItemArbol('arbol-consecuencias','Consecuencia','bg-amber-400 text-amber-900','border-amber-300')" class="text-amber-800 text-xs font-bold hover:text-amber-900 mt-1"><i class="fas fa-plus mr-1"></i> Agregar Efecto</button>
+                                </div>
+
+                                <!-- Rama conectora -->
+                                <div style="width:8px;height:24px;background:#5a3a1a;border-radius:4px;box-shadow:2px 0 4px rgba(0,0,0,0.2);"></div>
+
+                                <!-- PROBLEMA CENTRAL (tronco) -->
+                                <div style="background:linear-gradient(135deg,rgba(220,38,38,0.95),rgba(153,27,27,0.95));backdrop-filter:blur(4px);border:3px solid #7f1d1d;border-radius:20px;padding:20px 24px;width:100%;max-width:550px;text-align:center;box-shadow:0 6px 25px rgba(153,27,27,0.4);">
+                                    <div style="font-weight:800;font-size:0.85rem;text-transform:uppercase;color:#fecaca;margin-bottom:10px;letter-spacing:1.5px;display:flex;align-items:center;justify-content:center;gap:8px;">
+                                        🎯 Problema Central <span style="font-size:0.65rem;opacity:0.7;font-weight:500;">(tronco)</span>
+                                    </div>
+                                    <textarea id="arbol-problema-central" rows="3" class="w-full bg-white/90 border-2 border-red-300 rounded-xl p-3 text-sm font-bold text-red-900 focus:border-white outline-none shadow-inner" placeholder="¿Cuál es el problema central que este proyecto busca resolver? Descríbelo de forma clara y concisa..."></textarea>
+                                </div>
+
+                                <!-- Raíz conectora -->
+                                <div style="width:8px;height:24px;background:#5a3a1a;border-radius:4px;box-shadow:2px 0 4px rgba(0,0,0,0.2);"></div>
+
+                                <!-- CAUSAS (raíces) -->
+                                <div style="background:rgba(209,250,229,0.95);backdrop-filter:blur(4px);border:2px solid #10b981;border-radius:20px;padding:16px 20px;width:100%;max-width:650px;text-align:center;box-shadow:0 4px 15px rgba(0,0,0,0.15);">
+                                    <div style="font-weight:800;font-size:0.78rem;text-transform:uppercase;color:#065f46;margin-bottom:10px;letter-spacing:1.5px;display:flex;align-items:center;justify-content:center;gap:6px;">
+                                        <i class="fas fa-seedling"></i> Causas / Raíces del Problema <span style="font-size:0.65rem;opacity:0.7;font-weight:500;">(raíces del árbol)</span>
+                                    </div>
+                                    <div id="arbol-causas">
+                                        <div class="flex gap-2 mb-2 items-center arbol-item-row"><span class="bg-green-400 text-green-900 font-bold text-xs w-5 h-5 rounded-full flex items-center justify-center shrink-0">1</span><input type="text" class="flex-1 border border-green-300 rounded-lg p-2 text-sm focus:border-green-600 outline-none bg-white/80" placeholder="Causa / raíz 1..."><button onclick="this.parentElement.remove();reindexarItems('arbol-causas')" class="text-green-700 hover:text-red-600 text-sm px-1"><i class="fas fa-times"></i></button></div>
+                                        <div class="flex gap-2 mb-2 items-center arbol-item-row"><span class="bg-green-400 text-green-900 font-bold text-xs w-5 h-5 rounded-full flex items-center justify-center shrink-0">2</span><input type="text" class="flex-1 border border-green-300 rounded-lg p-2 text-sm focus:border-green-600 outline-none bg-white/80" placeholder="Causa / raíz 2..."><button onclick="this.parentElement.remove();reindexarItems('arbol-causas')" class="text-green-700 hover:text-red-600 text-sm px-1"><i class="fas fa-times"></i></button></div>
+                                        <div class="flex gap-2 mb-2 items-center arbol-item-row"><span class="bg-green-400 text-green-900 font-bold text-xs w-5 h-5 rounded-full flex items-center justify-center shrink-0">3</span><input type="text" class="flex-1 border border-green-300 rounded-lg p-2 text-sm focus:border-green-600 outline-none bg-white/80" placeholder="Causa / raíz 3..."><button onclick="this.parentElement.remove();reindexarItems('arbol-causas')" class="text-green-700 hover:text-red-600 text-sm px-1"><i class="fas fa-times"></i></button></div>
+                                    </div>
+                                    <button onclick="agregarItemArbol('arbol-causas','Causa','bg-green-400 text-green-900','border-green-300')" class="text-green-800 text-xs font-bold hover:text-green-900 mt-1"><i class="fas fa-plus mr-1"></i> Agregar Causa</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="flex gap-4 mt-8 pt-5 border-t border-gray-200">
+                <button onclick="cerrarModalProyecto()" class="btn btn-outline flex-1 py-3 text-base">Descartar Cambios</button>
+                <button onclick="guardarProyectoColectivo()" class="btn btn-primary flex-1 py-3 text-base shadow-lg"><i class="fas fa-save mr-1"></i> Guardar y Distribuir Proyecto en Nube</button>
+            </div>
+            <div class="bg-orange-50 border border-orange-200 rounded-xl p-4 mt-4">
+                <label class="flex items-center gap-3 cursor-pointer">
+                    <input type="checkbox" id="crear-evento-desde-proyecto" class="w-5 h-5 accent-orange-600 cursor-pointer">
+                    <span class="font-extrabold text-orange-900 text-sm"><i class="fas fa-calendar-plus mr-1"></i> Crear un Evento en el módulo de Eventos a partir de este Proyecto</span>
+                </label>
+                <p class="text-xs text-orange-700 mt-2 ml-8">Se creará automáticamente un evento con el nombre, fecha y participantes del proyecto, listo para gestionar inscripciones, presupuesto y logística.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Edición de Joven (El formulario gigante institucional) -->
+    <div id="modal-editar-joven" class="modal-overlay">
+        <div class="modal-box" style="max-width: 1050px; background: #f8fafc; padding: 0;">
+            <div class="bg-white border-b border-gray-200 px-8 py-5 sticky top-0 z-10 flex justify-between items-center rounded-t-16">
+                <h3 style="margin:0; border:none; padding:0;"><i class="fas fa-id-card text-blue-600 mr-2"></i> Expediente Administrativo (ORI)</h3>
+                <button onclick="cerrarModalEditarJoven()" class="text-gray-400 hover:text-red-500 transition text-2xl outline-none"><i class="fas fa-times"></i></button>
+            </div>
+            
+            <div style="max-height: 70vh; overflow-y: auto; padding: 25px 35px;" id="modal-edit-content">
+                <!-- Se llena dinamicamente por JS -->
+            </div>
+            
+            <div class="bg-white border-t border-gray-200 px-8 py-5 sticky bottom-0 z-10 flex justify-end gap-4 rounded-b-16 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
+                <button onclick="cerrarModalEditarJoven()" class="btn btn-outline py-2.5 px-6 font-bold">Descartar</button>
+                <button onclick="guardarEdicionJoven()" class="btn btn-success py-2.5 px-8 shadow-lg font-bold text-base"><i class="fas fa-cloud-upload-alt mr-2"></i> Sincronizar Expediente con Base de Datos de Grupo</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Confirmación para Transferir a Adultos -->
+    <div id="modal-transferir-adulto" class="modal-overlay">
+        <div class="modal-box">
+            <h3><i class="fas fa-exchange-alt mr-2 text-orange-500"></i> Transferir a Padrón de Adultos</h3>
+            <p class="text-sm text-gray-600 mb-4">Esta acción moverá al joven desde la base de datos de jóvenes a la de adultos. Se conservarán todos los datos personales y de contacto. Una vez transferido, ya no aparecerá en el directorio de beneficiarios.</p>
+            <p class="text-sm font-bold text-red-600 mb-5">Esta operación es irreversible. ¿Está seguro?</p>
+            <div class="flex justify-end gap-3">
+                <button class="btn btn-outline" onclick="cerrarModalTransferir()">Cancelar</button>
+                <button class="btn btn-warning" onclick="confirmarTransferirAdulto()"><i class="fas fa-arrow-right"></i> Sí, Transferir</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal PROYECTOS VIGENTES (Avanzada + Clan) -->
+    <div id="modal-proyectos-vigentes" class="modal-overlay">
+        <div class="modal-box" style="max-width:900px;background:#f8fafc;padding:0;">
+            <div class="bg-gradient-to-r from-purple-700 to-red-700 px-8 py-5 sticky top-0 z-10 flex justify-between items-center" style="border-radius:16px 16px 0 0;">
+                <div>
+                    <h3 style="margin:0;border:none;padding:0;color:white;font-size:1.15rem;"><i class="fas fa-rocket mr-2"></i> Proyectos Vigentes</h3>
+                    <p class="text-purple-200 text-xs font-medium mt-1">Proyectos activos de Avanzada (Pioneros) y Clan (Caminantes)</p>
+                </div>
+                <button onclick="document.getElementById('modal-proyectos-vigentes').classList.remove('active')" class="text-white/70 hover:text-white transition text-2xl outline-none"><i class="fas fa-times"></i></button>
+            </div>
+            <div style="padding:20px 25px;max-height:70vh;overflow-y:auto;">
+                <!-- Filtros -->
+                <div class="flex gap-2 mb-4 flex-wrap items-center">
+                    <button onclick="filtrarProyectosVigentes('todos')" class="pv-filter active bg-gray-800 text-white text-xs font-bold px-3 py-1.5 rounded-lg border-none cursor-pointer transition">Todos</button>
+                    <button onclick="filtrarProyectosVigentes('Avanzada')" class="pv-filter bg-purple-100 text-purple-800 text-xs font-bold px-3 py-1.5 rounded-lg border border-purple-200 cursor-pointer transition">Avanzada / Pioneros</button>
+                    <button onclick="filtrarProyectosVigentes('Clan')" class="pv-filter bg-red-100 text-red-800 text-xs font-bold px-3 py-1.5 rounded-lg border border-red-200 cursor-pointer transition">Clan / Caminantes</button>
+                    <input type="text" id="buscar-pv" placeholder="Buscar proyecto..." class="ml-auto text-sm border border-gray-200 rounded-lg px-3 py-1.5 outline-none focus:border-purple-400 font-medium" style="max-width:220px;" oninput="filtrarProyectosVigentes(filtroRamaVigente)">
+                </div>
+                <div id="lista-proyectos-vigentes"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal SOLICITUD DE INCORPORACIÓN -->
+    <div id="modal-solicitud-proyecto" class="modal-overlay">
+        <div class="modal-box" style="max-width:550px;">
+            <h3><i class="fas fa-hand-paper mr-2 text-purple-600"></i> Solicitar Incorporación al Proyecto</h3>
+            <div id="solicitud-proyecto-info" class="bg-gradient-to-r from-purple-50 to-red-50 border border-purple-200 rounded-xl p-4 mb-4"></div>
+            <div class="mb-4">
+                <label class="font-bold text-xs text-gray-700 uppercase tracking-wide block mb-1">¿Quién solicita unirse?</label>
+                <input type="text" id="solicitud-buscar" placeholder="Busca por nombre o RUN del joven..." class="w-full border border-gray-200 rounded-lg p-2.5 text-sm outline-none focus:border-purple-400 font-medium" oninput="buscarSolicitante()">
+                <div id="solicitud-resultados" class="bg-white border border-gray-200 rounded-lg mt-1 max-h-32 overflow-y-auto hidden shadow-inner"></div>
+                <div id="solicitud-seleccionado" class="mt-2"></div>
+            </div>
+            <div class="mb-4">
+                <label class="font-bold text-xs text-gray-700 uppercase tracking-wide block mb-1">Mensaje / Motivación (opcional)</label>
+                <textarea id="solicitud-mensaje" rows="2" class="w-full border border-gray-200 rounded-lg p-2.5 text-sm outline-none focus:border-purple-400 font-medium" placeholder="¿Por qué quieres unirte a este proyecto?"></textarea>
+            </div>
+            <div class="flex gap-3">
+                <button onclick="document.getElementById('modal-solicitud-proyecto').classList.remove('active')" class="btn btn-outline flex-1 py-2.5">Cancelar</button>
+                <button onclick="enviarSolicitudProyecto()" class="btn btn-primary flex-1 py-2.5 shadow-lg bg-purple-600 hover:bg-purple-700"><i class="fas fa-paper-plane mr-1"></i> Enviar Solicitud e Incorporar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal PASE DE UNIDAD -->
+    <div id="modal-pase-unidad" class="modal-overlay">
+        <div class="modal-box">
+            <h3><i class="fas fa-exchange-alt mr-2 text-blue-500"></i> Pase de Unidad</h3>
+            <p class="text-sm text-gray-600 mb-5 font-medium border-b pb-4">Seleccione la nueva unidad a la que será transferido el joven. La etapa actual se reiniciará al primer grado de la nueva rama.</p>
+            <input type="hidden" id="pase-unidad-joven-id">
+            <div class="form-item mb-5">
+                <label class="font-bold mb-2 block text-gray-700">Nueva Unidad *</label>
+                <select id="nueva-unidad-select" class="w-full border-2 border-gray-200 p-3 rounded-xl bg-gray-50 focus:bg-white focus:border-blue-500 outline-none transition font-medium text-gray-700">
+                    <option value="">Seleccionar...</option>
+                    <option value="Bandada Pilmaikén Kalfü">Bandada Pilmaikén Kalfü</option>
+                    <option value="Manada Kupëlwue Kadü">Manada Kupëlwue Kadü</option>
+                    <option value="Tropa Manke Pillán">Tropa Manke Pillán</option>
+                    <option value="Compañía Antuwenüy">Compañía Antuwenüy</option>
+                    <option value="Avanzada Toki Pillan">Avanzada Toki Pillan</option>
+                    <option value="Clan Kutral Raigüen">Clan Kutral Raigüen</option>
+                </select>
+            </div>
+            <div class="form-item mb-5">
+                <label class="font-bold mb-2 block text-gray-700">Nombre personalizado de unidad (opcional)</label>
+                <input type="text" id="unidad-personalizada" class="w-full border-2 border-gray-200 p-3 rounded-xl bg-gray-50 focus:bg-white focus:border-blue-500 outline-none transition font-medium text-gray-700" placeholder="Ej: Manada Lupos">
+                <p class="text-xs text-gray-500 mt-1">Si se especifica, se usará este texto en lugar de la opción seleccionada.</p>
+            </div>
+            <div class="mt-6 flex justify-end gap-3 pt-4 border-t border-gray-100">
+                <button class="btn btn-outline" onclick="cerrarModalPaseUnidad()">Cancelar</button>
+                <button class="btn btn-primary" onclick="confirmarPaseUnidad()"><i class="fas fa-exchange-alt"></i> Confirmar Pase</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ================= SCRIPTS LÓGICOS Y DE SUPABASE ================= -->
+    <script src="programa_jovenes/js/00_nucleo_y_acceso.js"></script>
+    <script src="programa_jovenes/js/01_constantes_agsch.js"></script>
+    <script src="programa_jovenes/js/02_estado_y_utilidades.js"></script>
+    <script src="programa_jovenes/js/03_carga_y_listado_jovenes.js"></script>
+    <script src="programa_jovenes/js/04_notificaciones_hito.js"></script>
+    <script src="programa_jovenes/js/05_expediente_beneficiario.js"></script>
+    <script src="programa_jovenes/js/06_progresion_y_proyectos_db.js"></script>
+    <script src="programa_jovenes/js/07_objetivos_educativos.js"></script>
+    <script src="programa_jovenes/js/08_sonar_competencias_camino.js"></script>
+    <script src="programa_jovenes/js/09_evaluacion_y_firmas.js"></script>
+    <script src="programa_jovenes/js/10_especialidades_y_monitores.js"></script>
+    <script src="programa_jovenes/js/11_proyectos_colectivos.js"></script>
+    <script src="programa_jovenes/js/12_proyectos_vigentes.js"></script>
+    <script src="programa_jovenes/js/13_ficha_extendida_presupuesto.js"></script>
+    <script src="programa_jovenes/js/14_evidencias_y_drive.js"></script>
+    <script src="programa_jovenes/js/15_toggles_estado.js"></script>
+    <script src="programa_jovenes/js/16_fotos_y_cropper.js"></script>
+    <script src="programa_jovenes/js/17_edicion_institucional.js"></script>
+    <script src="programa_jovenes/js/18_transferir_a_adultos.js"></script>
+    <script src="programa_jovenes/js/19_pase_de_unidad.js"></script>
+    <script src="programa_jovenes/js/20_expediente_pdf.js"></script>
+    <script src="programa_jovenes/js/21_dashboard_kpis.js"></script>
+    <script src="programa_jovenes/js/22_inicializacion.js"></script>
+<script>if('serviceWorker' in navigator){navigator.serviceWorker.register('/sw.js').catch(function(){});}</script>
+<script src="google-api-helper.js"></script>
+<script src="google-ui.js">
+</script>
+
+
+
+<!-- ── Maestro-detalle móvil: Programa Jóvenes v4 ── -->
+<script>
+(function(){
+  if(window.innerWidth > 768) return;
+
+  var listPanel, profilePanel;
+
+  function btnVolver(){
+    var b = document.createElement('button');
+    b.innerHTML = '<i class="fas fa-arrow-left" style="margin-right:8px"></i>Volver al listado';
+    b.style.cssText = 'display:flex;align-items:center;position:sticky;top:0;z-index:50;background:#0E2586;color:white;border:none;padding:13px 16px;width:100%;font-size:0.92rem;font-weight:700;cursor:pointer;font-family:inherit;min-height:50px;';
+    b.onclick = function(){
+      profilePanel.style.display = 'none';
+      listPanel.style.display = '';
+      window.scrollTo(0,0);
+    };
+    return b;
+  }
+
+  function mostrar(){
+    listPanel.style.display = 'none';
+    profilePanel.style.display = 'block';
+    profilePanel.style.width = '100%';
+    // Re-agregar botón (el render reemplaza innerHTML)
+    if(!profilePanel.querySelector('.erp-btn-volver-pj')){
+      var b = btnVolver();
+      b.className = 'erp-btn-volver-pj';
+      profilePanel.insertBefore(b, profilePanel.firstChild);
+    }
+    profilePanel.scrollTop = 0;
+    window.scrollTo(0,0);
+  }
+
+  function init(){
+    listPanel    = document.querySelector('.youth-list-panel');
+    profilePanel = document.getElementById('youth-profile-view');
+    if(!listPanel||!profilePanel){ setTimeout(init,400); return; }
+
+    // Ocultar perfil al inicio
+    profilePanel.style.display = 'none';
+
+    // Envolver renderYouthProfile — se llama CADA VEZ que se selecciona un joven
+    if(typeof renderYouthProfile === 'function' && !renderYouthProfile._mjv4){
+      var orig = renderYouthProfile;
+      window.renderYouthProfile = renderYouthProfile = function(j){
+        orig.call(this, j);   // renderiza, reemplaza innerHTML del panel
+        mostrar();             // botón + mostrar panel
+      };
+      renderYouthProfile._mjv4 = true;
+    }
+
+    // Delegación como respaldo (por si el wrap no intercepta)
+    document.getElementById('youth-ul-list').addEventListener('click', function(e){
+      if(!e.target.closest('.youth-list-item')) return;
+      setTimeout(mostrar, 300);
+    });
+
+    // Botón físico atrás
+    window.addEventListener('popstate', function(){
+      if(profilePanel.style.display !== 'none'){
+        profilePanel.style.display = 'none';
+        listPanel.style.display = '';
+        window.scrollTo(0,0);
+      }
+    });
+  }
+
+  setTimeout(init, 200);
+})();
+</script>
+</body>
+</html>

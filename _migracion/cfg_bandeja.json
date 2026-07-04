@@ -1,0 +1,38 @@
+{
+ "origen": "/home/claude/erp_upload/erp_full/bandeja_whatsapp.html",
+ "destino": "/home/claude/plataforma_v2",
+ "pagina": "bandeja_whatsapp.html",
+ "carpeta": "bandeja_whatsapp",
+ "scriptInicio": "<script>\n",
+ "scriptFin": "\n</script>",
+ "scriptOcurrencia": 1,
+ "estilos": [
+  {
+   "inicio": "<style>\n",
+   "fin": "</style>",
+   "archivo": "bandeja.css"
+  }
+ ],
+ "grupos": [
+  {
+   "desde": 0,
+   "nombre": "nucleo_y_acceso"
+  },
+  {
+   "desde": 3,
+   "nombre": "estado"
+  },
+  {
+   "desde": 8,
+   "nombre": "conversaciones"
+  },
+  {
+   "desde": 16,
+   "nombre": "mensajes"
+  },
+  {
+   "desde": 23,
+   "nombre": "realtime_e_inicio"
+  }
+ ]
+}

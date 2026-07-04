@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <script src="auth-guard.js"></script>
+    <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Comunicaciones — ERP Scout</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="drive-helper.js"></script>
+<script src="permisos.js"></script>
+    <script src="wa_api.js"></script>
+<link rel="stylesheet" href="comunicaciones/css/comunicaciones.css">
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#0E2586">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="ERP Scout">
+    <link rel="stylesheet" href="mobile.css">
+
+<style>
+@media(max-width:768px){
+  .wa-ind-body { grid-template-columns:1fr !important; }
+  .wa-ind-body > div:first-child { order:2; }
+  .wa-ind-body > div:last-child  { order:1; }
+}
+</style>
+</head>
+<body>
+<div class="topbar"><i class="fas fa-envelope-open-text"></i><div><h1>Comunicaciones</h1></div></div>
+<div class="layout">
+    <div>
+        <div class="st-row">
+            <div class="st az"><div class="n" id="stJ">—</div><div class="l">Jóvenes</div></div>
+            <div class="st vd"><div class="n" id="stA">—</div><div class="l">Adultos</div></div>
+            <div class="st mo"><div class="n" id="stE">—</div><div class="l">Emails</div></div>
+        </div>
+        <div class="st" style="margin-bottom:8px;background:linear-gradient(135deg,#f0fdf4,#dcfce7);border:1px solid #86efac;display:flex;align-items:center;gap:10px;padding:11px 14px">
+            <i class="fab fa-whatsapp" style="color:#25D366;font-size:1.4rem"></i>
+            <div><div class="n" id="stWA" style="color:#166534;font-size:1.1rem">—</div><div class="l">Con WhatsApp</div></div>
+            <button onclick="document.getElementById('waConfigPanel').style.display='block'" style="margin-left:auto;background:none;border:1px solid #86efac;border-radius:6px;padding:3px 8px;font-size:0.72rem;cursor:pointer;color:#166534;font-weight:600" title="Configurar plantilla de WhatsApp Business"><i class="fas fa-cog"></i></button>
+        </div>
+        <div class="card" style="margin-bottom:12px">
+            <h2><i class="fas fa-users" style="color:var(--azul-claro)"></i> Destinatarios</h2>
+            <div class="ri sel" onclick="sd(this,'todos')" title="Envía a todos los miembros del grupo: jóvenes (vía apoderado titular) + adultos registrados"><input type="radio" name="d" checked><div><label>Todo el grupo</label></div></div>
+            <div class="ri" onclick="sd(this,'jovenes')" title="Envía solo a los apoderados titulares de los jóvenes del grupo"><input type="radio" name="d"><div><label>Solo jóvenes (apoderados)</label></div></div>
+            <div class="ri" onclick="sd(this,'adultos')" title="Envía solo a los adultos / dirigentes / staff registrados"><input type="radio" name="d"><div><label>Solo adultos / dirigentes</label></div></div>
+            <div class="ri" onclick="sd(this,'evento')" title="Envía a los inscritos en un evento específico (jóvenes, adultos o ambos)"><input type="radio" name="d"><div><label>Inscritos en evento</label></div></div>
+            <div class="fu" id="fuUnidad" style="display:none;margin-top:9px"><label>Filtrar por unidad</label>
+                <div class="chips">
+                    <div class="chip act" onclick="sc(this,'todas')">Todas</div>
+                    <div class="chip" onclick="sc(this,'Bandada')">Bandada</div>
+                    <div class="chip" onclick="sc(this,'Manada')">Manada</div>
+                    <div class="chip" onclick="sc(this,'Tropa')">Tropa</div>
+                    <div class="chip" onclick="sc(this,'Compañía')">Compañía</div>
+                    <div class="chip" onclick="sc(this,'Avanzada')">Avanzada</div>
+                    <div class="chip" onclick="sc(this,'Clan')">Clan</div>
+                </div>
+            </div>
+            <div id="gEv" style="display:none;margin-top:9px">
+                <div class="fg"><label>Evento</label><select id="selEv" onchange="calcDest()"><option value="">— Selecciona —</option></select></div>
+                <label style="font-size:0.79rem;font-weight:600;color:var(--texto-oscuro);margin-bottom:5px;display:block">¿A quiénes del evento?</label>
+                <div class="chips" id="chipsEvento">
+                    <div class="chip act" onclick="se(this,'ambos')" title="Jóvenes + Adultos inscritos">Ambos</div>
+                    <div class="chip" onclick="se(this,'jovenes')" title="Solo jóvenes inscritos">Solo jóvenes</div>
+                    <div class="chip" onclick="se(this,'adultos')" title="Solo adultos / staff inscritos">Solo adultos</div>
+                </div>
+            </div>
+            <div class="cp"><i class="fas fa-user-check" style="color:var(--azul-claro)"></i>Enviará a <strong id="cnt">—</strong> contactos</div>
+        </div>
+        <div class="card">
+            <h2><i class="fas fa-history" style="color:var(--azul-claro)"></i> Enviados recientes</h2>
+            <div id="histList"><div style="text-align:center;padding:12px;color:var(--texto-claro);font-size:0.82rem"><i class="fas fa-circle-notch fa-spin"></i> Cargando...</div></div>
+        </div>
+    </div>
+    <div class="card">
+        <h2><i class="fas fa-pen-to-square" style="color:var(--azul-claro)"></i> Redactar circular</h2>
+        <div id="alertR"></div>
+        <div class="fg"><label>Asunto</label><input type="text" id="asunto" placeholder="Ej: Reunión del sábado — información importante" oninput="upPreview()"></div>
+        <div class="fg"><label>Saludo</label>
+            <select id="saludo">
+                <option>Estimado/a {nombre},</option><option>Hola {nombre},</option>
+                <option>Querida familia scout,</option><option>Estimadas familias,</option><option>Hola a todos,</option>
+            </select>
+        </div>
+        <div class="fg"><label>Mensaje</label>
+            <div class="toolbar">
+                <button class="tb" onclick="f('bold')"><i class="fas fa-bold"></i></button>
+                <button class="tb" onclick="f('italic')"><i class="fas fa-italic"></i></button>
+                <button class="tb" onclick="f('underline')"><i class="fas fa-underline"></i></button>
+                <button class="tb" onclick="f('insertUnorderedList')"><i class="fas fa-list-ul"></i></button>
+                <button class="tb" onclick="f('insertOrderedList')"><i class="fas fa-list-ol"></i></button>
+                <button class="tb" onclick="f('justifyCenter')"><i class="fas fa-align-center"></i></button>
+            </div>
+            <div id="editor" contenteditable="true" oninput="upPreview()"></div>
+        </div>
+        <div class="vb"><p><i class="fas fa-code"></i> Variables (clic para insertar)</p>
+            <div class="vl">
+                <span class="vt" onclick="iv('{nombre}')">&#123;nombre&#125;</span>
+                <span class="vt" onclick="iv('{unidad}')">&#123;unidad&#125;</span>
+                <span class="vt" onclick="iv('{fecha}')">&#123;fecha&#125;</span>
+            </div>
+        </div>
+
+        <!-- ── ADJUNTOS ── -->
+        <div class="fg" style="margin-top:11px">
+            <label><i class="fas fa-paperclip"></i> Adjuntos</label>
+            <div style="display:flex;gap:7px;flex-wrap:wrap">
+                <label class="btn btn-s" style="cursor:pointer;font-weight:600" title="Inserta imágenes en el cuerpo del correo">
+                    <i class="fas fa-image"></i> Insertar imagen
+                    <input type="file" accept="image/*" multiple style="display:none" onchange="insertarImagenes(event)">
+                </label>
+                <label class="btn btn-s" style="cursor:pointer;font-weight:600" title="Sube archivos (PDF, Word, Excel...) — se agregan como enlaces de descarga al final del correo">
+                    <i class="fas fa-file-arrow-up"></i> Adjuntar archivo
+                    <input type="file" multiple style="display:none" onchange="adjuntarArchivos(event)">
+                </label>
+            </div>
+            <div id="adjuntosLista" style="margin-top:8px;display:flex;flex-wrap:wrap;gap:6px"></div>
+            <p style="font-size:0.71rem;color:var(--texto-claro);margin-top:5px"><i class="fas fa-info-circle"></i> Las imágenes se comprimen automáticamente (máx 1280px, calidad 72%). Archivos grandes se suben al bucket como enlaces de descarga.</p>
+        </div>
+        <div class="fg" style="margin-top:11px"><label>Firma</label><input type="text" id="firma" value="Grupo Guías y Scouts Salvador Sanfuentes"></div>
+        <div class="prev-em">
+            <div class="emh"><h3 id="pAs">Sin asunto</h3><p>Para: <span id="pCnt">—</span> destinatarios</p></div>
+            <div class="emb" id="pBd"><span style="color:var(--texto-claro)">El mensaje aparecerá aquí...</span></div>
+        </div>
+        <div class="prog" id="prog"><p style="font-size:0.84rem;font-weight:600;margin-bottom:4px">Enviando...</p>
+            <div class="pb-wrap"><div class="pb" id="pb" style="width:0%"></div></div>
+            <div class="plog" id="plog"></div>
+        </div>
+        <div class="btns">
+            <button class="btn btn-p" id="btnEnv" onclick="enviar()"><i class="fas fa-paper-plane"></i> Enviar por correo</button>
+            <button class="btn btn-wa" id="btnWA" onclick="enviarWhatsApp()"><i class="fab fa-whatsapp"></i> Enviar por WhatsApp</button>
+            <button class="btn" id="btnAmbos" onclick="enviarAmbos()" style="background:linear-gradient(135deg,#0E2586,#25D366);color:white;font-weight:600"><i class="fas fa-share-alt"></i> Enviar correo + WhatsApp</button>
+            <button class="btn btn-s" onclick="limpiar()"><i class="fas fa-trash"></i> Limpiar</button>
+        </div>
+
+        <!-- ── PROGRESO WHATSAPP ── -->
+        <div class="prog" id="progWA" style="display:none">
+            <p style="font-size:0.84rem;font-weight:600;margin-bottom:4px;color:#25D366"><i class="fab fa-whatsapp"></i> Enviando por WhatsApp...</p>
+            <div class="pb-wrap"><div class="pb" id="pbWA" style="width:0%;background:linear-gradient(90deg,#25D366,#128C7E)"></div></div>
+            <div class="plog" id="plogWA"></div>
+        </div>
+
+        <!-- ── CONFIGURACIÓN WHATSAPP ── -->
+        <div id="waConfigPanel" style="display:none;margin-top:14px;background:#f0fdf4;border:2px solid #86efac;border-radius:11px;padding:16px 18px">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+                <h3 style="font-size:0.9rem;font-weight:700;color:#166534;display:flex;align-items:center;gap:7px"><i class="fab fa-whatsapp" style="color:#25D366;font-size:1.1rem"></i> Configuración WhatsApp Business</h3>
+                <button onclick="document.getElementById('waConfigPanel').style.display='none'" style="background:none;border:none;cursor:pointer;color:#64748b;font-size:1.1rem">✕</button>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:9px">
+                <div class="fg"><label style="color:#166534">Nombre de plantilla</label><input type="text" id="waTplName" placeholder="ej: comunicado_grupo" style="border-color:#86efac"></div>
+                <div class="fg"><label style="color:#166534">Idioma de plantilla</label>
+                    <select id="waTplLang" style="border-color:#86efac;padding:9px 12px;border:2px solid #86efac;border-radius:8px;font-size:0.88rem;font-family:'Poppins',sans-serif;outline:none">
+                        <option value="es">es — Español</option>
+                        <option value="es_MX">es_MX — Español (México)</option>
+                        <option value="en_US">en_US — English</option>
+                    </select>
+                </div>
+            </div>
+            <div class="fg" style="margin-top:2px"><label style="color:#166534;font-size:0.78rem">Variables de la plantilla (usa {nombre}, {unidad}, {fecha} o texto fijo separados por coma)</label>
+                <input type="text" id="waTplVars" placeholder="ej: {nombre},{unidad},Ver comunicado en tu correo" style="border-color:#86efac">
+                <p style="font-size:0.7rem;color:#4b7a56;margin-top:3px"><i class="fas fa-info-circle"></i> Cada valor separado por coma = una variable {{1}}, {{2}}, {{3}}... de tu plantilla de Meta</p>
+            </div>
+            <button class="btn" onclick="guardarConfigWA()" style="background:#25D366;color:white;margin-top:4px;font-size:0.82rem"><i class="fas fa-save"></i> Guardar configuración</button>
+        </div><!-- fin waConfigPanel -->
+    </div>
+</div>
+
+
+<!-- ════ WHATSAPP INDIVIDUAL — Siempre visible ════ -->
+<div style="max-width:860px;margin:16px auto 0;padding:0 14px;">
+  <div style="background:white;border-radius:16px;box-shadow:0 4px 18px rgba(0,0,0,.08);overflow:hidden;">
+    <div style="background:linear-gradient(135deg,#075e54,#128c7e);color:white;padding:14px 20px;display:flex;align-items:center;gap:12px;">
+      <i class="fab fa-whatsapp" style="font-size:1.5rem"></i>
+      <div style="flex:1"><div style="font-size:0.95rem;font-weight:800">WhatsApp — Mensaje Individual</div>
+      <div style="font-size:0.73rem;opacity:0.82">Envía texto libre, archivos multimedia o comparte contactos</div></div>
+    </div>
+
+
+        <!-- Contenido WA Individual -->
+        <div style="padding:14px 18px;">
+            <div id="waIndCollapse">
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:10px;">
+                    <div>
+                        <label style="font-size:0.78rem;font-weight:600;color:#075e54;display:block;margin-bottom:4px;"><i class="fas fa-search" style="margin-right:4px"></i>Destinatario</label>
+                        <input type="text" id="waIndBuscar" placeholder="Nombre, teléfono o RUN..." oninput="waIndBuscar()" autocomplete="off"
+                            style="width:100%;border:2px solid #d1fae5;border-radius:8px;padding:8px 11px;font-size:0.83rem;font-family:inherit;outline:none;box-sizing:border-box">
+                        <div id="waIndResultados" style="max-height:150px;overflow-y:auto;border:1px solid #e2e8f0;border-radius:8px;margin-top:3px;display:none;background:white;position:relative;z-index:20"></div>
+                        <div id="waIndDest" style="display:none;background:#f0fdf4;border:2px solid #86efac;border-radius:8px;padding:7px 11px;margin-top:5px;font-size:0.82rem">
+                            <div style="display:flex;align-items:center;justify-content:space-between">
+                                <span><i class="fas fa-user-circle" style="color:#128c7e;margin-right:5px"></i><strong id="waIndDestNombre"></strong></span>
+                                <button onclick="waIndLimpiarDest()" style="background:none;border:none;cursor:pointer;color:#64748b;font-size:0.9rem">✕</button>
+                            </div>
+                            <div id="waIndDestTel" style="font-size:0.73rem;color:#4b7a56;margin-top:1px"></div>
+                        </div>
+                    </div>
+                    <div>
+                        <label style="font-size:0.78rem;font-weight:600;color:#075e54;display:block;margin-bottom:4px;">Tipo de mensaje</label>
+                        <div style="display:flex;gap:3px;background:#f0f4f8;border-radius:7px;padding:3px;margin-bottom:7px">
+                            <button class="wa-ind-tab act" id="waTabTexto" onclick="waIndSetTab('texto',this)" style="flex:1;padding:5px;border:none;border-radius:5px;font-size:0.72rem;font-weight:600;cursor:pointer;background:white;color:#075e54;box-shadow:0 1px 3px rgba(0,0,0,0.08)"><i class="fas fa-comment-alt"></i> Texto</button>
+                            <button class="wa-ind-tab" id="waTabMedia" onclick="waIndSetTab('media',this)" style="flex:1;padding:5px;border:none;border-radius:5px;font-size:0.72rem;font-weight:600;cursor:pointer;background:transparent;color:#64748b"><i class="fas fa-paperclip"></i> Archivo</button>
+                            <button class="wa-ind-tab" id="waTabContacto" onclick="waIndSetTab('contacto',this)" style="flex:1;padding:5px;border:none;border-radius:5px;font-size:0.72rem;font-weight:600;cursor:pointer;background:transparent;color:#64748b"><i class="fas fa-address-card"></i> Contacto</button>
+                        </div>
+                        <div id="waIndPaneTexto">
+                            <textarea id="waIndTexto" rows="3" placeholder="Mensaje (solo funciona en ventana activa de 24h)..."
+                                style="width:100%;border:2px solid #d1fae5;border-radius:8px;padding:8px 11px;font-size:0.82rem;font-family:inherit;outline:none;resize:vertical;box-sizing:border-box"></textarea>
+                        </div>
+                        <div id="waIndPaneMedia" style="display:none">
+                            <div id="waIndDropzone" onclick="document.getElementById('waIndFileInput').click()"
+                                style="border:2px dashed #86efac;border-radius:8px;padding:14px;text-align:center;cursor:pointer;background:#f0fdf4">
+                                <i class="fas fa-cloud-upload-alt" style="font-size:1.4rem;color:#25D366;display:block;margin-bottom:4px"></i>
+                                <div style="font-size:0.78rem;color:#4b7a56;font-weight:600">Imagen / Video / Audio / PDF</div>
+                            </div>
+                            <input type="file" id="waIndFileInput" accept="image/*,video/*,audio/*,.pdf,.doc,.docx" style="display:none" onchange="waIndFileSeleccionado(this)">
+                            <div id="waIndFilePreview" style="display:none;margin-top:7px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:9px">
+                                <div style="display:flex;align-items:center;gap:7px">
+                                    <i id="waIndFileIcon" class="fas fa-file" style="font-size:1.2rem;color:#25D366"></i>
+                                    <div style="flex:1"><div id="waIndFileName" style="font-weight:600;font-size:0.82rem;color:#1e293b"></div><div id="waIndFileSize" style="font-size:0.71rem;color:#64748b"></div></div>
+                                    <button onclick="waIndQuitarFile()" style="background:none;border:none;cursor:pointer;color:#ef4444">✕</button>
+                                </div>
+                                <input type="text" id="waIndCaption" placeholder="Leyenda (opcional)..."
+                                    style="width:100%;margin-top:6px;border:1px solid #e2e8f0;border-radius:6px;padding:6px 9px;font-size:0.79rem;font-family:inherit;outline:none;box-sizing:border-box">
+                            </div>
+                        </div>
+                        <div id="waIndPaneContacto" style="display:none">
+                            <input type="text" id="waIndBuscarContacto" placeholder="Buscar adulto del grupo..." oninput="waIndBuscarAdulto()" autocomplete="off"
+                                style="width:100%;border:2px solid #d1fae5;border-radius:8px;padding:7px 10px;font-size:0.81rem;font-family:inherit;outline:none;box-sizing:border-box">
+                            <div id="waIndContactoResultados" style="max-height:130px;overflow-y:auto;border:1px solid #e2e8f0;border-radius:8px;margin-top:3px;display:none;background:white"></div>
+                            <div id="waIndContactosSeleccionados" style="margin-top:5px;display:flex;flex-wrap:wrap;gap:4px"></div>
+                        </div>
+                    </div>
+                </div>
+                <div style="display:flex;align-items:center;gap:10px;border-top:1px solid #f1f5f9;padding-top:9px;">
+                    <span id="waIndStatus" style="font-size:0.77rem;color:#64748b;flex:1"></span>
+                    <button onclick="waIndEnviar()" id="btnWaInd"
+                        style="background:linear-gradient(135deg,#075e54,#25D366);color:white;border:none;padding:8px 18px;border-radius:8px;font-size:0.83rem;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:6px">
+                        <i class="fab fa-whatsapp"></i> Enviar
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+  </div>
+</div>
+    <script src="comunicaciones/js/00_nucleo_y_acceso.js"></script>
+    <script src="comunicaciones/js/01_estado.js"></script>
+    <script src="comunicaciones/js/02_destinatarios_y_editor.js"></script>
+    <script src="comunicaciones/js/03_imagenes_y_adjuntos.js"></script>
+    <script src="comunicaciones/js/04_envio_email_e_historial.js"></script>
+    <script src="comunicaciones/js/05_config_whatsapp.js"></script>
+    <script src="comunicaciones/js/06_envio_whatsapp.js"></script>
+    <script src="comunicaciones/js/07_whatsapp_individual.js"></script>
+    <script src="comunicaciones/js/08_inicializacion.js"></script>
+<script>if('serviceWorker' in navigator){navigator.serviceWorker.register('/sw.js').catch(function(){});}</script>
+<script src="google-api-helper.js"></script>
+<script src="google-ui.js"></script>
+</body>
+</html>

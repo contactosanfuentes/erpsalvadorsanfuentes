@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<script src="auth-guard.js"></script>
+    <script src="permisos.js"></script>
+<script>
+(async function(){
+  // Esperar _sbClient + que Permisos se inicialice (auth-guard lo hace)
+  await new Promise(r=>{
+    const t=setInterval(()=>{if(window.Permisos&&Permisos.listo()){clearInterval(t);r();}},80);
+    setTimeout(()=>{clearInterval(t);r();},10000);
+  });
+  // Fallback: init manual si auth-guard no lo hizo
+  if(window.Permisos&&!Permisos.listo()&&window._sbClient){
+    await Permisos.init(window._sbClient);
+  }
+  if(window.Permisos&&Permisos.listo()&&!Permisos.puede('certificados')){
+    document.body.innerHTML='<div style="display:flex;align-items:center;justify-content:center;height:100vh;flex-direction:column;gap:14px;font-family:Arial;background:#f8fafc;"><div style="font-size:48px;">🔒</div><h2 style="color:#001558;margin:0;">Acceso restringido</h2><p style="color:#64748b;margin:0;">No tienes permiso para este módulo.</p></div>';
+  }
+})();
+</script>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Generador de Certificados — ERP Scout SSF</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<link href="https://fonts.googleapis.com/css2?family=Nunito+Sans:wght@300;400;600;700;800;900&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="drive-helper.js"></script>
+<script src="certificados.js"></script>
+<link rel="stylesheet" href="certificados/css/certificados_a.css">
+    <link rel="stylesheet" href="mobile.css">
+
+<link rel="stylesheet" href="certificados/css/certificados_b.css">
+</head>
+<body class="cert-dark">
+<div class="container">
+    <h1><i class="fas fa-certificate"></i> Generador de Certificados</h1>
+    <p class="sub">Busca en la base de datos o escribe el nombre manualmente. Genera, descarga, sube a Drive o envía por correo.</p>
+
+    <div class="card">
+        <div class="grid">
+            <!-- Buscador inteligente -->
+            <div class="full search-wrap">
+                <label><i class="fas fa-search"></i> Buscar persona (joven o adulto)</label>
+                <input type="text" id="buscar" placeholder="Escribe un nombre, apellido o RUN..." autocomplete="off" oninput="buscarPersona()">
+                <div class="search-results" id="resultados"></div>
+            </div>
+
+            <div>
+                <label>Nombre completo</label>
+                <input type="text" id="nombre" placeholder="Nombre del participante">
+            </div>
+            <div>
+                <label>Unidad / Rama</label>
+                <select id="unidad" onchange="actualizarEtapas()">
+                    <option value="Bandada">Bandada — Pilmaikén Kalfü</option>
+                    <option value="Manada">Manada — Kupëlwe Kadü</option>
+                    <option value="Compania">Compañía — Antuwenüy</option>
+                    <option value="Tropa" selected>Tropa — Manke Pillán</option>
+                    <option value="Avanzada">Avanzada</option>
+                    <option value="Clan">Clan — Kutral Raigüen</option>
+                    <option value="Adulto">Adulto Voluntario</option>
+                </select>
+            </div>
+            <div>
+                <label>Tipo de certificado</label>
+                <select id="tipo" onchange="actualizarMotivo()">
+                    <option value="DE PROGRESIÓN">Adelanto / Progresión</option>
+                    <option value="DE ESPECIALIDAD">Especialidad</option>
+                    <option value="DE COMPETENCIA">Competencia</option>
+                    <option value="DE PARTICIPACIÓN">Participación en Evento</option>
+                    <option value="DE FORMACIÓN">Formación de Adulto</option>
+                    <option value="DE RECONOCIMIENTO">Reconocimiento</option>
+                </select>
+            </div>
+            <div>
+                <label>Etapa / Nivel</label>
+                <select id="etapa" onchange="actualizarMotivo()">
+                    <option value="">— selecciona —</option>
+                </select>
+            </div>
+            <div class="full">
+                <label>Motivo principal</label>
+                <input type="text" id="motivo" placeholder="Se autocompleta o escribe manualmente">
+            </div>
+            <div>
+                <label>Detalle adicional (opcional)</label>
+                <input type="text" id="detalle" value="Demostrando sus valores Guía-Scout">
+            </div>
+            <div>
+                <label>Correo para enviar (opcional)</label>
+                <input type="email" id="email" placeholder="email@ejemplo.cl">
+            </div>
+            <div style="display:flex;align-items:center;gap:8px;padding-top:20px;">
+                <input type="checkbox" id="conQR" checked style="width:18px;height:18px;accent-color:#3b82f6;">
+                <label for="conQR" style="margin:0;text-transform:none;font-size:0.85rem;color:#e2e8f0;cursor:pointer;">Incluir QR de verificación en el certificado</label>
+            </div>
+        </div>
+
+        <div class="btns">
+            <button class="btn btn-preview" onclick="previsualizar()"><i class="fas fa-eye"></i> Vista Previa</button>
+            <button class="btn btn-download" onclick="descargar()"><i class="fas fa-download"></i> Descargar PDF</button>
+            <button class="btn btn-drive" onclick="subirDrive()"><i class="fab fa-google-drive"></i> Subir a Drive</button>
+            <button class="btn btn-email" onclick="enviarCorreo()"><i class="fas fa-paper-plane"></i> Drive + Correo</button>
+            <button class="btn" style="background:#64748b;color:white;" onclick="imprimirCertificado()"><i class="fas fa-print"></i> Imprimir</button>
+        </div>
+    </div>
+
+    <div class="loading" id="loading"><i class="fas fa-spinner"></i><p style="margin-top:8px;">Generando certificado...</p></div>
+    <div class="preview" id="preview"></div>
+</div>
+
+    <script src="certificados/js/00_impresion_y_nucleo.js"></script>
+    <script src="certificados/js/01_busqueda_personas.js"></script>
+    <script src="certificados/js/02_formulario_certificado.js"></script>
+    <script src="certificados/js/03_generacion_y_envio.js"></script>
+<script src="google-api-helper.js"></script>
+<script src="google-ui.js"></script>
+</body>
+</html>

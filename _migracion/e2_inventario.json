@@ -1,0 +1,25 @@
+{
+ "destino": "/home/claude/plataforma_v2",
+ "carpeta": "inventario",
+ "pagina": "inventario_grupo.html",
+ "tagViejo": "<script src=\"inventario/js/00_app.js\"></script>",
+ "grupos": [
+  {
+   "desde": 0,
+   "nombre": "nucleo_y_acceso"
+  },
+  {
+   "desde": 6,
+   "nombre": "carga_y_render"
+  },
+  {
+   "desde": 13,
+   "nombre": "distribucion"
+  },
+  {
+   "desde": 23,
+   "nombre": "items_y_prestamos"
+  }
+ ],
+ "wrapDesde": 28
+}

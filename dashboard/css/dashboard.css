@@ -1,0 +1,149 @@
+        :root {
+            --azul-profundo: #0E2586;
+            --azul-secundario: #3B82F6;
+            --gris-fondo: #f8fafc;
+        }
+
+        body { 
+            background: var(--gris-fondo); 
+            font-family: 'Poppins', sans-serif; 
+            margin: 0; 
+            padding: 20px; 
+            overflow-x: hidden;
+            color: #1E293B;
+        }
+
+        /* ----- Tarjetas Modernas ----- */
+        .stat-card { 
+            background: white; 
+            border-radius: 16px; 
+            padding: 24px; 
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); 
+            border: 1px solid #e2e8f0; 
+            transition: all 0.3s ease; 
+            position: relative;
+            overflow: hidden;
+        }
+        .stat-card:hover { 
+            transform: translateY(-4px); 
+            box-shadow: 0 12px 20px -5px rgba(0,0,0,0.08); 
+            border-color: #cbd5e0;
+        }
+        
+        .stat-icon-bg {
+            position: absolute;
+            right: -10px;
+            bottom: -10px;
+            font-size: 5rem;
+            opacity: 0.04;
+            transform: rotate(-10deg);
+            pointer-events: none;
+            transition: 0.3s;
+        }
+        .stat-card:hover .stat-icon-bg { transform: scale(1.1) rotate(0deg); opacity: 0.08; }
+
+        /* ----- Pestañas ----- */
+        .tab-button { 
+            padding: 12px 24px; 
+            border-radius: 12px; 
+            font-weight: 700; 
+            cursor: pointer; 
+            transition: all 0.2s; 
+            background: transparent; 
+            border: 2px solid transparent; 
+            margin-right: 0.5rem; 
+            color: #64748B;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+        .tab-button:hover { background: white; border-color: #e2e8f0; color: var(--azul-profundo); }
+        .tab-button.active { 
+            background: white; 
+            color: var(--azul-profundo); 
+            border-color: var(--azul-profundo); 
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+        }
+        
+        .tab-content { animation: fadeIn 0.4s ease; }
+        .tab-content.hidden { display: none; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* ----- Gráficos y Utilidades ----- */
+        .chart-wrapper { position: relative; width: 100%; height: 320px; min-height: 320px; margin: 0 auto; }
+        .small-chart-wrapper { position: relative; width: 100%; height: 260px; min-height: 260px; margin: 0 auto; }
+        .chart-wrapper canvas, .small-chart-wrapper canvas { display: block; width: 100% !important; height: 100% !important; }
+        
+        .progress-circle { width: 80px; height: 80px; border-radius: 50%; background: conic-gradient(#10b981 0deg, #e2e8f0 0deg); display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 1.2rem; color: #1E293B; box-shadow: inset 0 2px 4px rgba(0,0,0,0.1); }
+        .person-avatar { width: 40px; height: 40px; border-radius: 50%; background: var(--azul-profundo); color: white; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 1rem; flex-shrink: 0; }
+        
+        .custom-scroll::-webkit-scrollbar { width: 6px; }
+        .custom-scroll::-webkit-scrollbar-track { background: transparent; border-radius: 10px; }
+        .custom-scroll::-webkit-scrollbar-thumb { background: #cbd5e0; border-radius: 10px; }
+        .custom-scroll::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+        
+        .error-message { color: #b91c1c; padding: 1.5rem; text-align: center; background: #fef2f2; border-radius: 12px; margin: 1rem 0; border: 1px solid #fca5a5; font-weight: 600; display: flex; flex-direction: column; align-items: center; gap: 10px;}
+
+        /* ========== MODO IMPRESIÓN ESTRUCTURADA ========== */
+        @media print {
+            /* Configuraciones globales para forzar colores e impresión en A4 */
+            * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+            @page { margin: 15mm; size: A4; }
+            body { background: white !important; padding: 0; margin: 0; font-size: 11pt; color: black; }
+            
+            /* Ocultar TODO el panel interactivo */
+            #app-dashboard { display: none !important; }
+            
+            /* Mostrar el bloque estructural del informe */
+            #print-report { display: block !important; }
+
+            /* Clases utilitarias de impresión */
+            .avoid-break { page-break-inside: avoid; break-inside: avoid; }
+            .page-break { page-break-before: always; }
+            
+            table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+            th, td { border: 1px solid #e2e8f0; padding: 8px 12px; text-align: left; }
+            th { background-color: #f8fafc; font-weight: 600; color: #0E2586; text-transform: uppercase; font-size: 10pt; }
+            td { font-size: 10.5pt; }
+        }
+    
+/* ════ HOME MÓVIL ESTILO APP ════ */
+#mobileHome { display: none; }
+@media (max-width: 768px) {
+  /* Ocultar dashboard escritorio, mostrar home app */
+  #app-dashboard, .print-only, #print-report { display: none !important; }
+  #mobileHome { display: block; padding: 16px 14px 80px; background: #eef2f9; min-height: 100vh; font-family: 'Poppins', sans-serif; }
+
+  .mh-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+  .mh-saludo p { margin: 0; font-size: 0.78rem; color: #64748b; font-weight: 500; }
+  .mh-saludo h2 { margin: 0; font-size: 1.25rem; color: #0E2586; font-weight: 800; }
+  .mh-avatar { width: 44px; height: 44px; border-radius: 50%; background: linear-gradient(135deg,#0E2586,#3b5bdb); color: white; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 1rem; box-shadow: 0 4px 12px rgba(14,37,134,.3); }
+
+  .mh-hero { background: linear-gradient(135deg, #001558 0%, #0E2586 60%, #1a3a9e 100%); border-radius: 22px; padding: 20px 18px; color: white; margin-bottom: 14px; box-shadow: 0 10px 28px rgba(14,37,134,.32); position: relative; overflow: hidden; }
+  .mh-hero::after { content:''; position:absolute; right:-28px; top:-28px; width:120px; height:120px; border-radius:50%; background:rgba(255,255,255,.07); }
+  .mh-hero .lbl { font-size: 0.68rem; font-weight: 700; letter-spacing: 1.2px; opacity: .75; text-transform: uppercase; }
+  .mh-hero .big { font-size: 2.6rem; font-weight: 900; line-height: 1.1; margin: 2px 0 4px; }
+  .mh-hero .sub { font-size: 0.78rem; opacity: .85; }
+
+  .mh-stats { display: grid; grid-template-columns: repeat(3,1fr) !important; gap: 9px; margin-bottom: 16px; }
+  .mh-stat { background: white; border-radius: 16px; padding: 13px 8px; text-align: center; box-shadow: 0 3px 12px rgba(15,23,42,.06); }
+  .mh-stat .ic { font-size: 1.25rem; margin-bottom: 4px; }
+  .mh-stat .num { font-size: 1.15rem; font-weight: 800; color: #0E2586; }
+  .mh-stat .lb { font-size: 0.64rem; color: #64748b; font-weight: 600; }
+
+  .mh-sect-title { font-size: 0.92rem; font-weight: 800; color: #1e293b; margin: 4px 0 10px; }
+
+  .mh-acciones { display: grid; grid-template-columns: repeat(4,1fr) !important; gap: 9px; margin-bottom: 18px; }
+  .mh-acc { border: none; border-radius: 16px; padding: 14px 4px 11px; display: flex; flex-direction: column; align-items: center; gap: 6px; font-size: 0.66rem; font-weight: 700; font-family: inherit; cursor: pointer; box-shadow: 0 3px 10px rgba(15,23,42,.06); -webkit-tap-highlight-color: transparent; }
+  .mh-acc:active { transform: scale(.93); }
+  .mh-acc i { font-size: 1.25rem; }
+  .mh-acc.a1 { background:#e8f5ee; color:#15803d; } .mh-acc.a1 i{color:#16a34a}
+  .mh-acc.a2 { background:#e7efff; color:#1d4ed8; } .mh-acc.a2 i{color:#2563eb}
+  .mh-acc.a3 { background:#fff4d6; color:#a16207; } .mh-acc.a3 i{color:#d97706}
+  .mh-acc.a4 { background:#f1e8ff; color:#7c3aed; } .mh-acc.a4 i{color:#8b5cf6}
+
+  .mh-card { background: white; border-radius: 18px; padding: 14px; margin-bottom: 14px; box-shadow: 0 3px 14px rgba(15,23,42,.06); }
+  .mh-card h4 { margin: 0 0 10px; font-size: 0.88rem; font-weight: 800; color: #1e293b; display:flex; align-items:center; gap:7px; }
+  .mh-card .lista > div, .mh-card .lista > a { border-radius: 12px !important; }
+  .mh-empty { font-size:.8rem; color:#94a3b8; text-align:center; padding:14px 0; font-style:italic; }
+}
