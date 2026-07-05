@@ -272,14 +272,27 @@
         }
 
         // Especialidades
-        const esps = prog?.especialidades || [];
-        if (Array.isArray(esps) && esps.length) {
-            especialidadesHTML = `<div class="sec"><div class="sec-titulo"><i class="fas fa-star"></i> Especialidades obtenidas (${esps.length})</div>
-                <div>${esps.map(e => {
-                    const nombre = typeof e === 'string' ? e : (e.nombre || 'Especialidad');
-                    const fecha = (typeof e === 'object' && e.fecha) ? ` <small style="opacity:0.7">(${new Date(e.fecha).toLocaleDateString('es-CL')})</small>` : '';
-                    return `<span class="esp-tag"><i class="fas fa-medal"></i>${nombre}${fecha}</span>`;
-                }).join('')}</div></div>`;
+        const esps = Array.isArray(prog?.especialidades) ? prog.especialidades : [];
+        const esRamaMenor = ['Bandada','Manada','Tropa','Compañía'].includes(rama);
+        if (esRamaMenor || esps.length) {
+            const PILARES = [['explorar','Explorar','fa-binoculars'],['conocer','Conocer','fa-book-open'],['hacer','Hacer','fa-tools'],['servir','Servir','fa-hands-helping']];
+            const filasEsp = esps.map(e => {
+                if (typeof e === 'string') return `<div class="ev-row"><div><div class="ev-nom"><i class="fas fa-medal" style="color:#f59e0b"></i> ${e}</div></div><div class="ev-est ev-pres"><i class="fas fa-check"></i></div></div>`;
+                const p = e.pilares || {};
+                const certificada = p.explorar && p.conocer && p.hacer && p.servir;
+                const pilaresHTML = PILARES.map(([k, n, ic]) =>
+                    `<span style="display:inline-flex;align-items:center;gap:3px;font-size:0.68rem;padding:2px 7px;border-radius:12px;${p[k] ? 'background:#dcfce7;color:#166534;font-weight:700' : 'background:#f1f5f9;color:#94a3b8'}"><i class="fas ${p[k] ? 'fa-check-circle' : ic}"></i>${n}</span>`).join(' ');
+                return `<div class="ev-row" style="align-items:flex-start">
+                    <div style="flex:1">
+                        <div class="ev-nom"><i class="fas ${e.icono || 'fa-medal'}" style="color:${certificada ? '#10b981' : '#f59e0b'}"></i> ${e.nombre || 'Especialidad'}${e.categoria ? ` <small style="opacity:0.6">· ${e.categoria}</small>` : ''}</div>
+                        <div style="display:flex;gap:4px;flex-wrap:wrap;margin-top:5px">${pilaresHTML}</div>
+                    </div>
+                    ${certificada ? '<span class="ev-est ev-pres" title="Certificada: 4 pilares completos"><i class="fas fa-award"></i></span>' : '<span class="ev-est ev-pend" title="En desarrollo"><i class="fas fa-hourglass-half"></i></span>'}
+                </div>`;
+            }).join('');
+            especialidadesHTML = `<div class="sec"><div class="sec-titulo"><i class="fas fa-medal"></i> Central de Especialidades — 4 Pilares${esps.length ? ` (${esps.length})` : ''}</div>${
+                esps.length ? filasEsp
+                : '<div class="esm"><i class="fas fa-medal"></i>Sin especialidades aperturadas aún. Cada especialidad se valida en la práctica a través de 4 pilares: <strong>Explorar, Conocer, Hacer y Servir</strong> — al completarlos, se certifica.</div>'}</div>`;
         }
 
         if (!progresionHTML) progresionHTML = '<div class="esm"><i class="fas fa-chart-line"></i>Sin registros de progresión aún. El consejo de unidad los irá completando durante el año.</div>';
