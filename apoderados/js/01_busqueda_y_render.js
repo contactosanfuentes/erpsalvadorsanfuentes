@@ -168,17 +168,63 @@
             </div>`;
         }
 
-        // Camino simbólico: promesa, proyecto personal, proyectos colectivos
+        // ── Estrategia de progresión según la rama (metodología AGSCh) ──
+        // Cada rama progresa distinto: Bandada/Manada con el Semillero (objetivos
+        // por área), Tropa/Compañía con metas validadas en consejos, Avanzada con
+        // el Sonar y proyectos, y el Clan con competencias y proyectos del camino.
         const camino = prog?.camino || {};
-        const chips = [];
-        if (camino.prom !== undefined) chips.push(`<div class="ib ${camino.prom ? 'ok' : ''}"><div class="l">Promesa</div><div class="v">${camino.prom ? '✓ Realizada' : 'En preparación'}</div></div>`);
-        if (typeof camino.colectivos === 'number') chips.push(`<div class="ib"><div class="l">Proyectos colectivos</div><div class="v">${camino.colectivos}</div></div>`);
-        if (camino.proyectoPersonal && String(camino.proyectoPersonal).trim()) chips.push(`<div class="ib ok"><div class="l">Proyecto personal</div><div class="v">✓ Registrado</div></div>`);
+        const nombreArea = (k) => (AREAS.find(a => a.k === String(k||'').toLowerCase())?.n) || k || '';
 
-        // ── Competencias (Clan / Caminantes): lo central de su progresión ──
+        // Helper: objetivos del Semillero por área (Bandada/Manada/Tropa/Compañía)
+        function htmlObjetivos(titulo, icono, vacioMsg) {
+            const obj = prog?.semillero?.objetivos || {};
+            const filas = [];
+            for (const a of AREAS) {
+                for (const o of (Array.isArray(obj[a.k]) ? obj[a.k] : [])) {
+                    const texto = (typeof o === 'string') ? o : (o.texto || o.titulo || o.nombre || o.meta || 'Objetivo');
+                    const ok = (typeof o === 'object') && (o.estado === 'aprobado' || o.logrado === true);
+                    const enConsejo = (typeof o === 'object') && (o.estado === 'validado' || o.estado === 'consejo');
+                    const est = ok ? '<span class="ev-est ev-pres" title="Aprobado en Consejo de Unidad"><i class="fas fa-check"></i></span>'
+                              : enConsejo ? '<span class="ev-est ev-pend" title="Validado en Consejo de Patrulla"><i class="fas fa-users"></i></span>'
+                              : '<span class="ev-est ev-pend" title="Propuesto"><i class="fas fa-flag"></i></span>';
+                    filas.push(`<div class="ev-row"><div><div class="ev-nom">${texto}</div><div class="ev-fch"><i class="fas ${a.ic}" style="color:${a.c}"></i> ${a.n}</div></div>${est}</div>`);
+                }
+            }
+            const cuerpo = filas.length ? filas.join('')
+                : `<div class="esm"><i class="fas fa-seedling"></i>${vacioMsg}</div>`;
+            return `<div class="sec"><div class="sec-titulo"><i class="fas ${icono}"></i> ${titulo}${filas.length ? ` (${filas.length})` : ''}</div>${cuerpo}</div>`;
+        }
+
+        if (rama === 'Bandada') {
+            progresionHTML += htmlObjetivos('Semillero — objetivos por acción directa', 'fa-seedling',
+                'La bandada aún no registra objetivos de este ciclo. Se construyen junto a las guiadoras en cada área de desarrollo.');
+        } else if (rama === 'Manada') {
+            progresionHTML += htmlObjetivos('Semillero — objetivos de la selva', 'fa-paw',
+                'La manada aún no registra objetivos de este ciclo. La huella de maestría avanza con la etapa mostrada arriba.');
+        } else if (rama === 'Tropa' || rama === 'Compañía') {
+            progresionHTML += htmlObjetivos('Metas de progresión', 'fa-flag',
+                'Sin metas registradas este ciclo. El camino es: el joven propone → se valida en Consejo de Patrulla → se aprueba en Consejo de Unidad.');
+        } else if (rama === 'Avanzada') {
+            // Sonar: autoevaluación 1-7 por área
+            const sonar = prog?.sonar || {};
+            const sonarConDatos = AREAS.filter(a => typeof sonar[a.k] === 'number' && sonar[a.k] > 1);
+            if (sonarConDatos.length) {
+                const barras = AREAS.map(a => {
+                    const v = typeof sonar[a.k] === 'number' ? sonar[a.k] : 1;
+                    return `<div class="prog-bar-area">
+                        <div class="prog-bar-lbl"><span><i class="fas ${a.ic}" style="color:${a.c};margin-right:5px"></i>${a.n}</span><strong style="color:${a.c}">${v}/7</strong></div>
+                        <div class="prog-bar-track"><div class="prog-bar-fill" style="width:${Math.round(v/7*100)}%;background:${a.c}"></div></div>
+                    </div>`;
+                }).join('');
+                progresionHTML += `<div class="sec"><div class="sec-titulo"><i class="fas fa-broadcast-tower"></i> Sonar — autoevaluación por área (1 a 7)</div>${barras}</div>`;
+            } else {
+                progresionHTML += `<div class="sec"><div class="sec-titulo"><i class="fas fa-broadcast-tower"></i> Sonar</div><div class="esm"><i class="fas fa-broadcast-tower"></i>Aún sin Sonar registrado. Es la autoevaluación (1 a 7) con que cada pionero/a traza su punto de partida en las seis áreas.</div></div>`;
+            }
+        }
+
+        // Competencias (Avanzada y Clan)
         const competencias = Array.isArray(prog?.territorios?.competencias_mayores) ? prog.territorios.competencias_mayores : [];
-        if (competencias.length) {
-            const nombreArea = (k) => (AREAS.find(a => a.k === (k||'').toLowerCase())?.n) || k || '';
+        if (rama === 'Avanzada' || rama === 'Clan') {
             const filasComp = competencias.map(c => `
                 <div class="ev-row">
                     <div>
@@ -187,19 +233,26 @@
                     </div>
                     <div class="ev-est ev-pres"><i class="fas fa-bullseye"></i></div>
                 </div>`).join('');
-            progresionHTML += `<div class="sec"><div class="sec-titulo"><i class="fas fa-mountain"></i> Competencias en desarrollo (${competencias.length})</div>${filasComp}</div>`;
+            progresionHTML += `<div class="sec"><div class="sec-titulo"><i class="fas fa-mountain"></i> Desarrollo de competencias${competencias.length ? ` (${competencias.length})` : ''}</div>${
+                competencias.length ? filasComp : '<div class="esm"><i class="fas fa-mountain"></i>Sin competencias registradas aún. Se definen con un tutor o tutora y un proyecto asociado.</div>'}</div>`;
         }
 
-        // ── Proyectos colectivos (Clan) ──
+        // Proyectos (Avanzada: proyectos SMART · Clan: proyectos colectivos)
         const proyCol = Array.isArray(camino.proyectos_colectivos) ? camino.proyectos_colectivos : [];
-        if (proyCol.length) {
+        if ((rama === 'Avanzada' || rama === 'Clan') && proyCol.length) {
             const filasPC = proyCol.map(p => {
                 const nom = typeof p === 'string' ? p : (p.nombre || p.titulo || 'Proyecto');
                 const est = (typeof p === 'object' && (p.estado || p.fecha)) ? `<div class="ev-fch">${p.estado || ''}${p.fecha ? ' · ' + new Date(p.fecha).toLocaleDateString('es-CL') : ''}</div>` : '';
                 return `<div class="ev-row"><div><div class="ev-nom">${nom}</div>${est}</div><div class="ev-est ev-pres"><i class="fas fa-people-group"></i></div></div>`;
             }).join('');
-            progresionHTML += `<div class="sec"><div class="sec-titulo"><i class="fas fa-hands-helping"></i> Proyectos colectivos (${proyCol.length})</div>${filasPC}</div>`;
+            progresionHTML += `<div class="sec"><div class="sec-titulo"><i class="fas fa-hands-helping"></i> ${rama === 'Avanzada' ? 'Proyectos de Avanzada' : 'Proyectos colectivos'} (${proyCol.length})</div>${filasPC}</div>`;
         }
+
+        // Camino simbólico (todas las ramas, con matices)
+        const chips = [];
+        if (rama === 'Clan') chips.push(`<div class="ib ${j.compromiso_caminante ? 'ok' : ''}"><div class="l">Compromiso del Caminante</div><div class="v">${j.compromiso_caminante ? '✓ Realizado' : 'Aún no formalizado'}</div></div>`);
+        if (camino.prom !== undefined) chips.push(`<div class="ib ${camino.prom ? 'ok' : ''}"><div class="l">Promesa</div><div class="v">${camino.prom ? '✓ Realizada' : 'En preparación'}</div></div>`);
+        if (camino.proyectoPersonal && String(camino.proyectoPersonal).trim()) chips.push(`<div class="ib ok"><div class="l">Proyecto personal</div><div class="v">✓ Registrado</div></div>`);
         if (chips.length) {
             progresionHTML += `<div class="sec"><div class="sec-titulo"><i class="fas fa-compass"></i> Camino simbólico</div><div class="info-grid">${chips.join('')}</div></div>`;
         }
