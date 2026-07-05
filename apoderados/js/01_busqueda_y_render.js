@@ -110,7 +110,8 @@
         let pagosHTML = '';
         let totalPagado = 0, totalAnio = 0;
         const anioActual = new Date().getFullYear();
-        const { data: movs } = await db.rpc('portal_pagos', { p_run: j.run || '' });
+        const { data: movs } = await db.rpc('portal_pagos', { p_run: j.run || '', p_nombre: `${j.nombres || ''}|${j.apellidos || ''}` });
+        const huboMatchNombre = (movs || []).some(m => m.via === 'nombre');
 
         if (movs?.length) {
             totalPagado = movs.reduce((sum, m) => sum + (parseFloat(m.monto) || 0), 0);
@@ -172,7 +173,33 @@
         const chips = [];
         if (camino.prom !== undefined) chips.push(`<div class="ib ${camino.prom ? 'ok' : ''}"><div class="l">Promesa</div><div class="v">${camino.prom ? '✓ Realizada' : 'En preparación'}</div></div>`);
         if (typeof camino.colectivos === 'number') chips.push(`<div class="ib"><div class="l">Proyectos colectivos</div><div class="v">${camino.colectivos}</div></div>`);
-        if (camino.proyectoPersonal && String(camino.proyectoPersonal).trim()) chips.push(`<div class="ib full"><div class="l">Proyecto personal</div><div class="v">${String(camino.proyectoPersonal)}</div></div>`);
+        if (camino.proyectoPersonal && String(camino.proyectoPersonal).trim()) chips.push(`<div class="ib ok"><div class="l">Proyecto personal</div><div class="v">✓ Registrado</div></div>`);
+
+        // ── Competencias (Clan / Caminantes): lo central de su progresión ──
+        const competencias = Array.isArray(prog?.territorios?.competencias_mayores) ? prog.territorios.competencias_mayores : [];
+        if (competencias.length) {
+            const nombreArea = (k) => (AREAS.find(a => a.k === (k||'').toLowerCase())?.n) || k || '';
+            const filasComp = competencias.map(c => `
+                <div class="ev-row">
+                    <div>
+                        <div class="ev-nom">${c.nombre || 'Competencia'}</div>
+                        <div class="ev-fch">${nombreArea(c.area)}${c.nivel ? ' · Nivel ' + c.nivel : ''}${c.tutor ? ' · Tutor/a: ' + c.tutor : ''}</div>
+                    </div>
+                    <div class="ev-est ev-pres"><i class="fas fa-bullseye"></i></div>
+                </div>`).join('');
+            progresionHTML += `<div class="sec"><div class="sec-titulo"><i class="fas fa-mountain"></i> Competencias en desarrollo (${competencias.length})</div>${filasComp}</div>`;
+        }
+
+        // ── Proyectos colectivos (Clan) ──
+        const proyCol = Array.isArray(camino.proyectos_colectivos) ? camino.proyectos_colectivos : [];
+        if (proyCol.length) {
+            const filasPC = proyCol.map(p => {
+                const nom = typeof p === 'string' ? p : (p.nombre || p.titulo || 'Proyecto');
+                const est = (typeof p === 'object' && (p.estado || p.fecha)) ? `<div class="ev-fch">${p.estado || ''}${p.fecha ? ' · ' + new Date(p.fecha).toLocaleDateString('es-CL') : ''}</div>` : '';
+                return `<div class="ev-row"><div><div class="ev-nom">${nom}</div>${est}</div><div class="ev-est ev-pres"><i class="fas fa-people-group"></i></div></div>`;
+            }).join('');
+            progresionHTML += `<div class="sec"><div class="sec-titulo"><i class="fas fa-hands-helping"></i> Proyectos colectivos (${proyCol.length})</div>${filasPC}</div>`;
+        }
         if (chips.length) {
             progresionHTML += `<div class="sec"><div class="sec-titulo"><i class="fas fa-compass"></i> Camino simbólico</div><div class="info-grid">${chips.join('')}</div></div>`;
         }
@@ -252,6 +279,27 @@
                         <div class="ib"><div class="l">Religión</div><div class="v">${j.religion || '—'}</div></div>
                         <div class="ib full"><div class="l">Domicilio</div><div class="v">${j.domicilio || '—'}</div></div>
                     </div>
+                </div>
+
+                <div class="sec">
+                    <div class="sec-titulo"><i class="fas fa-user-shield"></i> Apoderados registrados</div>
+                    <div class="info-grid">
+                        <div class="ib full"><div class="l">Titular</div><div class="v">${j.apoderado_titular_nombre || '—'}${j.apoderado_titular_parentesco ? ` (${j.apoderado_titular_parentesco})` : ''}${j.apoderado_titular_telefono ? ` · ${j.apoderado_titular_telefono}` : ''}</div></div>
+                        ${j.apoderado_suplente1_nombre ? `<div class="ib full"><div class="l">Suplente 1</div><div class="v">${j.apoderado_suplente1_nombre}${j.apoderado_suplente1_parentesco ? ` (${j.apoderado_suplente1_parentesco})` : ''}${j.apoderado_suplente1_telefono ? ` · ${j.apoderado_suplente1_telefono}` : ''}</div></div>` : ''}
+                        ${j.apoderado_suplente2_nombre ? `<div class="ib full"><div class="l">Suplente 2</div><div class="v">${j.apoderado_suplente2_nombre}${j.apoderado_suplente2_parentesco ? ` (${j.apoderado_suplente2_parentesco})` : ''}${j.apoderado_suplente2_telefono ? ` · ${j.apoderado_suplente2_telefono}` : ''}</div></div>` : ''}
+                    </div>
+                    <p style="font-size:0.7rem;color:#94a3b8;margin-top:6px"><i class="fas fa-info-circle"></i> Estos son los contactos que usaremos en una emergencia. Si algo cambió, avisa a la directiva.</p>
+                </div>
+
+                <div class="sec">
+                    <div class="sec-titulo"><i class="fas fa-heart-pulse"></i> Salud y previsión</div>
+                    <div class="info-grid">
+                        <div class="ib"><div class="l">Previsión</div><div class="v">${j.prevision_salud || '—'}</div></div>
+                        <div class="ib"><div class="l">Grupo sanguíneo</div><div class="v">${j.grupo_sanguineo || '—'}</div></div>
+                        <div class="ib ${j.tiene_seguro_complementario ? 'ok' : ''}"><div class="l">Seguro complementario</div><div class="v">${j.tiene_seguro_complementario ? '✓ ' + (j.aseguradora || 'Sí') : 'No informado'}</div></div>
+                        ${j.condiciones_explicacion ? `<div class="ib full"><div class="l">Condiciones o necesidades informadas</div><div class="v">${j.condiciones_explicacion}</div></div>` : ''}
+                    </div>
+                    <p style="font-size:0.7rem;color:#94a3b8;margin-top:6px"><i class="fas fa-notes-medical"></i> El detalle completo se gestiona en la pestaña <strong>Ficha Médica</strong>.</p>
                 </div>
 
                 <div class="sec">
@@ -343,6 +391,7 @@
                     </div>
                     ${j.monto_pagado ? `<div class="ib ok full" style="margin-bottom:10px"><div class="l">Monto registrado al inscribirse</div><div class="v">$${parseInt(j.monto_pagado).toLocaleString('es-CL')}</div></div>` : ''}
                     ${pagosHTML}
+                    ${huboMatchNombre ? `<p style="font-size:0.7rem;color:#94a3b8;margin-top:8px"><i class="fas fa-info-circle"></i> Algunos pagos se asociaron por nombre (fueron registrados sin RUN en tesorería). Si ves un movimiento que no corresponde, avísanos para corregirlo.</p>` : ''}
                     ${totalPagado > 0 ? `<div class="ib ok full" style="margin-top:10px;text-align:right"><div class="l">Total pagado en movimientos</div><div class="v" style="font-size:1.1rem">$${totalPagado.toLocaleString('es-CL')}</div></div>` : ''}
                 </div>
             </div>
