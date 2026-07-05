@@ -179,7 +179,14 @@
 
 <!-- FICHA EXTENDIDA -->
 <div class="bg-amber-50 border border-amber-200 rounded-xl p-5 mb-5">
-<label class="flex items-center gap-3 cursor-pointer"><input type="checkbox" id="mp-toggle-ficha" onchange="document.getElementById('mp-ficha-ext').style.display=this.checked?'block':'none'" class="w-5 h-5 accent-amber-600 cursor-pointer"><span class="font-extrabold text-amber-900 uppercase tracking-wide text-sm"><i class="fas fa-clipboard-list mr-1"></i> Activar Ficha Extendida (Caminantes)</span></label>
+<div class="bg-slate-50 border border-slate-200 rounded-xl p-3 mb-3">
+                <label class="flex items-center gap-3 cursor-pointer">
+                    <input type="checkbox" id="mp-toggle-publico" checked class="w-5 h-5 accent-green-600 cursor-pointer" onchange="document.getElementById('mp-vis-desc').textContent=this.checked?'Visible para otros caminantes en la sección Explorar Proyectos.':'Solo visible para ti y para los dirigentes en el ERP.'">
+                    <span class="font-extrabold text-slate-700 text-sm"><i class="fas fa-globe mr-1 text-green-600"></i> Proyecto público</span>
+                </label>
+                <p id="mp-vis-desc" class="text-xs text-slate-500 mt-1 ml-8">Visible para otros caminantes en la sección Explorar Proyectos.</p>
+            </div>
+            <label class="flex items-center gap-3 cursor-pointer"><input type="checkbox" id="mp-toggle-ficha" onchange="document.getElementById('mp-ficha-ext').style.display=this.checked?'block':'none'" class="w-5 h-5 accent-amber-600 cursor-pointer"><span class="font-extrabold text-amber-900 uppercase tracking-wide text-sm"><i class="fas fa-clipboard-list mr-1"></i> Activar Ficha Extendida (Caminantes)</span></label>
 <div id="mp-ficha-ext" style="display:none;" class="mt-5">
 
 <!-- 1. Identificación -->

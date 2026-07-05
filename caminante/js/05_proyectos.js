@@ -7,8 +7,13 @@ const inicio=document.getElementById('mp-inicio').value;
 if(!nombre||!objetivo||!campo||!inicio){toast('Completa nombre, objetivo, campo e inicio.','err');return}
 const editId=document.getElementById('mp-edit-id').value;
 const fichaExt=document.getElementById('mp-toggle-ficha')?.checked||false;
+// Preservar visibilidad previa al editar; default: público
+const prevPublico = editId
+  ? (camino.proyectos_colectivos.find(p=>p.id===Number(editId))?.publico ?? true)
+  : true;
+const esPublico = document.getElementById('mp-toggle-publico')?.checked ?? prevPublico;
 const proy={id:editId?Number(editId):Date.now(),nombre,objetivo,campoAccion:campo,inicio,termino:document.getElementById('mp-termino').value,
-creadorRun:currentJoven.run,participantes:[...mpParticipantes],responsables:{...mpResponsables},fichaExtendida:fichaExt,evidencias:[...mpEvidencias],solicitudes_pendientes:[]};
+creadorRun:currentJoven.run,participantes:[...mpParticipantes],responsables:{...mpResponsables},fichaExtendida:fichaExt,evidencias:[...mpEvidencias],solicitudes_pendientes:[],publico:esPublico};
 
 // Ficha extendida
 if(document.getElementById('mp-toggle-ficha').checked){
@@ -47,6 +52,18 @@ try{const cn=currentJoven.nombres+' '+currentJoven.apellidos;
 for(const pt of(proy.participantes||[])){if(pt.run!==currentJoven.run)await enviarEmailProyecto(pt.run,pt.nombre,proy,'Participante',cn)}
 for(const[cargo,resp]of Object.entries(proy.responsables||{})){if(resp&&resp.run&&resp.run!==currentJoven.run)await enviarEmailProyecto(resp.run,resp.nombre,proy,cargo,cn)}
 }catch(eml){console.warn('Error emails:',eml)}}}
+
+// ══════════ VISIBILIDAD ══════════
+async function toggleVisibilidadProyecto(idx){
+  const p=camino.proyectos_colectivos[idx];
+  if(!p||p.creadorRun!==currentJoven.run){toast('Solo puedes cambiar la visibilidad de tus propios proyectos.','err');return}
+  p.publico = p.publico===false ? true : false;
+  toast('Guardando...','info');
+  if(await guardarCamino()){
+    renderProyectos();
+    toast(p.publico ? '🌐 Proyecto ahora es público — visible para otros caminantes.' : '🔒 Proyecto ahora es privado — solo tú y los dirigentes lo ven.','ok');
+  }
+}
 
 // ══════════ ELIMINAR ══════════
 async function eliminarProyecto(idx){const p=camino.proyectos_colectivos[idx];if(!p||p.creadorRun!==currentJoven.run){toast('Solo puedes eliminar tus proyectos.','err');return}
@@ -123,7 +140,7 @@ return `<div class="proyecto-card-portal" style="border-left:3px solid ${esMio?'
 ${(p.participantes||[]).length?`<p class="text-xs text-gray-500 mb-2"><strong>Participantes:</strong> ${(p.participantes||[]).map(pt=>esc(pt.nombre)).join(', ')}</p>`:''}
 ${Object.keys(p.responsables||{}).length?`<p class="text-xs text-gray-500 mb-2"><strong>Organigrama:</strong> ${Object.entries(p.responsables||{}).map(([c,r])=>c+': '+esc(r.nombre)).join(' | ')}</p>`:''}
 ${(p.solicitudes_pendientes||[]).length?`<div class="bg-amber-50 border border-amber-200 rounded-lg p-3 mb-2"><p class="text-xs font-bold text-amber-800"><i class="fas fa-bell"></i> ${(p.solicitudes_pendientes||[]).length} solicitud(es) — se aprueban en el ERP</p></div>`:''}
-<div class="flex gap-2 mt-3"><button onclick="abrirModalProyecto(${i})" class="bg-indigo-600 hover:bg-indigo-700 text-white border-none rounded-lg px-4 py-2 font-bold text-xs cursor-pointer shadow"><i class="fas fa-pen mr-1"></i> Editar</button><button onclick="eliminarProyecto(${i})" class="bg-red-50 hover:bg-red-500 hover:text-white text-red-600 border border-red-200 rounded-lg px-4 py-2 font-bold text-xs cursor-pointer transition"><i class="fas fa-trash mr-1"></i> Eliminar</button></div>
+<div class="flex gap-2 mt-3"><button onclick="abrirModalProyecto(${i})" class="bg-indigo-600 hover:bg-indigo-700 text-white border-none rounded-lg px-4 py-2 font-bold text-xs cursor-pointer shadow"><i class="fas fa-pen mr-1"></i> Editar</button><button onclick="toggleVisibilidadProyecto(${i})" class="border rounded-lg px-4 py-2 font-bold text-xs cursor-pointer transition ${p.publico===false ? 'bg-gray-100 text-gray-600 border-gray-300' : 'bg-green-50 text-green-700 border-green-300'}" title="${p.publico===false ? 'Proyecto privado — solo tú y los dirigentes lo ven. Clic para hacerlo público.' : 'Proyecto público — visible para otros caminantes. Clic para hacerlo privado.'}"><i class="fas ${p.publico===false ? 'fa-lock' : 'fa-globe'} mr-1"></i> ${p.publico===false ? 'Privado' : 'Público'}</button><button onclick="eliminarProyecto(${i})" class="bg-red-50 hover:bg-red-500 hover:text-white text-red-600 border border-red-200 rounded-lg px-4 py-2 font-bold text-xs cursor-pointer transition"><i class="fas fa-trash mr-1"></i> Eliminar</button></div>
 `:`
 <p class="text-xs text-gray-500 mb-2"><strong>Objetivo:</strong> ${esc(p.objetivo||'')}</p>
 <p class="text-xs text-gray-500 mb-2"><strong>Campo de Acción:</strong> ${esc(p.campoAccion||'')} &nbsp;|&nbsp; <strong>Fechas:</strong> ${p.inicio||'?'} → ${p.termino||'En ejecución'}</p>
@@ -154,7 +171,7 @@ async function cargarProyectosVigentes(){const c=document.getElementById('portal
 try{const{data:jov}=await sb.from('mmbb_registrations').select('id,nombres,apellidos,unidad,foto_url,run').or('unidad.ilike.%avanzada%,unidad.ilike.%clan%,unidad.ilike.%caminante%,unidad.ilike.%pionero%');
 if(!jov||!jov.length){c.innerHTML='<p class="text-center text-gray-400 py-6">No hay proyectos disponibles.</p>';return}
 const{data:progs}=await sb.from('progresion_jovenes').select('joven_id,camino').in('joven_id',jov.map(j=>j.id));
-const proyectos=[];const seen=new Set();(progs||[]).forEach(p=>{const j=jov.find(x=>x.id===p.joven_id);(p.camino?.proyectos_colectivos||[]).forEach(proy=>{if(proy.estado==='Finalizado'||seen.has(proy.id))return;seen.add(proy.id);const u=(j?.unidad||'').toLowerCase();
+const proyectos=[];const seen=new Set();(progs||[]).forEach(p=>{const j=jov.find(x=>x.id===p.joven_id);(p.camino?.proyectos_colectivos||[]).forEach(proy=>{if(proy.estado==='Finalizado'||seen.has(proy.id))return;if(proy.publico===false){const myRun=currentJoven.run.toLowerCase();const esMio=(proy.creadorRun||'').toLowerCase()===myRun;const esInvolucrado=(proy.participantes||[]).some(pt=>pt?.run?.toLowerCase()===myRun)||(proy.responsables&&Object.values(proy.responsables).some(r=>r?.run?.toLowerCase()===myRun));if(!esMio&&!esInvolucrado)return;}seen.add(proy.id);const u=(j?.unidad||'').toLowerCase();
 proyectos.push({...proy,rama:(u.includes('avanzada')||u.includes('pionero'))?'Avanzada':'Clan',creadorNombre:j?`${j.nombres} ${j.apellidos}`:'',creadorFoto:j?.foto_url,creadorId:j?.id})})});
 if(!proyectos.length){c.innerHTML='<p class="text-center text-gray-400 py-6"><i class="fas fa-inbox text-2xl block mb-2 opacity-30"></i>No hay proyectos vigentes.</p>';return}
 c.innerHTML=proyectos.map(p=>renderTarjetaVigentePV(p)).join('')}catch(e){c.innerHTML='<p class="text-red-500 text-center text-sm">Error: '+e.message+'</p>'}}

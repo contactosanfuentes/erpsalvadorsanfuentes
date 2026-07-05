@@ -4,6 +4,9 @@ document.getElementById('mp-edit-id').value='';document.getElementById('mp-nombr
 document.getElementById('mp-campo').value='Servicio';document.getElementById('mp-campo-otro').style.display='none';document.getElementById('mp-campo-otro').value='';
 document.getElementById('mp-inicio').value='';document.getElementById('mp-termino').value='';
 document.getElementById('mp-toggle-ficha').checked=false;document.getElementById('mp-ficha-ext').style.display='none';
+// Visibilidad: default público para proyectos nuevos
+const togglePub=document.getElementById('mp-toggle-publico');
+if(togglePub)togglePub.checked=true;
 document.getElementById('mp-justificacion').value='';document.getElementById('mp-beneficiarios').value='';document.getElementById('mp-lugar').value='';
 document.getElementById('mp-arbol-central').value='';document.getElementById('mp-crear-evento').checked=false;
 document.getElementById('mp-title').textContent='Nuevo Proyecto';
@@ -26,6 +29,9 @@ document.getElementById('mp-campo').value=campoVal;if(campoVal==='Otros'){docume
 document.getElementById('mp-inicio').value=p.inicio||'';document.getElementById('mp-termino').value=p.termino||'';
 document.getElementById('mp-title').textContent='Editar Proyecto';
 mpParticipantes=[...(p.participantes||[])];mpResponsables={...(p.responsables||{})};mpEvidencias=[...(p.evidencias||[])];
+// Restaurar visibilidad guardada
+const togglePubEdit=document.getElementById('mp-toggle-publico');
+if(togglePubEdit) togglePubEdit.checked = p.publico !== false;
 renderMpParticipantes();renderMpEvidencias();renderMpResponsables();
 if(p.justificacion||p.beneficiarios||p.lugar||p.objetivosEspecificos||p.planAccion||p.presupuestoEstimado||p.indicadores||p.arbolProblema){
 document.getElementById('mp-toggle-ficha').checked=true;document.getElementById('mp-ficha-ext').style.display='block';
