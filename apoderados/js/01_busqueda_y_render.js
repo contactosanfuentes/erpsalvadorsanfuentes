@@ -39,6 +39,12 @@
         document.querySelectorAll('.tab-int').forEach(tab => {
             tab.onclick = () => cambiarTab(tab);
         });
+
+        // Cargar autorizaciones y ficha médica de cada participante (asíncrono, no bloquea)
+        for (const j of jovenes) {
+            window.Autorizaciones?.cargar(j);
+            window.FichaMedica?.cargar(j);
+        }
     };
 
     function cambiarTab(tab) {
@@ -204,6 +210,8 @@
                 <button class="tab-int" data-tab="tab-prog-${j.id}"><i class="fas fa-chart-line"></i>Progresión</button>
                 <button class="tab-int" data-tab="tab-eventos-${j.id}"><i class="fas fa-calendar-check"></i>Eventos</button>
                 <button class="tab-int" data-tab="tab-pagos-${j.id}"><i class="fas fa-receipt"></i>Pagos</button>
+                <button class="tab-int" data-tab="tab-aut-${j.id}"><i class="fas fa-file-signature"></i>Autorizaciones</button>
+                <button class="tab-int" data-tab="tab-fm-${j.id}"><i class="fas fa-notes-medical"></i>Ficha Médica</button>
             </div>
 
             <!-- TAB: GENERAL -->
@@ -270,6 +278,22 @@
                     ${j.monto_pagado ? `<div class="ib ok full" style="margin-bottom:10px"><div class="l">Monto registrado al inscribirse</div><div class="v">$${parseInt(j.monto_pagado).toLocaleString('es-CL')}</div></div>` : ''}
                     ${pagosHTML}
                     ${totalPagado > 0 ? `<div class="ib ok full" style="margin-top:10px;text-align:right"><div class="l">Total pagado en movimientos</div><div class="v" style="font-size:1.1rem">$${totalPagado.toLocaleString('es-CL')}</div></div>` : ''}
+                </div>
+            </div>
+
+            <!-- TAB: AUTORIZACIONES -->
+            <div class="tab-content" id="tab-aut-${j.id}">
+                <div class="sec">
+                    <div class="sec-titulo"><i class="fas fa-file-signature"></i> Autorizaciones de participación</div>
+                    <div id="aut-cont-${j.id}"><div class="esm"><i class="fas fa-circle-notch fa-spin"></i>Cargando actividades...</div></div>
+                </div>
+            </div>
+
+            <!-- TAB: FICHA MÉDICA -->
+            <div class="tab-content" id="tab-fm-${j.id}">
+                <div class="sec">
+                    <div class="sec-titulo"><i class="fas fa-notes-medical"></i> Ficha Médica y Necesidades Emocionales</div>
+                    <div id="fm-cont-${j.id}"><div class="esm"><i class="fas fa-circle-notch fa-spin"></i>Cargando...</div></div>
                 </div>
             </div>
 

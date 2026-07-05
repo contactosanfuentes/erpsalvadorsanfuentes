@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Control de Autorizaciones — ERP Scout</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="auth-guard.js"></script>
+    <style>
+        :root { --azul:#0E2586; --gris:#e2e8f0; }
+        * { box-sizing:border-box; margin:0; font-family:'Segoe UI',system-ui,sans-serif; }
+        body { background:#f1f5f9; color:#1e293b; }
+        .header { background:var(--azul); color:white; padding:18px 26px; }
+        .header h1 { font-size:1.15rem; } .header p { font-size:0.78rem; opacity:0.8; }
+        .wrap { max-width:1050px; margin:22px auto; padding:0 16px; }
+        .card { background:white; border-radius:12px; padding:18px 20px; margin-bottom:16px; box-shadow:0 1px 4px rgba(15,23,42,0.07); }
+        select { width:100%; padding:10px; border:1px solid #cbd5e1; border-radius:8px; font-size:0.9rem; }
+        .stats { display:grid; grid-template-columns:repeat(4,1fr); gap:10px; margin:14px 0; }
+        .stat { background:#f8fafc; border:1px solid var(--gris); border-radius:10px; padding:10px; text-align:center; }
+        .stat .n { font-size:1.4rem; font-weight:800; color:var(--azul); } .stat .l { font-size:0.7rem; color:#64748b; }
+        h3.unidad { margin:18px 0 8px; font-size:0.85rem; color:var(--azul); border-bottom:2px solid var(--gris); padding-bottom:4px; }
+        table { width:100%; border-collapse:collapse; font-size:0.8rem; }
+        th { text-align:left; padding:7px 8px; background:#f8fafc; color:#64748b; font-size:0.7rem; text-transform:uppercase; }
+        td { padding:7px 8px; border-top:1px solid #f1f5f9; }
+        .b { display:inline-block; padding:3px 9px; border-radius:20px; font-size:0.7rem; font-weight:700; }
+        .b-ok { background:#dcfce7; color:#166534; } .b-no { background:#fef2f2; color:#b91c1c; }
+        .b-warn { background:#fffbeb; color:#92400e; }
+        .btn-pdf { background:none; border:1px solid #cbd5e1; border-radius:6px; padding:3px 8px; font-size:0.7rem; cursor:pointer; color:#334155; }
+        .btn-pdf:hover { background:#f8fafc; }
+        .vacio { text-align:center; padding:26px; color:#94a3b8; font-size:0.85rem; }
+    </style>
+</head>
+<body>
+<div class="header">
+    <h1><i class="fas fa-file-signature"></i> Control de Autorizaciones y Fichas Médicas</h1>
+    <p>Grupo Guías y Scouts Salvador Sanfuentes · Vista para dirigentes</p>
+</div>
+<div class="wrap">
+    <div class="card">
+        <label style="font-weight:700;font-size:0.82rem;display:block;margin-bottom:6px"><i class="fas fa-calendar"></i> Actividad / evento</label>
+        <select id="sel-evento" onchange="cargarEvento()"><option>Cargando eventos...</option></select>
+        <div class="stats" id="stats" style="display:none">
+            <div class="stat"><div class="n" id="st-firmadas">0</div><div class="l">Autorizaciones firmadas</div></div>
+            <div class="stat"><div class="n" id="st-pendientes">0</div><div class="l">Pendientes</div></div>
+            <div class="stat"><div class="n" id="st-notrat">0</div><div class="l">NO autorizan tratamiento</div></div>
+            <div class="stat"><div class="n" id="st-sinficha">0</div><div class="l">Sin ficha médica</div></div>
+        </div>
+    </div>
+    <div class="card" id="resultado"><div class="vacio"><i class="fas fa-arrow-up"></i> Selecciona un evento para ver el estado por unidad.</div></div>
+</div>
+
+<script>
+    const SUPABASE_URL = 'https://hyixmaxhoxvamoecuars.supabase.co';
+    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imh5aXhtYXhob3h2YW1vZWN1YXJzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI3OTg1NDMsImV4cCI6MjA4ODM3NDU0M30.ZLeJIWdip2f00h4TqkZH7eqMX4wpwphaqkJpAa0N0X4';
+    const db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    const esc = (s) => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+    const ORDEN_RAMAS = ['Bandada','Manada','Tropa','Compañía','Avanzada','Clan'];
+
+    async function init() {
+        const { data: evs, error } = await db.from('eventos')
+            .select('id,nombre,fecha_inicio,fecha_fin,publicado')
+            .order('fecha_inicio', { ascending: false })
+            .limit(40);
+        const sel = document.getElementById('sel-evento');
+        if (error) { sel.innerHTML = '<option>Error cargando eventos</option>'; return; }
+        sel.innerHTML = '<option value="">— Selecciona una actividad —</option>' + (evs || []).map(e => {
+            const f = e.fecha_inicio ? new Date(e.fecha_inicio + 'T12:00:00').toLocaleDateString('es-CL') : 's/f';
+            return `<option value="${e.id}">${esc(e.nombre)} · ${f}${e.publicado ? '' : ' (no publicado)'}</option>`;
+        }).join('');
+    }
+
+    async function cargarEvento() {
+        const evId = document.getElementById('sel-evento').value;
+        const cont = document.getElementById('resultado');
+        if (!evId) { cont.innerHTML = '<div class="vacio">Selecciona un evento.</div>'; return; }
+        cont.innerHTML = '<div class="vacio"><i class="fas fa-circle-notch fa-spin"></i> Cargando estado...</div>';
+
+        const [mmbbRes, autRes, fmRes] = await Promise.all([
+            db.from('mmbb_registrations').select('id,nombres,apellidos,run,unidad,fecha_nacimiento').eq('activo', true).order('unidad').order('apellidos'),
+            db.from('autorizaciones_apoderados').select('id,mmbb_id,tipo,firma_timestamp,autoriza_tratamiento').eq('evento_id', evId),
+            db.from('fichas_medicas').select('id,mmbb_id,created_at').order('created_at', { ascending: false })
+        ]);
+        const mmbb = mmbbRes.data || [];
+        const auts = new Map((autRes.data || []).map(a => [a.mmbb_id, a]));
+        const fichas = new Map();   // última ficha por persona
+        for (const f of (fmRes.data || [])) if (!fichas.has(f.mmbb_id)) fichas.set(f.mmbb_id, f);
+
+        // Estadísticas
+        const firmadas = mmbb.filter(m => auts.has(m.id)).length;
+        const noTrat = [...auts.values()].filter(a => !a.autoriza_tratamiento).length;
+        const sinFicha = mmbb.filter(m => !fichas.has(m.id)).length;
+        document.getElementById('stats').style.display = 'grid';
+        document.getElementById('st-firmadas').textContent = firmadas;
+        document.getElementById('st-pendientes').textContent = mmbb.length - firmadas;
+        document.getElementById('st-notrat').textContent = noTrat;
+        document.getElementById('st-sinficha').textContent = sinFicha;
+
+        // Agrupar por unidad
+        const porUnidad = {};
+        for (const m of mmbb) (porUnidad[m.unidad || 'Sin unidad'] ??= []).push(m);
+        const unidades = Object.keys(porUnidad).sort((a, b) =>
+            (ORDEN_RAMAS.findIndex(r => a.includes(r)) + 99) - (ORDEN_RAMAS.findIndex(r => b.includes(r)) + 99) || a.localeCompare(b));
+
+        cont.innerHTML = unidades.map(u => {
+            const filas = porUnidad[u].map(m => {
+                const a = auts.get(m.id);
+                const f = fichas.get(m.id);
+                const fichaVieja = f && (Date.now() - new Date(f.created_at)) > 1000 * 3600 * 24 * 182;
+                return `<tr>
+                    <td><strong>${esc(m.nombres)} ${esc(m.apellidos)}</strong><br><span style="color:#94a3b8;font-size:0.72rem">${esc(m.run || '—')}</span></td>
+                    <td>${a
+                        ? `<span class="b b-ok"><i class="fas fa-check"></i> ${new Date(a.firma_timestamp).toLocaleDateString('es-CL')}</span> <span style="font-size:0.68rem;color:#64748b">(${a.tipo})</span><br>
+                           ${a.autoriza_tratamiento ? '<span style="font-size:0.7rem;color:#166534">✓ autoriza tratamiento</span>' : '<span class="b b-warn" style="margin-top:3px"><i class="fas fa-exclamation-triangle"></i> NO autoriza tratamiento</span>'}`
+                        : '<span class="b b-no"><i class="fas fa-clock"></i> Pendiente</span>'}</td>
+                    <td>${f
+                        ? `<span class="b ${fichaVieja ? 'b-warn' : 'b-ok'}"><i class="fas fa-notes-medical"></i> ${new Date(f.created_at).toLocaleDateString('es-CL')}</span>${fichaVieja ? '<br><span style="font-size:0.68rem;color:#92400e">+6 meses, actualizar</span>' : ''}`
+                        : '<span class="b b-no">Sin ficha</span>'}</td>
+                    <td style="white-space:nowrap">
+                        ${a ? `<button class="btn-pdf" onclick="Autorizaciones.descargarPDF(${a.id})" title="PDF autorización"><i class="fas fa-file-pdf" style="color:#dc2626"></i> Aut.</button>` : ''}
+                        ${f ? `<button class="btn-pdf" onclick="FichaMedica.descargarPDF(${f.id})" title="PDF ficha médica"><i class="fas fa-file-medical" style="color:#0e7490"></i> Ficha</button>` : ''}
+                    </td>
+                </tr>`;
+            }).join('');
+            const okU = porUnidad[u].filter(m => auts.has(m.id)).length;
+            return `<h3 class="unidad">${esc(u)} <span style="font-weight:400;color:#64748b">· ${okU}/${porUnidad[u].length} autorizados</span></h3>
+                <table><thead><tr><th>Participante</th><th>Autorización</th><th>Ficha médica</th><th>Documentos</th></tr></thead><tbody>${filas}</tbody></table>`;
+        }).join('') || '<div class="vacio">No hay miembros activos registrados.</div>';
+    }
+
+    init();
+</script>
+<script src="apoderados/js/02_autorizaciones.js"></script>
+<script src="apoderados/js/03_ficha_medica.js"></script>
+</body>
+</html>
