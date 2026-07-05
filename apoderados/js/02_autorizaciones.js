@@ -27,20 +27,24 @@
         const cont = document.getElementById(`aut-cont-${j.id}`);
         if (!cont) return;
         try {
-            const [evsRes, autsRes] = await Promise.all([
+            const [evsRes, autsRes, partRes] = await Promise.all([
                 db.from('eventos')
-                  .select('id,nombre,fecha_inicio,fecha_fin,lugar')
+                  .select('id,nombre,fecha_inicio,fecha_fin,lugar,tipo')
                   .eq('publicado', true)
                   .or(`fecha_fin.gte.${hoyISO()},fecha_inicio.gte.${hoyISO()}`)
                   .order('fecha_inicio', { ascending: true })
                   .limit(12),
                 db.from('autorizaciones_apoderados')
                   .select('id,evento_id,tipo,firma_timestamp,autoriza_tratamiento')
+                  .eq('mmbb_id', j.id),
+                db.from('participaciones_eventos')
+                  .select('evento_id,participa,updated_at')
                   .eq('mmbb_id', j.id)
             ]);
             const eventos = evsRes.data || [];
             const auts = autsRes.data || [];
-            _cache[j.id] = { j, eventos, auts };
+            const parts = partRes.data || [];
+            _cache[j.id] = { j, eventos, auts, parts };
 
             if (!eventos.length) {
                 cont.innerHTML = '<div class="esm"><i class="fas fa-calendar-times"></i>No hay actividades próximas publicadas.</div>';
@@ -48,22 +52,73 @@
             }
             cont.innerHTML = eventos.map(ev => {
                 const aut = auts.find(a => a.evento_id === ev.id);
+                const part = parts.find(p => p.evento_id === ev.id);
+                const esInterno = (ev.tipo || 'interno') === 'interno';
                 const rango = ev.fecha_fin && ev.fecha_fin !== ev.fecha_inicio
                     ? `${fmtFecha(ev.fecha_inicio)} al ${fmtFecha(ev.fecha_fin)}` : fmtFecha(ev.fecha_inicio);
-                const estado = aut
-                    ? `<div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px">
-                         <span style="background:#dcfce7;color:#166534;font-size:0.72rem;font-weight:700;padding:4px 10px;border-radius:20px"><i class="fas fa-check-circle"></i> Firmada ${new Date(aut.firma_timestamp).toLocaleDateString('es-CL')}</span>
-                         <button onclick="Autorizaciones.descargarPDF(${aut.id})" style="background:none;border:1px solid #cbd5e1;border-radius:8px;padding:4px 10px;font-size:0.72rem;cursor:pointer;color:#334155"><i class="fas fa-file-pdf" style="color:#dc2626"></i> Descargar PDF</button>
-                       </div>`
-                    : `<button onclick="Autorizaciones.abrir(${j.id}, ${ev.id})" style="background:var(--azul-profundo,#0E2586);color:white;border:none;border-radius:8px;padding:8px 14px;font-size:0.78rem;font-weight:600;cursor:pointer"><i class="fas fa-pen-nib"></i> Firmar autorización</button>`;
+
+                const btnFirmar = `<button onclick="Autorizaciones.abrir(${j.id}, ${ev.id})" style="background:var(--azul-profundo,#0E2586);color:white;border:none;border-radius:8px;padding:7px 12px;font-size:0.75rem;font-weight:600;cursor:pointer"><i class="fas fa-pen-nib"></i> Firmar autorización</button>`;
+                const badgeFirmada = aut ? `<span style="background:#dcfce7;color:#166534;font-size:0.7rem;font-weight:700;padding:4px 10px;border-radius:20px"><i class="fas fa-check-circle"></i> Autorización firmada ${new Date(aut.firma_timestamp).toLocaleDateString('es-CL')}</span>
+                    <button onclick="Autorizaciones.descargarPDF(${aut.id})" style="background:none;border:1px solid #cbd5e1;border-radius:8px;padding:3px 9px;font-size:0.7rem;cursor:pointer;color:#334155"><i class="fas fa-file-pdf" style="color:#dc2626"></i> PDF</button>` : '';
+
+                let acciones = '';
+                if (esInterno) {
+                    // ── Paso 1: decisión de participación · Paso 2: autorización ──
+                    if (!part) {
+                        acciones = `<div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px">
+                            <span style="font-size:0.72rem;color:#64748b;font-weight:600">¿Participará?</span>
+                            <div style="display:flex;gap:6px">
+                                <button onclick="Autorizaciones.decidir(${j.id}, ${ev.id}, true)" style="background:#16a34a;color:white;border:none;border-radius:8px;padding:7px 14px;font-size:0.75rem;font-weight:700;cursor:pointer"><i class="fas fa-check"></i> Sí</button>
+                                <button onclick="Autorizaciones.decidir(${j.id}, ${ev.id}, false)" style="background:white;color:#b91c1c;border:1px solid #fecaca;border-radius:8px;padding:7px 14px;font-size:0.75rem;font-weight:700;cursor:pointer"><i class="fas fa-times"></i> No</button>
+                            </div>
+                        </div>`;
+                    } else if (part.participa) {
+                        acciones = `<div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px">
+                            <span style="background:#dcfce7;color:#166534;font-size:0.7rem;font-weight:700;padding:4px 10px;border-radius:20px"><i class="fas fa-user-check"></i> Participará</span>
+                            ${aut ? badgeFirmada : btnFirmar}
+                            <button onclick="Autorizaciones.decidir(${j.id}, ${ev.id}, false)" style="background:none;border:none;color:#94a3b8;font-size:0.68rem;cursor:pointer;text-decoration:underline">Cambiar a no participa</button>
+                        </div>`;
+                    } else {
+                        acciones = `<div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px">
+                            <span style="background:#f1f5f9;color:#64748b;font-size:0.7rem;font-weight:700;padding:4px 10px;border-radius:20px"><i class="fas fa-user-slash"></i> No participará</span>
+                            <button onclick="Autorizaciones.decidir(${j.id}, ${ev.id}, true)" style="background:none;border:none;color:#16a34a;font-size:0.68rem;cursor:pointer;text-decoration:underline;font-weight:700">Cambiar: sí participará</button>
+                        </div>`;
+                    }
+                } else {
+                    // ── Evento externo: inscripción por portal público; aquí solo la autorización ──
+                    acciones = `<div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px">
+                        ${aut ? badgeFirmada : btnFirmar}
+                    </div>`;
+                }
+
                 return `<div class="ev-row" style="align-items:center">
-                    <div><div class="ev-nom">${esc(ev.nombre)}</div><div class="ev-fch">${rango}${ev.lugar ? ' · ' + esc(ev.lugar) : ''}</div></div>
-                    ${estado}
+                    <div>
+                        <div class="ev-nom">${esc(ev.nombre)} ${esInterno
+                            ? '<span style="background:#e0f2fe;color:#0369a1;font-size:0.62rem;font-weight:800;padding:2px 7px;border-radius:10px;vertical-align:middle">INTERNO</span>'
+                            : '<span style="background:#fef3c7;color:#92400e;font-size:0.62rem;font-weight:800;padding:2px 7px;border-radius:10px;vertical-align:middle" title="La inscripción de delegaciones se realiza por el portal público">ABIERTO</span>'}</div>
+                        <div class="ev-fch">${rango}${ev.lugar ? ' · ' + esc(ev.lugar) : ''}</div>
+                    </div>
+                    ${acciones}
                 </div>`;
-            }).join('') + `<p style="font-size:0.7rem;color:#94a3b8;margin-top:10px"><i class="fas fa-info-circle"></i> La autorización usa el formato oficial AGSCh 2025 y queda firmada electrónicamente con fecha y hora. El documento se conserva un mínimo de 6 meses después de la actividad.</p>`;
+            }).join('') + `<p style="font-size:0.7rem;color:#94a3b8;margin-top:10px"><i class="fas fa-info-circle"></i> En las actividades <strong>internas</strong> primero confirmas si participará y luego firmas la autorización oficial AGSCh. Las actividades <strong>abiertas</strong> reciben inscripciones de delegaciones por el portal público; aquí solo se firma la autorización. Los documentos se conservan un mínimo de 6 meses.</p>`;
         } catch(e) {
-            cont.innerHTML = `<div class="errb"><i class="fas fa-exclamation-circle"></i>No se pudieron cargar las autorizaciones: ${esc(e.message)}</div>`;
+            cont.innerHTML = `<div class="errb"><i class="fas fa-exclamation-circle"></i>No se pudieron cargar las actividades: ${esc(e.message)}</div>`;
         }
+    };
+
+    // ── Decisión de participación (eventos internos) ──
+    AUT.decidir = async function(mmbbId, eventoId, participa) {
+        const c = _cache[mmbbId];
+        if (!c) return;
+        const { error } = await db.from('participaciones_eventos').upsert({
+            evento_id: eventoId,
+            mmbb_id: mmbbId,
+            participa,
+            decidido_por: c.j.apoderado_titular_nombre || null,
+            updated_at: new Date().toISOString()
+        }, { onConflict: 'evento_id,mmbb_id' });
+        if (error) { alert('No se pudo guardar la decisión: ' + error.message); return; }
+        await AUT.cargar(c.j);
     };
 
     // ── Modal del formulario ──

@@ -83,6 +83,38 @@
         } catch(e) { console.error(e); }
     }
 
+    // ── Tipo de evento: interno (participación por apoderados) / externo (inscripción pública) ──
+    function actualizarUITipoEvento(tipo) {
+        const esExterno = tipo === 'externo';
+        const dot = document.getElementById('toggle-tipo-evento-dot');
+        const track = document.getElementById('track-tipo-evento');
+        const label = document.getElementById('label-tipo-evento');
+        const icono = document.getElementById('icono-tipo-evento');
+        if (!dot) return;
+        document.getElementById('toggle-tipo-evento').checked = esExterno;
+        if (esExterno) {
+            dot.style.transform = 'translateX(20px)';
+            track.style.background = '#f59e0b';
+            label.textContent = 'Externo'; label.style.color = '#f59e0b';
+            icono.className = 'fas fa-globe'; icono.style.color = '#f59e0b';
+        } else {
+            dot.style.transform = 'translateX(0)';
+            track.style.background = '#0ea5e9';
+            label.textContent = 'Interno'; label.style.color = '#38bdf8';
+            icono.className = 'fas fa-house-flag'; icono.style.color = '#38bdf8';
+        }
+    }
+
+    async function toggleTipoEvento(esExterno) {
+        if (!eventoActual) return;
+        const tipo = esExterno ? 'externo' : 'interno';
+        try {
+            await supabaseClient.from('eventos').update({ tipo }).eq('id', eventoActual.id);
+            eventoActual.tipo = tipo;
+            actualizarUITipoEvento(tipo);
+        } catch(e) { console.error(e); }
+    }
+
     async function toggleDietaEspecial(val) {
         if (!eventoActual) return;
         try {

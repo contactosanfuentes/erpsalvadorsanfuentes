@@ -16,7 +16,7 @@
         .wrap { max-width:1050px; margin:22px auto; padding:0 16px; }
         .card { background:white; border-radius:12px; padding:18px 20px; margin-bottom:16px; box-shadow:0 1px 4px rgba(15,23,42,0.07); }
         select { width:100%; padding:10px; border:1px solid #cbd5e1; border-radius:8px; font-size:0.9rem; }
-        .stats { display:grid; grid-template-columns:repeat(4,1fr); gap:10px; margin:14px 0; }
+        .stats { display:grid; grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); gap:10px; margin:14px 0; }
         .stat { background:#f8fafc; border:1px solid var(--gris); border-radius:10px; padding:10px; text-align:center; }
         .stat .n { font-size:1.4rem; font-weight:800; color:var(--azul); } .stat .l { font-size:0.7rem; color:#64748b; }
         h3.unidad { margin:18px 0 8px; font-size:0.85rem; color:var(--azul); border-bottom:2px solid var(--gris); padding-bottom:4px; }
@@ -41,8 +41,10 @@
         <label style="font-weight:700;font-size:0.82rem;display:block;margin-bottom:6px"><i class="fas fa-calendar"></i> Actividad / evento</label>
         <select id="sel-evento" onchange="cargarEvento()"><option>Cargando eventos...</option></select>
         <div class="stats" id="stats" style="display:none">
+            <div class="stat"><div class="n" id="st-participa" style="color:#16a34a">0</div><div class="l">Participarán</div></div>
+            <div class="stat"><div class="n" id="st-noparticipa" style="color:#64748b">0</div><div class="l">No participarán</div></div>
             <div class="stat"><div class="n" id="st-firmadas">0</div><div class="l">Autorizaciones firmadas</div></div>
-            <div class="stat"><div class="n" id="st-pendientes">0</div><div class="l">Pendientes</div></div>
+            <div class="stat"><div class="n" id="st-pendientes">0</div><div class="l">Autorizaciones pendientes</div></div>
             <div class="stat"><div class="n" id="st-notrat">0</div><div class="l">NO autorizan tratamiento</div></div>
             <div class="stat"><div class="n" id="st-sinficha">0</div><div class="l">Sin ficha médica</div></div>
         </div>
@@ -59,14 +61,14 @@
 
     async function init() {
         const { data: evs, error } = await db.from('eventos')
-            .select('id,nombre,fecha_inicio,fecha_fin,publicado')
+            .select('id,nombre,fecha_inicio,fecha_fin,publicado,tipo')
             .order('fecha_inicio', { ascending: false })
             .limit(40);
         const sel = document.getElementById('sel-evento');
         if (error) { sel.innerHTML = '<option>Error cargando eventos</option>'; return; }
         sel.innerHTML = '<option value="">— Selecciona una actividad —</option>' + (evs || []).map(e => {
             const f = e.fecha_inicio ? new Date(e.fecha_inicio + 'T12:00:00').toLocaleDateString('es-CL') : 's/f';
-            return `<option value="${e.id}">${esc(e.nombre)} · ${f}${e.publicado ? '' : ' (no publicado)'}</option>`;
+            return `<option value="${e.id}" data-tipo="${e.tipo||'interno'}">${(e.tipo||'interno')==='externo'?'🌐 ':'🏠 '}${esc(e.nombre)} · ${f}${e.publicado ? '' : ' (no publicado)'}</option>`;
         }).join('');
     }
 
@@ -76,11 +78,14 @@
         if (!evId) { cont.innerHTML = '<div class="vacio">Selecciona un evento.</div>'; return; }
         cont.innerHTML = '<div class="vacio"><i class="fas fa-circle-notch fa-spin"></i> Cargando estado...</div>';
 
-        const [mmbbRes, autRes, fmRes] = await Promise.all([
+        const esInterno = (document.querySelector(`#sel-evento option[value="${evId}"]`)?.dataset.tipo || 'interno') === 'interno';
+        const [mmbbRes, autRes, fmRes, peRes] = await Promise.all([
             db.from('mmbb_registrations').select('id,nombres,apellidos,run,unidad,fecha_nacimiento').eq('activo', true).order('unidad').order('apellidos'),
             db.from('autorizaciones_apoderados').select('id,mmbb_id,tipo,firma_timestamp,autoriza_tratamiento').eq('evento_id', evId),
-            db.from('fichas_medicas').select('id,mmbb_id,created_at').order('created_at', { ascending: false })
+            db.from('fichas_medicas').select('id,mmbb_id,created_at').order('created_at', { ascending: false }),
+            db.from('participaciones_eventos').select('mmbb_id,participa,updated_at').eq('evento_id', evId)
         ]);
+        const partes = new Map((peRes.data || []).map(x => [x.mmbb_id, x]));
         const mmbb = mmbbRes.data || [];
         const auts = new Map((autRes.data || []).map(a => [a.mmbb_id, a]));
         const fichas = new Map();   // última ficha por persona
@@ -90,9 +95,13 @@
         const firmadas = mmbb.filter(m => auts.has(m.id)).length;
         const noTrat = [...auts.values()].filter(a => !a.autoriza_tratamiento).length;
         const sinFicha = mmbb.filter(m => !fichas.has(m.id)).length;
+        const siParticipa = mmbb.filter(m => partes.get(m.id)?.participa === true).length;
+        const noParticipa = mmbb.filter(m => partes.get(m.id)?.participa === false).length;
         document.getElementById('stats').style.display = 'grid';
+        document.getElementById('st-participa').textContent = esInterno ? siParticipa : '—';
+        document.getElementById('st-noparticipa').textContent = esInterno ? noParticipa : '—';
         document.getElementById('st-firmadas').textContent = firmadas;
-        document.getElementById('st-pendientes').textContent = mmbb.length - firmadas;
+        document.getElementById('st-pendientes').textContent = esInterno ? (siParticipa - mmbb.filter(m => partes.get(m.id)?.participa === true && auts.has(m.id)).length) : (mmbb.length - firmadas);
         document.getElementById('st-notrat').textContent = noTrat;
         document.getElementById('st-sinficha').textContent = sinFicha;
 
@@ -107,8 +116,14 @@
                 const a = auts.get(m.id);
                 const f = fichas.get(m.id);
                 const fichaVieja = f && (Date.now() - new Date(f.created_at)) > 1000 * 3600 * 24 * 182;
+                const pe = partes.get(m.id);
+                const peHTML = !esInterno ? '<span style="color:#cbd5e1">—</span>'
+                    : pe === undefined ? '<span class="b b-warn"><i class="fas fa-question"></i> Sin responder</span>'
+                    : pe.participa ? '<span class="b b-ok"><i class="fas fa-user-check"></i> Sí</span>'
+                    : '<span class="b" style="background:#f1f5f9;color:#64748b"><i class="fas fa-user-slash"></i> No</span>';
                 return `<tr>
                     <td><strong>${esc(m.nombres)} ${esc(m.apellidos)}</strong><br><span style="color:#94a3b8;font-size:0.72rem">${esc(m.run || '—')}</span></td>
+                    <td>${peHTML}</td>
                     <td>${a
                         ? `<span class="b b-ok"><i class="fas fa-check"></i> ${new Date(a.firma_timestamp).toLocaleDateString('es-CL')}</span> <span style="font-size:0.68rem;color:#64748b">(${a.tipo})</span><br>
                            ${a.autoriza_tratamiento ? '<span style="font-size:0.7rem;color:#166534">✓ autoriza tratamiento</span>' : '<span class="b b-warn" style="margin-top:3px"><i class="fas fa-exclamation-triangle"></i> NO autoriza tratamiento</span>'}`
@@ -124,7 +139,7 @@
             }).join('');
             const okU = porUnidad[u].filter(m => auts.has(m.id)).length;
             return `<h3 class="unidad">${esc(u)} <span style="font-weight:400;color:#64748b">· ${okU}/${porUnidad[u].length} autorizados</span></h3>
-                <table><thead><tr><th>Participante</th><th>Autorización</th><th>Ficha médica</th><th>Documentos</th></tr></thead><tbody>${filas}</tbody></table>`;
+                <table><thead><tr><th>Participante</th><th>Participación</th><th>Autorización</th><th>Ficha médica</th><th>Documentos</th></tr></thead><tbody>${filas}</tbody></table>`;
         }).join('') || '<div class="vacio">No hay miembros activos registrados.</div>';
     }
 

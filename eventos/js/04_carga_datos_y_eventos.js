@@ -110,6 +110,7 @@
             actualizarUIPublicado(estaPublicado);
             actualizarUIFichaSalud(eventoActual.pide_ficha_salud === true);
             actualizarUIDieta(eventoActual.pide_dieta_especial === true);
+            if (typeof actualizarUITipoEvento === 'function') actualizarUITipoEvento(eventoActual.tipo || 'interno');
             
             renderTodo();
         } catch (error) {

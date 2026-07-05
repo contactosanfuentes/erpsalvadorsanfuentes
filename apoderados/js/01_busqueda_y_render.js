@@ -330,7 +330,7 @@
                 <button class="tab-int" data-tab="tab-prog-${j.id}"><i class="fas fa-chart-line"></i>Progresión</button>
                 <button class="tab-int" data-tab="tab-eventos-${j.id}"><i class="fas fa-calendar-check"></i>Eventos</button>
                 <button class="tab-int" data-tab="tab-pagos-${j.id}"><i class="fas fa-receipt"></i>Pagos</button>
-                <button class="tab-int" data-tab="tab-aut-${j.id}"><i class="fas fa-file-signature"></i>Autorizaciones</button>
+                <button class="tab-int" data-tab="tab-aut-${j.id}"><i class="fas fa-calendar-check"></i>Actividades</button>
                 <button class="tab-int" data-tab="tab-fm-${j.id}"><i class="fas fa-notes-medical"></i>Ficha Médica</button>
             </div>
 
@@ -465,7 +465,7 @@
             <!-- TAB: AUTORIZACIONES -->
             <div class="tab-content" id="tab-aut-${j.id}">
                 <div class="sec">
-                    <div class="sec-titulo"><i class="fas fa-file-signature"></i> Autorizaciones de participación</div>
+                    <div class="sec-titulo"><i class="fas fa-calendar-check"></i> Actividades: participación y autorizaciones</div>
                     <div id="aut-cont-${j.id}"><div class="esm"><i class="fas fa-circle-notch fa-spin"></i>Cargando actividades...</div></div>
                 </div>
             </div>
