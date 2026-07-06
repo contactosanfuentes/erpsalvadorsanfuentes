@@ -63,14 +63,14 @@
 
     async function init() {
         const { data: evs, error } = await db.from('eventos')
-            .select('id,nombre,fecha_inicio,fecha_fin,publicado,tipo')
+            .select('id,nombre,fecha_inicio,fecha_fin,publicado,tipo,codigo')
             .order('fecha_inicio', { ascending: false })
             .limit(40);
         const sel = document.getElementById('sel-evento');
         if (error) { sel.innerHTML = '<option>Error cargando eventos</option>'; return; }
         sel.innerHTML = '<option value="">— Selecciona una actividad —</option>' + (evs || []).map(e => {
             const f = e.fecha_inicio ? new Date(e.fecha_inicio + 'T12:00:00').toLocaleDateString('es-CL') : 's/f';
-            return `<option value="${e.id}" data-tipo="${e.tipo||'interno'}">${(e.tipo||'interno')==='externo'?'🌐 ':'🏠 '}${esc(e.nombre)} · ${f}${e.publicado ? '' : ' (no publicado)'}</option>`;
+            return `<option value="${e.id}" data-tipo="${e.tipo||'interno'}" data-codigo="${e.codigo||''}">${(e.tipo||'interno')==='externo'?'🌐 ':'🏠 '}${e.codigo ? '['+e.codigo+'] ' : ''}${esc(e.nombre)} · ${f}${e.publicado ? '' : ' (no publicado)'}</option>`;
         }).join('');
     }
 
@@ -90,11 +90,13 @@
         const partes = new Map((peRes.data || []).map(x => [x.mmbb_id, x]));
 
         // ── Tesorería del evento: cuenta vinculada por nombre (patrón del ERP) ──
-        const nombreEv = document.querySelector(`#sel-evento option[value="${evId}"]`)?.textContent.split(' · ')[0].replace(/^🏠 |^🌐 /,'').trim() || '';
+        const nombreEv = document.querySelector(`#sel-evento option[value="${evId}"]`)?.textContent.split(' · ')[0].replace(/^🏠 |^🌐 /,'').replace(/^\[EV-[0-9-]+\]\s*/,'').trim() || '';
+        const codigoEv = document.querySelector(`#sel-evento option[value="${evId}"]`)?.dataset.codigo || '';
         let cuentaEv = null, tiposCuota = [], movsEv = [];
         try {
-            const { data: ctas } = await db.from('tesoreria_cuentas').select('id,nombre').eq('tipo','evento').eq('nombre', nombreEv).limit(1);
-            cuentaEv = ctas?.[0] || null;   // limit(1): hay eventos con cuentas duplicadas por nombre
+            let { data: ctas } = await db.from('tesoreria_cuentas').select('id,nombre,codigo').eq('evento_id', evId).limit(1);
+            if (!ctas?.length) ({ data: ctas } = await db.from('tesoreria_cuentas').select('id,nombre,codigo').is('evento_id', null).eq('tipo','evento').eq('nombre', nombreEv).limit(1));
+            cuentaEv = ctas?.[0] || null;   // vínculo fuerte por evento_id; fallback nombre para cuentas antiguas
             if (cuentaEv) {
                 const [tcRes, mvRes] = await Promise.all([
                     db.from('cuenta_tipos_cuota').select('id,nombre,monto').eq('cuenta_id', cuentaEv.id).order('monto'),
@@ -199,7 +201,7 @@
             </div>` + cont.innerHTML;
         } else if (tiposCuota.length) {
             cont.innerHTML = `<div style="background:#ecfeff;border:1px solid #a5f3fc;border-radius:10px;padding:10px 14px;margin-bottom:14px;font-size:0.78rem;color:#155e75">
-                <i class="fas fa-coins"></i> Cuotas definidas: ${tiposCuota.map(t=>`<strong>${esc(t.nombre)}</strong> $${(t.monto||0).toLocaleString('es-CL')}`).join(' · ')}
+                <i class="fas fa-coins"></i> ${cuentaEv.codigo ? `<strong style="font-family:monospace">${cuentaEv.codigo}</strong> · ` : ''}Cuotas definidas: ${tiposCuota.map(t=>`<strong>${esc(t.nombre)}</strong> $${(t.monto||0).toLocaleString('es-CL')}`).join(' · ')}
                 <button class="btn-pdf" style="margin-left:8px" onclick="definirCuota()"><i class="fas fa-plus"></i> Agregar otra</button>
             </div>` + cont.innerHTML;
         } else {
@@ -278,8 +280,11 @@
         if (!ctx.nombreEv) return;
         const cuotaStr = prompt(`Se creará la cuenta de tesorería "${ctx.nombreEv}" (tipo: evento).\n\nCuota por participante (CLP) — deja vacío si aún no está definida:`);
         if (cuotaStr === null) return;
-        const { data: cta, error } = await db.from('tesoreria_cuentas').insert({ nombre: ctx.nombreEv, tipo: 'evento', moneda: 'CLP', orden: 0 }).select().single();
-        if (error) { alert('Error: ' + error.message); return; }
+        const { data: cta, error } = await db.from('tesoreria_cuentas').insert({ nombre: ctx.nombreEv, tipo: 'evento', moneda: 'CLP', orden: 0, evento_id: ctx.evId }).select().single();
+        if (error) {
+            if ((error.code||'') === '23505') { alert('Este evento ya tiene una cuenta de tesorería (código único). Recarga el panel.'); cargarEvento(); return; }
+            alert('Error: ' + error.message); return;
+        }
         const cuota = parseFloat(String(cuotaStr).replace(/[^0-9]/g,''));
         if (cuota > 0) await db.from('cuenta_tipos_cuota').insert({ cuenta_id: cta.id, nombre: 'Cuota participante', monto: cuota });
         alert('✅ Cuenta del evento creada.');

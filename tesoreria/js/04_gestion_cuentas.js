@@ -25,6 +25,7 @@
                             ${esEventoProyecto ? `<button onclick="event.stopPropagation(); abrirConfigTiposCuota('${acc.id}', '${acc.nombre}')" class="text-slate-400 hover:text-indigo-600 text-sm"><i class="fas fa-cog"></i></button>` : '<i class="fas fa-grip-lines text-slate-300 text-sm"></i>'}
                         </div>
                         <p class="font-bold text-sm truncate" title="${acc.nombre}">${acc.nombre}</p>
+                        ${acc.codigo ? `<p class="text-[0.6rem] font-mono text-slate-400 truncate" title="Código de trazabilidad${acc.evento_id ? ' — vinculado al evento' : ''}">${acc.codigo}${acc.evento_id ? ' 🔗' : ''}</p>` : ''}
                         <p class="text-lg font-black ${saldo < 0 ? 'text-rose-600' : 'text-emerald-600'}">${currencyFormatter.format(saldo)}</p>
                     </div>
                 `;

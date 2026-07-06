@@ -97,9 +97,11 @@
     async function registrarMovimientoTesoreria(tipo, concepto, monto) {
         if (!eventoActual) return;
         try {
-            const { data: cuentas, error } = await supabaseClient.from('tesoreria_cuentas').select('id').eq('nombre', eventoActual.nombre).eq('tipo', 'evento').limit(1);
+            // Vínculo fuerte por evento_id; fallback por nombre para cuentas antiguas
+            let { data: cuentas } = await supabaseClient.from('tesoreria_cuentas').select('id').eq('evento_id', eventoActual.id).limit(1);
+            if (!cuentas?.length) ({ data: cuentas } = await supabaseClient.from('tesoreria_cuentas').select('id').is('evento_id', null).eq('nombre', eventoActual.nombre).eq('tipo', 'evento').limit(1));
             const cuenta = cuentas?.[0];
-            if (error || !cuenta) { return; }   // limit(1): maybeSingle fallaba con cuentas duplicadas
+            if (!cuenta) { return; }
             const movimiento = { cuenta_id: cuenta.id, concepto: `${tipo === 'ingreso' ? 'Ingreso' : 'Gasto'} evento: ${concepto}`, monto: tipo === 'ingreso' ? Math.abs(monto) : -Math.abs(monto), moneda: 'CLP', fecha: new Date().toISOString().split('T')[0], referencia: `Evento: ${eventoActual.nombre}`, archivo_url: null };
             await supabaseClient.from('tesoreria_movimientos').insert(movimiento);
         } catch(e) { console.warn("Error en registro de tesorería", e); }

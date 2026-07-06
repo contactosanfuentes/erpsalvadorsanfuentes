@@ -36,7 +36,7 @@ if(await guardarCamino()){
 if(document.getElementById('mp-crear-evento').checked){try{
 const desc=[proy.objetivo?'Objetivo: '+proy.objetivo:'',proy.justificacion?'Justificación: '+proy.justificacion:'',proy.beneficiarios?'Beneficiarios: '+proy.beneficiarios:''].filter(Boolean).join('\n');
 const{data:ev,error:evE}=await sb.from('eventos').insert({nombre:proy.nombre,fecha_inicio:proy.inicio||null,fecha_fin:proy.termino||null,lugar:proy.lugar||'',descripcion:desc,publicado:false}).select().single();
-if(evE)throw evE;await sb.from('tesoreria_cuentas').insert({nombre:proy.nombre,tipo:'evento',orden:0});
+if(evE)throw evE;await sb.from('tesoreria_cuentas').insert({nombre:proy.nombre,tipo:'evento',orden:0,evento_id:ev.id});
 if(proy.objetivo)await sb.from('objetivos_evento').insert({evento_id:ev.id,objetivo_general:proy.objetivo});
 const dias=(proy.inicio&&proy.termino)?Math.max(1,Math.ceil((new Date(proy.termino)-new Date(proy.inicio))/86400000)):1;
 await sb.from('configuracion_presupuesto').insert({evento_id:ev.id,participantes:mpParticipantes.length,staff:Object.keys(mpResponsables).length,dias,nota:'Desde portal caminante'});

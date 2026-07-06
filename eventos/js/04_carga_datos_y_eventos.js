@@ -154,7 +154,7 @@
             select.innerHTML = '<option value="">-- Seleccionar Evento --</option>';
             data.forEach(evento => {
                 const option = document.createElement('option');
-                option.value = evento.id; option.textContent = evento.nombre;
+                option.value = evento.id; option.textContent = (evento.codigo ? '[' + evento.codigo + '] ' : '') + evento.nombre;
                 select.appendChild(option);
             });
         }
@@ -375,7 +375,7 @@
             // Eliminar cuenta(s) de tesorería asociada(s).
             // Nota: se buscan TODAS las homónimas — maybeSingle() fallaba en silencio
             // con cuentas duplicadas y dejaba cuentas huérfanas al borrar el evento.
-            const { data: cuentasEvento } = await supabaseClient.from('tesoreria_cuentas').select('id').eq('nombre', eventoActual.nombre).eq('tipo', 'evento');
+            const { data: cuentasEvento } = await supabaseClient.from('tesoreria_cuentas').select('id').or(`evento_id.eq.${eventoActual.id},and(evento_id.is.null,tipo.eq.evento,nombre.eq."${eventoActual.nombre.replace(/"/g,'')}")`);
             for (const cuentaEvento of (cuentasEvento || [])) {
                 const { data: movs } = await supabaseClient.from('tesoreria_movimientos').select('monto').eq('cuenta_id', cuentaEvento.id);
                 const saldo = (movs || []).reduce((a, m) => a + (m.monto || 0), 0);
