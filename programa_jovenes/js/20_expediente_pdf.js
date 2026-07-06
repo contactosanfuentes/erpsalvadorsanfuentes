@@ -1,48 +1,48 @@
         function obtenerLogoRama(rama) {
             const logos = {
-                'Bandada': 'https://i.imgur.com/1aGKetX.png',
-                'Manada': 'https://i.imgur.com/0bZQNJs.png',
-                'Tropa': 'https://i.imgur.com/2M19fp0.png',
-                'Compañía': 'https://i.imgur.com/eoG0c2D.png',
-                'Avanzada': 'https://i.imgur.com/06YpoWy.png',
-                'Clan': 'https://i.imgur.com/abtMi0i.png'
+                'Bandada': 'https://hyixmaxhoxvamoecuars.supabase.co/storage/v1/object/public/payment-receipts/insignias/1aGKetX.png',
+                'Manada': 'https://hyixmaxhoxvamoecuars.supabase.co/storage/v1/object/public/payment-receipts/insignias/0bZQNJs.png',
+                'Tropa': 'https://hyixmaxhoxvamoecuars.supabase.co/storage/v1/object/public/payment-receipts/insignias/2M19fp0.png',
+                'Compañía': 'https://hyixmaxhoxvamoecuars.supabase.co/storage/v1/object/public/payment-receipts/insignias/eoG0c2D.png',
+                'Avanzada': 'https://hyixmaxhoxvamoecuars.supabase.co/storage/v1/object/public/payment-receipts/insignias/06YpoWy.png',
+                'Clan': 'https://hyixmaxhoxvamoecuars.supabase.co/storage/v1/object/public/payment-receipts/insignias/abtMi0i.png'
             };
-            return logos[rama] || 'https://i.imgur.com/11u9rUD.png';
+            return logos[rama] || 'https://hyixmaxhoxvamoecuars.supabase.co/storage/v1/object/public/payment-receipts/insignias/11u9rUD.png';
         }
 
         function obtenerIconoEtapa(etapa, rama) {
             const iconosPorRama = {
                 'Bandada': {
-                    'Pichón': 'https://i.imgur.com/FV5CyzO.png',
-                    'Aprendiz': 'https://i.imgur.com/w25teqR.png',
-                    'Viajera': 'https://i.imgur.com/a9xgrWU.png',
-                    'Guía de Vuelo': 'https://i.imgur.com/XGGnl9N.png'
+                    'Pichón': 'https://hyixmaxhoxvamoecuars.supabase.co/storage/v1/object/public/payment-receipts/insignias/FV5CyzO.png',
+                    'Aprendiz': 'https://hyixmaxhoxvamoecuars.supabase.co/storage/v1/object/public/payment-receipts/insignias/w25teqR.png',
+                    'Viajera': 'https://hyixmaxhoxvamoecuars.supabase.co/storage/v1/object/public/payment-receipts/insignias/a9xgrWU.png',
+                    'Guía de Vuelo': 'https://hyixmaxhoxvamoecuars.supabase.co/storage/v1/object/public/payment-receipts/insignias/XGGnl9N.png'
                 },
                 'Manada': {
-                    'Lobezno': 'https://i.imgur.com/lSrmFXz.png',
-                    'Saltador': 'https://i.imgur.com/AXcwr5h.png',
-                    'Diestro': 'https://i.imgur.com/VBD3nDy.png',
-                    'Cazador': 'https://i.imgur.com/QrsX3NY.png'
+                    'Lobezno': 'https://hyixmaxhoxvamoecuars.supabase.co/storage/v1/object/public/payment-receipts/insignias/lSrmFXz.png',
+                    'Saltador': 'https://hyixmaxhoxvamoecuars.supabase.co/storage/v1/object/public/payment-receipts/insignias/AXcwr5h.png',
+                    'Diestro': 'https://hyixmaxhoxvamoecuars.supabase.co/storage/v1/object/public/payment-receipts/insignias/VBD3nDy.png',
+                    'Cazador': 'https://hyixmaxhoxvamoecuars.supabase.co/storage/v1/object/public/payment-receipts/insignias/QrsX3NY.png'
                 },
                 'Tropa': {
-                    'Cernícalo': 'https://i.imgur.com/yJyps57.png',
-                    'Halcón': 'https://i.imgur.com/AAZdzEG.png',
-                    'Águila': 'https://i.imgur.com/j2OYdiD.png',
-                    'Cóndor': 'https://i.imgur.com/GQNxp25.png'
+                    'Cernícalo': 'https://hyixmaxhoxvamoecuars.supabase.co/storage/v1/object/public/payment-receipts/insignias/yJyps57.png',
+                    'Halcón': 'https://hyixmaxhoxvamoecuars.supabase.co/storage/v1/object/public/payment-receipts/insignias/AAZdzEG.png',
+                    'Águila': 'https://hyixmaxhoxvamoecuars.supabase.co/storage/v1/object/public/payment-receipts/insignias/j2OYdiD.png',
+                    'Cóndor': 'https://hyixmaxhoxvamoecuars.supabase.co/storage/v1/object/public/payment-receipts/insignias/GQNxp25.png'
                 },
                 'Compañía': {
-                    'Alba': 'https://i.imgur.com/CyEFpPL.png',
-                    'Amanecer': 'https://i.imgur.com/JQqcy0X.png',
-                    'Luz': 'https://i.imgur.com/9ZheqTf.png',
-                    'Resplandor': 'https://i.imgur.com/vkJj0bK.png'
+                    'Alba': 'https://hyixmaxhoxvamoecuars.supabase.co/storage/v1/object/public/payment-receipts/insignias/CyEFpPL.png',
+                    'Amanecer': 'https://hyixmaxhoxvamoecuars.supabase.co/storage/v1/object/public/payment-receipts/insignias/JQqcy0X.png',
+                    'Luz': 'https://hyixmaxhoxvamoecuars.supabase.co/storage/v1/object/public/payment-receipts/insignias/9ZheqTf.png',
+                    'Resplandor': 'https://hyixmaxhoxvamoecuars.supabase.co/storage/v1/object/public/payment-receipts/insignias/vkJj0bK.png'
                 },
                 'Avanzada': {
-                    'Sendero': 'https://i.imgur.com/VHZrlFN.png',
-                    'Cumbre': 'https://i.imgur.com/3MeclHS.png'
+                    'Sendero': 'https://hyixmaxhoxvamoecuars.supabase.co/storage/v1/object/public/payment-receipts/insignias/VHZrlFN.png',
+                    'Cumbre': 'https://hyixmaxhoxvamoecuars.supabase.co/storage/v1/object/public/payment-receipts/insignias/3MeclHS.png'
                 },
                 'Clan': {
-                    'Fuego': 'https://i.imgur.com/IEr3Kms.png',
-                    'Antorcha': 'https://i.imgur.com/qTTibWH.png'
+                    'Fuego': 'https://hyixmaxhoxvamoecuars.supabase.co/storage/v1/object/public/payment-receipts/insignias/IEr3Kms.png',
+                    'Antorcha': 'https://hyixmaxhoxvamoecuars.supabase.co/storage/v1/object/public/payment-receipts/insignias/qTTibWH.png'
                 }
             };
             return (iconosPorRama[rama] && iconosPorRama[rama][etapa]) ? iconosPorRama[rama][etapa] : '';

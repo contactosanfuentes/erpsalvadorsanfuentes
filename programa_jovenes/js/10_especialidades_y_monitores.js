@@ -173,7 +173,7 @@
                 <body>
                     <div class="container">
                         <div class="header">
-                            <img src="https://i.imgur.com/11u9rUD.png" alt="Logo Grupo Scout">
+                            <img src="https://hyixmaxhoxvamoecuars.supabase.co/storage/v1/object/public/payment-receipts/insignias/11u9rUD.png" alt="Logo Grupo Scout">
                             <h2>Invitación a colaborar</h2>
                         </div>
                         <div class="content">

@@ -5,12 +5,12 @@
         window.supabaseClient = (window.supabase || supabase).createClient(window.SUPABASE_URL, window.SUPABASE_ANON_KEY, _opts);
         window.padronAdultos = [];
         const LOGOS_UNIDADES = {
-            'Bandada': 'https://i.imgur.com/1aGKetX.png',
-            'Manada': 'https://i.imgur.com/0bZQNJs.png',
-            'Tropa': 'https://i.imgur.com/2M19fp0.png',
-            'Compañía': 'https://i.imgur.com/eoG0c2D.png',
-            'Avanzada': 'https://i.imgur.com/06YpoWy.png',
-            'Clan': 'https://i.imgur.com/abtMi0i.png'
+            'Bandada': 'https://hyixmaxhoxvamoecuars.supabase.co/storage/v1/object/public/payment-receipts/insignias/1aGKetX.png',
+            'Manada': 'https://hyixmaxhoxvamoecuars.supabase.co/storage/v1/object/public/payment-receipts/insignias/0bZQNJs.png',
+            'Tropa': 'https://hyixmaxhoxvamoecuars.supabase.co/storage/v1/object/public/payment-receipts/insignias/2M19fp0.png',
+            'Compañía': 'https://hyixmaxhoxvamoecuars.supabase.co/storage/v1/object/public/payment-receipts/insignias/eoG0c2D.png',
+            'Avanzada': 'https://hyixmaxhoxvamoecuars.supabase.co/storage/v1/object/public/payment-receipts/insignias/06YpoWy.png',
+            'Clan': 'https://hyixmaxhoxvamoecuars.supabase.co/storage/v1/object/public/payment-receipts/insignias/abtMi0i.png'
         };
         function getLogoUnidad(unidadRol) {
             if (!unidadRol) return '';

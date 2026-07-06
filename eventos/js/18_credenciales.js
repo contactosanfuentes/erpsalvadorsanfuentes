@@ -1,6 +1,6 @@
     function generarHtmlCredencial(a, eventoNombre) {
         const fotoSrc = a.foto_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(a.nombre)}&background=E0E7FF&color=4338CA&bold=true&length=1`;
-        const grupoLogo = 'https://i.imgur.com/11u9rUD.png';
+        const grupoLogo = 'https://hyixmaxhoxvamoecuars.supabase.co/storage/v1/object/public/payment-receipts/insignias/11u9rUD.png';
         const rolTexto = (a.rol || 'PARTICIPANTE').toUpperCase();
 
         // Detectar color por unidad o rol — igual que en jóvenes
@@ -147,7 +147,7 @@
     // ── Generar HTML de credencial para un joven/patrulla ──
     function generarHtmlCredencialJoven(p, eventoNombre) {
         const fotoSrc = p.foto_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(p.nombre_patrulla || '?')}&background=E0E7FF&color=0E2586&bold=true&length=2`;
-        const grupoLogo = 'https://i.imgur.com/11u9rUD.png';
+        const grupoLogo = 'https://hyixmaxhoxvamoecuars.supabase.co/storage/v1/object/public/payment-receipts/insignias/11u9rUD.png';
         // Color por unidad
         const unidad = (unidades.find(u => u.id === p.unidad_id)?.nombre || '').toLowerCase();
         let colorUnidad = '#0E2586';

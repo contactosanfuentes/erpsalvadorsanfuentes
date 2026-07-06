@@ -43,7 +43,7 @@
             <body>
                 <div class="container">
                     <div class="header">
-                        <img src="https://i.imgur.com/11u9rUD.png" alt="Logo Grupo Salvador Sanfuentes" class="header-logo" onerror="this.src='https://via.placeholder.com/100x100/1e3a8a/ffffff?text=Logo+Grupo'">
+                        <img src="https://hyixmaxhoxvamoecuars.supabase.co/storage/v1/object/public/payment-receipts/insignias/11u9rUD.png" alt="Logo Grupo Salvador Sanfuentes" class="header-logo" onerror="this.src='https://via.placeholder.com/100x100/1e3a8a/ffffff?text=Logo+Grupo'">
                         <h1>COMPROMISO PERSONAL DE VOLUNTARIADO</h1>
                         <p class="subtitle">Grupo Guía y Scouts Salvador Sanfuentes</p>
                     </div>

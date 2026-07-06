@@ -78,11 +78,11 @@ async function cargarPortafolio() {
 
         // Etapas oficiales Clan AGSCh con sus insignias
         const ETAPAS = [
-            { nombre: 'Bienvenida', img: 'https://i.imgur.com/dYr6dIU.png', color: '#F59E0B' },
-            { nombre: 'Fuego',      img: 'https://i.imgur.com/IEr3Kms.png', color: '#EF4444' },
-            { nombre: 'Antorcha',   img: 'https://i.imgur.com/qTTibWH.png', color: '#8B5CF6' }
+            { nombre: 'Bienvenida', img: 'https://hyixmaxhoxvamoecuars.supabase.co/storage/v1/object/public/payment-receipts/insignias/dYr6dIU.png', color: '#F59E0B' },
+            { nombre: 'Fuego',      img: 'https://hyixmaxhoxvamoecuars.supabase.co/storage/v1/object/public/payment-receipts/insignias/IEr3Kms.png', color: '#EF4444' },
+            { nombre: 'Antorcha',   img: 'https://hyixmaxhoxvamoecuars.supabase.co/storage/v1/object/public/payment-receipts/insignias/qTTibWH.png', color: '#8B5CF6' }
         ];
-        const IMG_COMPROMISO = 'https://i.imgur.com/eX1hXDn.png?1';
+        const IMG_COMPROMISO = 'https://hyixmaxhoxvamoecuars.supabase.co/storage/v1/object/public/payment-receipts/insignias/eX1hXDn.png?1';
 
         const etapa   = prog.etapa_actual || null;
         const idxAct  = ETAPAS.findIndex(e => e.nombre === etapa);

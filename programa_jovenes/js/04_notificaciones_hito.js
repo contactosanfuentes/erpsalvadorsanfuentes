@@ -38,7 +38,7 @@
                     default: return;
                 }
                 
-                const logoUrl = 'https://i.imgur.com/11u9rUD.png';
+                const logoUrl = 'https://hyixmaxhoxvamoecuars.supabase.co/storage/v1/object/public/payment-receipts/insignias/11u9rUD.png';
                 // Generar token de solo lectura (expira en 72h, un solo uso)
                 const token = 'vp_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 10);
                 await supabaseClient.from('tokens_perfil').insert({ token, joven_id: joven.id, usado: false });

@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Migración de Insignias — ERP Scout</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="auth-guard.js"></script>
+    <style>
+        * { box-sizing:border-box; margin:0; font-family:system-ui,sans-serif; }
+        body { background:#f1f5f9; padding:30px 16px; }
+        .card { max-width:760px; margin:0 auto; background:white; border-radius:14px; padding:26px; box-shadow:0 2px 10px rgba(15,23,42,0.08); }
+        h1 { font-size:1.2rem; color:#0E2586; margin-bottom:6px; }
+        p { font-size:0.85rem; color:#475569; margin-bottom:14px; line-height:1.5; }
+        button { background:#0E2586; color:white; border:none; border-radius:10px; padding:12px 22px; font-weight:700; cursor:pointer; font-size:0.9rem; }
+        button:disabled { opacity:0.5; cursor:default; }
+        #log { margin-top:16px; font-size:0.78rem; font-family:monospace; max-height:400px; overflow-y:auto; background:#f8fafc; border-radius:10px; padding:12px; }
+        .ok { color:#166534; } .err { color:#b91c1c; } .skip { color:#92400e; }
+    </style>
+</head>
+<body>
+<div class="card">
+    <h1><i>🛡️</i> Migración de insignias e imágenes a Supabase Storage</h1>
+    <p>El sistema usaba <strong>41 imágenes alojadas en imgur.com</strong>, que bloquea el acceso de forma errática (por eso algunas insignias no cargan). Este proceso descarga cada imagen <strong>desde tu navegador</strong> y la sube al almacenamiento propio del grupo (bucket <code>payment-receipts/insignias</code> (el mismo que ya usa tesorería para comprobantes)). Se ejecuta <strong>una sola vez</strong>; las que fallen se pueden reintentar.</p>
+    <button id="btn" onclick="migrar()">Iniciar migración (41 imágenes)</button>
+    <div id="log"></div>
+</div>
+<script>
+    const SUPABASE_URL = 'https://hyixmaxhoxvamoecuars.supabase.co';
+    const SUPABASE_KEY = 'sb_publishable_JW9Y4kz_Wiy6e1E1KdzAyQ_PBbWUf6t';
+    const db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    const URLS = [
+            'https://i.imgur.com/06YpoWy.png',
+            'https://i.imgur.com/0bZQNJs.png',
+            'https://i.imgur.com/11u9rUD.png',
+            'https://i.imgur.com/1aGKetX.png',
+            'https://i.imgur.com/2M19fp0.png',
+            'https://i.imgur.com/3MeclHS.png',
+            'https://i.imgur.com/75Pkg1G.png',
+            'https://i.imgur.com/9ZheqTf.png',
+            'https://i.imgur.com/AAZdzEG.png',
+            'https://i.imgur.com/AOwrUX8.jpeg',
+            'https://i.imgur.com/AXcwr5h.png',
+            'https://i.imgur.com/CyEFpPL.png',
+            'https://i.imgur.com/DcxzvpX.png',
+            'https://i.imgur.com/Doq2Vak.png',
+            'https://i.imgur.com/FV5CyzO.png',
+            'https://i.imgur.com/GQNxp25.png',
+            'https://i.imgur.com/IEr3Kms.png',
+            'https://i.imgur.com/IStoscc.png',
+            'https://i.imgur.com/IjZ6pzf.jpeg',
+            'https://i.imgur.com/JQqcy0X.png',
+            'https://i.imgur.com/JxK1RZ8.png',
+            'https://i.imgur.com/MpmoQR3.jpeg',
+            'https://i.imgur.com/QrsX3NY.png',
+            'https://i.imgur.com/VBD3nDy.png',
+            'https://i.imgur.com/VHZrlFN.png',
+            'https://i.imgur.com/VVheryL.png',
+            'https://i.imgur.com/XGGnl9N.png',
+            'https://i.imgur.com/a9xgrWU.png',
+            'https://i.imgur.com/abtMi0i.png',
+            'https://i.imgur.com/dYr6dIU.png',
+            'https://i.imgur.com/eX1hXDn.png',
+            'https://i.imgur.com/eoG0c2D.png',
+            'https://i.imgur.com/j2OYdiD.png',
+            'https://i.imgur.com/kZhPHVF.jpeg',
+            'https://i.imgur.com/lSrmFXz.png',
+            'https://i.imgur.com/o1yh5lq.png',
+            'https://i.imgur.com/qTTibWH.png',
+            'https://i.imgur.com/vkJj0bK.png',
+            'https://i.imgur.com/w25teqR.png',
+            'https://i.imgur.com/yJyps57.png',
+            'https://i.imgur.com/z0zOKwF.png'
+    ];
+    const log = (m, c) => { const d = document.getElementById('log'); d.innerHTML += `<div class="${c||''}">${m}</div>`; d.scrollTop = d.scrollHeight; };
+
+    async function migrar() {
+        document.getElementById('btn').disabled = true;
+        const { data: sess } = await db.auth.getSession();
+        if (!sess?.session) { log('✗ Debes iniciar sesión (esta página requiere usuario del ERP).', 'err'); return; }
+        let ok = 0, fail = 0, skip = 0;
+        for (const url of URLS) {
+            const nombre = url.split('/').pop();
+            try {
+                // ¿Ya migrada?
+                const head = await fetch(`${SUPABASE_URL}/storage/v1/object/public/payment-receipts/insignias/${nombre}`, { method: 'HEAD' });
+                if (head.ok) { skip++; log(`↷ ${nombre} ya migrada`, 'skip'); continue; }
+                const resp = await fetch(url, { mode: 'cors' });
+                if (!resp.ok) throw new Error('HTTP ' + resp.status);
+                const blob = await resp.blob();
+                if (!blob.type.startsWith('image')) throw new Error('no es imagen (' + blob.type + ')');
+                const { error } = await db.storage.from('payment-receipts').upload('insignias/' + nombre, blob, { contentType: blob.type, upsert: true });
+                if (error) throw error;
+                ok++; log(`✓ ${nombre} (${Math.round(blob.size/1024)} KB)`, 'ok');
+            } catch (e) {
+                fail++; log(`✗ ${nombre}: ${e.message}`, 'err');
+            }
+        }
+        log(`<br><strong>Resultado: ${ok} subidas · ${skip} ya existían · ${fail} fallidas.</strong>`);
+        if (fail) log('Las fallidas: reintenta más tarde (imgur limita por ráfagas) o consigue esas imágenes de otra fuente y súbelas manualmente al bucket con el mismo nombre.', 'skip');
+        else log('🎉 Migración completa. El sistema ya no depende de imgur.', 'ok');
+        document.getElementById('btn').disabled = false;
+        document.getElementById('btn').textContent = 'Reintentar fallidas';
+    }
+</script>
+</body>
+</html>

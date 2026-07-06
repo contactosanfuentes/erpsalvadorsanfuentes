@@ -9,12 +9,12 @@
             card.className = 'posta-card';
             card.innerHTML = `
                 <div class="print-header-posta">
-                    <img src="https://i.imgur.com/11u9rUD.png" alt="Logo">
+                    <img src="https://hyixmaxhoxvamoecuars.supabase.co/storage/v1/object/public/payment-receipts/insignias/11u9rUD.png" alt="Logo">
                     <div class="title-box">
                         <h2>${evtTitulo}</h2>
                         <p style="margin:0; font-weight:bold; color:#444;">FICHA TÉCNICA DE POSTA</p>
                     </div>
-                    <img src="https://i.imgur.com/DcxzvpX.png" alt="Logo">
+                    <img src="https://hyixmaxhoxvamoecuars.supabase.co/storage/v1/object/public/payment-receipts/insignias/DcxzvpX.png" alt="Logo">
                 </div>
 
                 <button class="btn-eliminar-posta no-print" onclick="eliminarPosta('${posta.id}')"><i class="fas fa-times"></i></button>
