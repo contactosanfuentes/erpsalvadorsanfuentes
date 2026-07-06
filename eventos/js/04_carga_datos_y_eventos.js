@@ -372,9 +372,18 @@
             await supabaseClient.from('entregas_adultos').delete().eq('evento_id', eventoActual.id);
             await supabaseClient.from('entregas_columnas').delete().eq('evento_id', eventoActual.id);
             
-            // Eliminar cuenta de tesorería asociada
-            const { data: cuentaEvento } = await supabaseClient.from('tesoreria_cuentas').select('id').eq('nombre', eventoActual.nombre).eq('tipo', 'evento').maybeSingle();
-            if (cuentaEvento) {
+            // Eliminar cuenta(s) de tesorería asociada(s).
+            // Nota: se buscan TODAS las homónimas — maybeSingle() fallaba en silencio
+            // con cuentas duplicadas y dejaba cuentas huérfanas al borrar el evento.
+            const { data: cuentasEvento } = await supabaseClient.from('tesoreria_cuentas').select('id').eq('nombre', eventoActual.nombre).eq('tipo', 'evento');
+            for (const cuentaEvento of (cuentasEvento || [])) {
+                const { data: movs } = await supabaseClient.from('tesoreria_movimientos').select('monto').eq('cuenta_id', cuentaEvento.id);
+                const saldo = (movs || []).reduce((a, m) => a + (m.monto || 0), 0);
+                if ((movs || []).length > 0) {
+                    const ok = await customConfirm(`La cuenta de tesorería del evento tiene ${movs.length} movimiento(s) (saldo $${saldo.toLocaleString('es-CL')}).\n¿Eliminar también el historial contable? (Si eliges No, la cuenta se conserva en Tesorería)`);
+                    if (!ok) continue;
+                }
+                await supabaseClient.from('cuenta_tipos_cuota').delete().eq('cuenta_id', cuentaEvento.id);
                 await supabaseClient.from('tesoreria_movimientos').delete().eq('cuenta_id', cuentaEvento.id);
                 await supabaseClient.from('tesoreria_cuentas').delete().eq('id', cuentaEvento.id);
             }
