@@ -110,7 +110,12 @@
         let pagosHTML = '';
         let totalPagado = 0, totalAnio = 0;
         const anioActual = new Date().getFullYear();
-        const { data: movs } = await db.rpc('portal_pagos', { p_run: j.run || '', p_nombre: `${j.nombres || ''}|${j.apellidos || ''}` });
+        const [movsRes, regAnualRes] = await Promise.all([
+            db.rpc('portal_pagos', { p_run: j.run || '', p_nombre: `${j.nombres || ''}|${j.apellidos || ''}` }),
+            db.from('registros_anuales').select('anio,monto,fecha_pago').eq('mmbb_id', j.id).eq('anio', anioActual).maybeSingle()
+        ]);
+        const movs = movsRes.data;
+        const regAnual = regAnualRes.data;
         const huboMatchNombre = (movs || []).some(m => m.via === 'nombre');
 
         if (movs?.length) {
@@ -453,7 +458,7 @@
                         <div class="res-stat"><div class="num">$${(totalAnio/1000).toFixed(0)}K</div><div class="lbl">Pagado ${new Date().getFullYear()}</div></div>
                         <div class="res-stat"><div class="num">$${(totalPagado/1000).toFixed(0)}K</div><div class="lbl">Total histórico</div></div>
                         <div class="res-stat"><div class="num">${(movs||[]).length}</div><div class="lbl">Movimientos</div></div>
-                        <div class="res-stat"><div class="num">${j.registro_pagado ? '✓' : '✗'}</div><div class="lbl">Registro anual</div></div>
+                        <div class="res-stat"><div class="num">${regAnual ? '✓' : '✗'}</div><div class="lbl">Registro ${anioActual}</div></div>
                     </div>
                     ${j.monto_pagado ? `<div class="ib ok full" style="margin-bottom:10px"><div class="l">Monto registrado al inscribirse</div><div class="v">$${parseInt(j.monto_pagado).toLocaleString('es-CL')}</div></div>` : ''}
                     ${pagosHTML}
