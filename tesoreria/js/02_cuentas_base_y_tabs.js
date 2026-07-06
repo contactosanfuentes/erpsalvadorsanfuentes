@@ -27,6 +27,7 @@
             else if (currentTab === 'consolidado') renderConsolidado();
             else if (currentTab === 'cuentas') renderCuentas();
             else if (currentTab === 'registro') renderRegistroAnual();
+            else if (currentTab === 'sheets') renderSheetsSync();
             else if (currentTab === 'transferencias') renderTransferencias();
             else if (currentTab === 'config') renderConfig();
             else if (currentTab === 'planes') renderPlanesPago();
