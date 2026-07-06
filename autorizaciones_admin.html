@@ -43,6 +43,8 @@
         <div class="stats" id="stats" style="display:none">
             <div class="stat"><div class="n" id="st-participa" style="color:#16a34a">0</div><div class="l">Participarán</div></div>
             <div class="stat"><div class="n" id="st-noparticipa" style="color:#64748b">0</div><div class="l">No participarán</div></div>
+            <div class="stat"><div class="n" id="st-recaudado" style="color:#0e7490">—</div><div class="l">Recaudado (cuenta evento)</div></div>
+            <div class="stat"><div class="n" id="st-pagadores" style="color:#0e7490">—</div><div class="l">Han pagado</div></div>
             <div class="stat"><div class="n" id="st-firmadas">0</div><div class="l">Autorizaciones firmadas</div></div>
             <div class="stat"><div class="n" id="st-pendientes">0</div><div class="l">Autorizaciones pendientes</div></div>
             <div class="stat"><div class="n" id="st-notrat">0</div><div class="l">NO autorizan tratamiento</div></div>
@@ -86,6 +88,41 @@
             db.from('participaciones_eventos').select('mmbb_id,participa,updated_at').eq('evento_id', evId)
         ]);
         const partes = new Map((peRes.data || []).map(x => [x.mmbb_id, x]));
+
+        // ── Tesorería del evento: cuenta vinculada por nombre (patrón del ERP) ──
+        const nombreEv = document.querySelector(`#sel-evento option[value="${evId}"]`)?.textContent.split(' · ')[0].replace(/^🏠 |^🌐 /,'').trim() || '';
+        let cuentaEv = null, tiposCuota = [], movsEv = [];
+        try {
+            const { data: ctas } = await db.from('tesoreria_cuentas').select('id,nombre').eq('tipo','evento').eq('nombre', nombreEv).limit(1);
+            cuentaEv = ctas?.[0] || null;   // limit(1): hay eventos con cuentas duplicadas por nombre
+            if (cuentaEv) {
+                const [tcRes, mvRes] = await Promise.all([
+                    db.from('cuenta_tipos_cuota').select('id,nombre,monto').eq('cuenta_id', cuentaEv.id).order('monto'),
+                    db.from('tesoreria_movimientos').select('monto,persona_run,persona_nombre,fecha').eq('cuenta_id', cuentaEv.id).gt('monto', 0)
+                ]);
+                tiposCuota = tcRes.data || [];
+                movsEv = mvRes.data || [];
+            }
+        } catch(e) { console.warn('tesorería evento:', e); }
+        window._ctxEvento = { evId, nombreEv, cuentaEv, tiposCuota, esInterno };
+        const normRun = (r) => (r||'').toUpperCase().replace(/\./g,'').replace(/-/g,'').trim();
+        const pagosDe = (run, nombres, apellidos) => {
+            const rn = normRun(run);
+            const pn = (nombres||'').toLowerCase().trim().split(' ')[0];
+            const pa = (apellidos||'').toLowerCase().trim().split(' ')[0];
+            return movsEv.filter(m =>
+                (rn && normRun(m.persona_run) === rn) ||
+                (m.persona_nombre && pn.length>=3 && pa.length>=3 &&
+                 m.persona_nombre.toLowerCase().includes(pn) && m.persona_nombre.toLowerCase().includes(pa)));
+        };
+        const cuotaRef = tiposCuota.find(t => t.monto > 0)?.monto || 0;
+
+        // Delegaciones externas inscritas
+        let delegaciones = [];
+        if (!esInterno) {
+            const { data: dg } = await db.from('jovenes').select('id,nombre_patrulla,grupo_scout,numero_integrantes,email,confirmado').eq('evento_id', evId).order('nombre_patrulla');
+            delegaciones = dg || [];
+        }
         const mmbb = mmbbRes.data || [];
         const auts = new Map((autRes.data || []).map(a => [a.mmbb_id, a]));
         const fichas = new Map();   // última ficha por persona
@@ -100,6 +137,10 @@
         document.getElementById('stats').style.display = 'grid';
         document.getElementById('st-participa').textContent = esInterno ? siParticipa : '—';
         document.getElementById('st-noparticipa').textContent = esInterno ? noParticipa : '—';
+        const recaudado = movsEv.reduce((a,m)=>a+(m.monto||0),0);
+        const pagadores = new Set(movsEv.map(m => normRun(m.persona_run) || (m.persona_nombre||'').toLowerCase().trim()).filter(Boolean)).size;
+        document.getElementById('st-recaudado').textContent = cuentaEv ? '$'+recaudado.toLocaleString('es-CL') : '—';
+        document.getElementById('st-pagadores').textContent = cuentaEv ? pagadores : '—';
         document.getElementById('st-firmadas').textContent = firmadas;
         document.getElementById('st-pendientes').textContent = esInterno ? (siParticipa - mmbb.filter(m => partes.get(m.id)?.participa === true && auts.has(m.id)).length) : (mmbb.length - firmadas);
         document.getElementById('st-notrat').textContent = noTrat;
@@ -121,9 +162,17 @@
                     : pe === undefined ? '<span class="b b-warn"><i class="fas fa-question"></i> Sin responder</span>'
                     : pe.participa ? '<span class="b b-ok"><i class="fas fa-user-check"></i> Sí</span>'
                     : '<span class="b" style="background:#f1f5f9;color:#64748b"><i class="fas fa-user-slash"></i> No</span>';
+                const pagosP = pagosDe(m.run, m.nombres, m.apellidos);
+                const totP = pagosP.reduce((a,x)=>a+x.monto,0);
+                const debe = esInterno ? (partes.get(m.id)?.participa === true) : true;
+                const pagoHTML = !cuentaEv ? '<span style="color:#cbd5e1" title="El evento no tiene cuenta de tesorería">—</span>'
+                    : totP > 0 ? `<span class="b b-ok" title="${pagosP.length} pago(s)">$${totP.toLocaleString('es-CL')}${cuotaRef && totP < cuotaRef ? ' (parcial)' : ''}</span>`
+                    : debe ? `<span class="b b-no">Pendiente</span> <button class="btn-pdf" onclick="registrarPago(${m.id}, '${esc(m.run||'')}', '${esc(m.nombres)} ${esc(m.apellidos)}')" title="Registrar pago en la cuenta del evento"><i class="fas fa-cash-register" style="color:#0e7490"></i> Pagar</button>`
+                    : '<span style="color:#cbd5e1">—</span>';
                 return `<tr>
                     <td><strong>${esc(m.nombres)} ${esc(m.apellidos)}</strong><br><span style="color:#94a3b8;font-size:0.72rem">${esc(m.run || '—')}</span></td>
                     <td>${peHTML}</td>
+                    <td>${pagoHTML}</td>
                     <td>${a
                         ? `<span class="b b-ok"><i class="fas fa-check"></i> ${new Date(a.firma_timestamp).toLocaleDateString('es-CL')}</span> <span style="font-size:0.68rem;color:#64748b">(${a.tipo})</span><br>
                            ${a.autoriza_tratamiento ? '<span style="font-size:0.7rem;color:#166534">✓ autoriza tratamiento</span>' : '<span class="b b-warn" style="margin-top:3px"><i class="fas fa-exclamation-triangle"></i> NO autoriza tratamiento</span>'}`
@@ -139,8 +188,80 @@
             }).join('');
             const okU = porUnidad[u].filter(m => auts.has(m.id)).length;
             return `<h3 class="unidad">${esc(u)} <span style="font-weight:400;color:#64748b">· ${okU}/${porUnidad[u].length} autorizados</span></h3>
-                <table><thead><tr><th>Participante</th><th>Participación</th><th>Autorización</th><th>Ficha médica</th><th>Documentos</th></tr></thead><tbody>${filas}</tbody></table>`;
+                <table><thead><tr><th>Participante</th><th>Participación</th><th>Pago cuota</th><th>Autorización</th><th>Ficha médica</th><th>Documentos</th></tr></thead><tbody>${filas}</tbody></table>`;
         }).join('') || '<div class="vacio">No hay miembros activos registrados.</div>';
+
+        // Aviso si no hay cuenta de tesorería del evento
+        if (!cuentaEv) {
+            cont.innerHTML = `<div style="background:#fffbeb;border:1px solid #fde68a;border-radius:10px;padding:12px 14px;margin-bottom:14px;font-size:0.8rem;color:#92400e">
+                <i class="fas fa-triangle-exclamation"></i> Este evento no tiene <strong>cuenta de tesorería</strong> vinculada (se vincula por nombre: "${esc(nombreEv)}").
+                <button class="btn-pdf" style="margin-left:8px" onclick="crearCuentaEvento()"><i class="fas fa-plus"></i> Crear cuenta del evento</button>
+            </div>` + cont.innerHTML;
+        } else if (tiposCuota.length) {
+            cont.innerHTML = `<div style="background:#ecfeff;border:1px solid #a5f3fc;border-radius:10px;padding:10px 14px;margin-bottom:14px;font-size:0.78rem;color:#155e75">
+                <i class="fas fa-coins"></i> Cuotas definidas: ${tiposCuota.map(t=>`<strong>${esc(t.nombre)}</strong> $${(t.monto||0).toLocaleString('es-CL')}`).join(' · ')}
+            </div>` + cont.innerHTML;
+        }
+
+        // Delegaciones externas
+        if (!esInterno) {
+            const filasD = delegaciones.map(d => {
+                const movsD = movsEv.filter(mv => mv.persona_nombre && d.nombre_patrulla &&
+                    mv.persona_nombre.toLowerCase().includes(d.nombre_patrulla.toLowerCase().slice(0,12)));
+                const totD = movsD.reduce((a,x)=>a+x.monto,0);
+                return `<tr>
+                    <td><strong>${esc(d.nombre_patrulla || '—')}</strong><br><span style="color:#94a3b8;font-size:0.72rem">${esc(d.grupo_scout || '')}</span></td>
+                    <td>${d.numero_integrantes || 1}</td>
+                    <td>${d.confirmado ? '<span class="b b-ok">Confirmada</span>' : '<span class="b b-warn">Por confirmar</span>'}</td>
+                    <td>${!cuentaEv ? '—' : totD > 0 ? `<span class="b b-ok">$${totD.toLocaleString('es-CL')}</span>` : `<span class="b b-no">Pendiente</span> <button class="btn-pdf" onclick="registrarPago(null, '', '${esc(d.nombre_patrulla||'')}')" title="Registrar pago de la delegación"><i class="fas fa-cash-register" style="color:#0e7490"></i> Pagar</button>`}</td>
+                </tr>`;
+            }).join('');
+            cont.innerHTML += `<h3 class="unidad" style="margin-top:26px"><i class="fas fa-globe"></i> Delegaciones inscritas (evento abierto) <span style="font-weight:400;color:#64748b">· ${delegaciones.length}</span></h3>
+                ${delegaciones.length
+                    ? `<table><thead><tr><th>Delegación / Patrulla</th><th>Integrantes</th><th>Estado</th><th>Pago</th></tr></thead><tbody>${filasD}</tbody></table>`
+                    : '<div class="vacio">Sin delegaciones inscritas aún por el portal público.</div>'}`;
+        }
+    }
+
+    // ── Registrar pago de cuota en la cuenta del evento ──
+    async function registrarPago(mmbbId, run, nombre) {
+        const ctx = window._ctxEvento || {};
+        if (!ctx.cuentaEv) { alert('El evento no tiene cuenta de tesorería. Créala primero.'); return; }
+        const sugerido = ctx.tiposCuota?.find(t => t.monto > 0)?.monto || '';
+        const montoStr = prompt(`Registrar pago de cuota\n\nPersona/Delegación: ${nombre}\nCuenta: ${ctx.nombreEv}\n\nMonto (CLP):`, sugerido);
+        if (montoStr === null) return;
+        const monto = parseFloat(String(montoStr).replace(/[^0-9]/g,''));
+        if (!monto || monto <= 0) { alert('Monto inválido.'); return; }
+        const referencia = prompt('Referencia (transferencia, efectivo, N° comprobante) — opcional:') || `Evento: ${ctx.nombreEv}`;
+        const tipoCuota = ctx.tiposCuota?.find(t => t.monto === monto);
+        const { error } = await db.from('tesoreria_movimientos').insert({
+            cuenta_id: ctx.cuentaEv.id,
+            concepto: `Cuota evento: ${ctx.nombreEv} — ${nombre}`,
+            monto, moneda: 'CLP',
+            fecha: new Date().toISOString().split('T')[0],
+            referencia,
+            persona_run: run || null,
+            persona_nombre: nombre,
+            persona_tipo: mmbbId ? 'joven' : 'delegacion',
+            tipo_cuota_id: tipoCuota?.id || null
+        });
+        if (error) { alert('Error al registrar: ' + error.message + '\n(¿Sesión activa? Tesorería requiere usuario autenticado)'); return; }
+        alert('✅ Pago registrado en tesorería.');
+        cargarEvento();
+    }
+
+    // ── Crear cuenta de tesorería del evento (vínculo por nombre, patrón del ERP) ──
+    async function crearCuentaEvento() {
+        const ctx = window._ctxEvento || {};
+        if (!ctx.nombreEv) return;
+        const cuotaStr = prompt(`Se creará la cuenta de tesorería "${ctx.nombreEv}" (tipo: evento).\n\nCuota por participante (CLP) — deja vacío si aún no está definida:`);
+        if (cuotaStr === null) return;
+        const { data: cta, error } = await db.from('tesoreria_cuentas').insert({ nombre: ctx.nombreEv, tipo: 'evento', moneda: 'CLP', orden: 0 }).select().single();
+        if (error) { alert('Error: ' + error.message); return; }
+        const cuota = parseFloat(String(cuotaStr).replace(/[^0-9]/g,''));
+        if (cuota > 0) await db.from('cuenta_tipos_cuota').insert({ cuenta_id: cta.id, nombre: 'Cuota participante', monto: cuota });
+        alert('✅ Cuenta del evento creada.');
+        cargarEvento();
     }
 
     init();

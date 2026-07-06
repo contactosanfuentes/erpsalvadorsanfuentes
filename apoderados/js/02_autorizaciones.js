@@ -97,10 +97,34 @@
                             ? '<span style="background:#e0f2fe;color:#0369a1;font-size:0.62rem;font-weight:800;padding:2px 7px;border-radius:10px;vertical-align:middle">INTERNO</span>'
                             : '<span style="background:#fef3c7;color:#92400e;font-size:0.62rem;font-weight:800;padding:2px 7px;border-radius:10px;vertical-align:middle" title="La inscripción de delegaciones se realiza por el portal público">ABIERTO</span>'}</div>
                         <div class="ev-fch">${rango}${ev.lugar ? ' · ' + esc(ev.lugar) : ''}</div>
+                        <div id="cuota-${j.id}-${ev.id}" style="margin-top:3px"></div>
                     </div>
                     ${acciones}
                 </div>`;
             }).join('') + `<p style="font-size:0.7rem;color:#94a3b8;margin-top:10px"><i class="fas fa-info-circle"></i> En las actividades <strong>internas</strong> primero confirmas si participará y luego firmas la autorización oficial AGSCh. Las actividades <strong>abiertas</strong> reciben inscripciones de delegaciones por el portal público; aquí solo se firma la autorización. Los documentos se conservan un mínimo de 6 meses.</p>`;
+
+            // ── Estado de cuota (async, no bloquea): internos si participa, externos si autorizó ──
+            for (const ev of eventos) {
+                const part = parts.find(p => p.evento_id === ev.id);
+                const aut = auts.find(a => a.evento_id === ev.id);
+                const esInterno = (ev.tipo || 'interno') === 'interno';
+                const relevante = esInterno ? (part?.participa === true) : !!aut;
+                if (!relevante) continue;
+                db.rpc('portal_estado_cuota', { p_evento_id: ev.id, p_run: j.run || '', p_nombre: `${j.nombres || ''}|${j.apellidos || ''}` })
+                  .then(({ data }) => {
+                    const el = document.getElementById(`cuota-${j.id}-${ev.id}`);
+                    const r = data?.[0];
+                    if (!el || !r || !r.tiene_cuenta || !r.cuota_referencia) return;
+                    const pagado = Number(r.total_pagado) || 0;
+                    const cuota = Number(r.cuota_referencia) || 0;
+                    el.innerHTML = pagado >= cuota
+                        ? `<span style="background:#dcfce7;color:#166534;font-size:0.66rem;font-weight:700;padding:2px 8px;border-radius:10px"><i class="fas fa-coins"></i> Cuota pagada · $${pagado.toLocaleString('es-CL')}</span>`
+                        : pagado > 0
+                        ? `<span style="background:#fffbeb;color:#92400e;font-size:0.66rem;font-weight:700;padding:2px 8px;border-radius:10px"><i class="fas fa-coins"></i> Abonado $${pagado.toLocaleString('es-CL')} de $${cuota.toLocaleString('es-CL')}</span>`
+                        : `<span style="background:#fef2f2;color:#b91c1c;font-size:0.66rem;font-weight:700;padding:2px 8px;border-radius:10px"><i class="fas fa-coins"></i> Cuota pendiente · $${cuota.toLocaleString('es-CL')}</span>`;
+                  })
+                  .catch(() => {});
+            }
         } catch(e) {
             cont.innerHTML = `<div class="errb"><i class="fas fa-exclamation-circle"></i>No se pudieron cargar las actividades: ${esc(e.message)}</div>`;
         }
