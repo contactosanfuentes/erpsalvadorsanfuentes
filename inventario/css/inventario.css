@@ -24,7 +24,7 @@
 
         .topbar{background:linear-gradient(135deg,var(--azul-profundo),#1a36a8);color:white;padding:14px 22px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;}
         .topbar h1{font-size:1.05rem;font-weight:600;flex:1;}
-        .content{max-width:1180px;margin:0 auto;padding:18px 14px 60px;}
+        .content{max-width:none;margin:0 auto;padding:18px 22px 60px;}
 
         .stats-row{display:grid;grid-template-columns:repeat(6,1fr);gap:10px;margin-bottom:16px;}
         .stat{background:var(--blanco);border-radius:11px;padding:12px 14px;text-align:center;box-shadow:0 2px 7px rgba(0,0,0,0.05);border:1px solid var(--gris-claro);}

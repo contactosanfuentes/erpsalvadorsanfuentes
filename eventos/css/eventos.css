@@ -74,7 +74,7 @@
 
         .document-container {
             width: 100%;
-            max-width: 1500px;
+            max-width: none;   /* fluido: aprovecha todo el ancho disponible */
             margin: 0 auto;
             background: var(--blanco);
             border-radius: 16px;

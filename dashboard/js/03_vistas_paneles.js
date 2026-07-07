@@ -1,39 +1,81 @@
         async function renderGeneral() {
             try {
-                let totalJovenes = 0, totalAdultos = 0, totalCuentas = 0, saldoTotal = 0;
-                try { const { count, error } = await supabaseClient.from('mmbb_registrations').select('*', { count: 'exact', head: true }); if(!error) totalJovenes = count || 0; } catch (e) {}
-                try { const { count, error } = await supabaseClient.from('adultos_registros').select('*', { count: 'exact', head: true }); if(!error) totalAdultos = count || 0; } catch (e) {}
+                let totalJovenes = 0, totalAdultos = 0, saldoTotal = 0;
+                const anioHoy = new Date().getFullYear();
+                let regPagados = 0;
+                let porUnidad = {};
                 try {
-                    const { data: cuentas, error } = await supabaseClient.from('tesoreria_cuentas').select('id');
-                    if (!error && cuentas) {
-                        totalCuentas = cuentas.length;
-                        for (const c of cuentas) {
-                            const { data: movs } = await supabaseClient.from('tesoreria_movimientos').select('monto').eq('cuenta_id', c.id);
-                            saldoTotal += (movs || []).reduce((acc, m) => acc + (m.monto || 0), 0);
-                        }
+                    const { data: activos, error } = await supabaseClient.from('mmbb_registrations').select('id, unidad').eq('activo', true);
+                    if (!error && activos) {
+                        totalJovenes = activos.length;
+                        activos.forEach(j => porUnidad[j.unidad || 'Sin unidad'] = (porUnidad[j.unidad || 'Sin unidad'] || 0) + 1);
+                        // Registro AGSCh del año: cuántos ACTIVOS ya lo pagaron
+                        const { data: regs } = await supabaseClient.from('registros_anuales').select('mmbb_id').eq('anio', anioHoy);
+                        const idsActivos = new Set(activos.map(a => a.id));
+                        regPagados = (regs || []).filter(r => idsActivos.has(r.mmbb_id)).length;
                     }
+                } catch (e) {}
+                try { const { count, error } = await supabaseClient.from('adultos_registros').select('*', { count: 'exact', head: true }).eq('activo', true); if(!error) totalAdultos = count || 0; } catch (e) {}
+                try { const { count } = await supabaseClient.from('adultos_registros').select('*', { count: 'exact', head: true }); if (totalAdultos === 0 && count) totalAdultos = count; } catch (e) {}
+                try {
+                    // Saldo total en UNA consulta (antes: una por cuenta)
+                    const { data: movs, error } = await supabaseClient.from('tesoreria_movimientos').select('monto');
+                    if (!error && movs) saldoTotal = movs.reduce((acc, m) => acc + (m.monto || 0), 0);
                 } catch (e) {}
 
                 // Guardar para el reporte de impresión
-                window.reportData.kpi = { jovenes: totalJovenes, adultos: totalAdultos, cuentas: totalCuentas, saldoTotal: saldoTotal };
+                window.reportData.kpi = { jovenes: totalJovenes, adultos: totalAdultos, registro: `${regPagados}/${totalJovenes}`, saldoTotal: saldoTotal };
 
                 document.getElementById('generalKPI').innerHTML = `
                     <div class="stat-card border-t-4 border-blue-500 hover:-translate-y-1 transition-transform"><i class="fas fa-child stat-icon-bg"></i><div class="flex justify-between items-start z-10 relative"><div><p class="text-xs text-gray-500 font-bold uppercase tracking-widest">Jóvenes</p><p class="text-4xl font-black text-blue-600 mt-2">${totalJovenes}</p></div><div class="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center text-blue-500"><i class="fas fa-child"></i></div></div></div>
                     <div class="stat-card border-t-4 border-green-500 hover:-translate-y-1 transition-transform"><i class="fas fa-user-tie stat-icon-bg"></i><div class="flex justify-between items-start z-10 relative"><div><p class="text-xs text-gray-500 font-bold uppercase tracking-widest">Adultos</p><p class="text-4xl font-black text-green-600 mt-2">${totalAdultos}</p></div><div class="w-10 h-10 rounded-full bg-green-50 flex items-center justify-center text-green-500"><i class="fas fa-user-tie"></i></div></div></div>
-                    <div class="stat-card border-t-4 border-amber-500 hover:-translate-y-1 transition-transform"><i class="fas fa-wallet stat-icon-bg"></i><div class="flex justify-between items-start z-10 relative"><div><p class="text-xs text-gray-500 font-bold uppercase tracking-widest">Cuentas</p><p class="text-4xl font-black text-amber-600 mt-2">${totalCuentas}</p></div><div class="w-10 h-10 rounded-full bg-amber-50 flex items-center justify-center text-amber-500"><i class="fas fa-wallet"></i></div></div></div>
+                    <div class="stat-card border-t-4 border-amber-500 hover:-translate-y-1 transition-transform"><i class="fas fa-id-card stat-icon-bg"></i><div class="flex justify-between items-start z-10 relative"><div><p class="text-xs text-gray-500 font-bold uppercase tracking-widest">Registro AGSCh ${anioHoy}</p><p class="text-4xl font-black text-amber-600 mt-2">${regPagados}<span class="text-lg text-gray-400">/${totalJovenes}</span></p><p class="text-[0.65rem] font-bold ${totalJovenes - regPagados > 0 ? 'text-rose-500' : 'text-emerald-500'} mt-1">${totalJovenes - regPagados > 0 ? (totalJovenes - regPagados) + ' pendientes' : 'Todos registrados ✓'}</p></div><div class="w-10 h-10 rounded-full bg-amber-50 flex items-center justify-center text-amber-500"><i class="fas fa-id-card"></i></div></div></div>
                     <div class="stat-card border-t-4 border-purple-500 hover:-translate-y-1 transition-transform"><i class="fas fa-coins stat-icon-bg"></i><div class="flex justify-between items-start z-10 relative"><div><p class="text-xs text-gray-500 font-bold uppercase tracking-widest">Saldo Total</p><p class="text-2xl font-black text-purple-600 mt-2 truncate">${currency.format(saldoTotal)}</p></div><div class="w-10 h-10 rounded-full bg-purple-50 flex items-center justify-center text-purple-500"><i class="fas fa-coins"></i></div></div></div>
                 `;
 
+                // Distribución por unidad (activos), en orden metodológico
+                const ORDEN_U = ['Bandada','Manada','Tropa','Compañía','Avanzada','Clan'];
+                const unidadesOrd = Object.keys(porUnidad).sort((a,b) =>
+                    (ORDEN_U.findIndex(r => a.includes(r)) + 99) - (ORDEN_U.findIndex(r => b.includes(r)) + 99) || a.localeCompare(b));
+                const chipsU = unidadesOrd.map(u => {
+                    const rama = extraerRama(u);
+                    const logo = LOGOS_RAMAS[rama] ? `<img src="${LOGOS_RAMAS[rama]}" class="w-5 h-5">` : '<i class="fas fa-users text-gray-400"></i>';
+                    return `<div class="flex items-center gap-2 bg-white rounded-xl border border-gray-100 shadow-sm px-3.5 py-2">${logo}<span class="text-xs font-bold text-gray-600">${u}</span><span class="text-sm font-black text-blue-700">${porUnidad[u]}</span></div>`;
+                }).join('');
+                const kpiEl = document.getElementById('generalKPI');
+                kpiEl.insertAdjacentHTML('afterend', `<div class="flex flex-wrap gap-2 mb-8 -mt-4" id="chips-unidades">${chipsU}</div>`);
+                document.querySelectorAll('#chips-unidades ~ #chips-unidades').forEach(e => e.remove());
+
                 try {
-                    const { data: eventos, error } = await supabaseClient.from('eventos').select('nombre, creado_en').order('creado_en', { ascending: true }).limit(5);
+                    const hoyISO = new Date().toISOString().slice(0,10);
+                    const { data: eventos, error } = await supabaseClient.from('eventos')
+                        .select('id, nombre, codigo, tipo, fecha_inicio, lugar, publicado')
+                        .gte('fecha_inicio', hoyISO)
+                        .order('fecha_inicio', { ascending: true }).limit(5);
+                    // Participación confirmada por evento interno
+                    let partMap = {};
+                    if (eventos?.length) {
+                        const { data: parts } = await supabaseClient.from('participaciones_eventos')
+                            .select('evento_id, participa').in('evento_id', eventos.map(e => e.id));
+                        (parts || []).forEach(p => { if (p.participa) partMap[p.evento_id] = (partMap[p.evento_id] || 0) + 1; });
+                    }
                     if (!error && eventos) {
                         document.getElementById('eventos-grupo-count').innerText = eventos.length;
-                        document.getElementById('eventos-grupo-list').innerHTML = eventos.map(e => `
+                        document.getElementById('eventos-grupo-list').innerHTML = eventos.map(e => {
+                            const esInterno = (e.tipo || 'interno') === 'interno';
+                            const badge = esInterno
+                                ? '<span class="text-[0.6rem] font-black bg-sky-100 text-sky-700 px-1.5 py-0.5 rounded">INTERNO</span>'
+                                : '<span class="text-[0.6rem] font-black bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded">ABIERTO</span>';
+                            const conf = esInterno && partMap[e.id] ? ` · <span class="text-emerald-600 font-bold">${partMap[e.id]} confirmados</span>` : '';
+                            return `
                             <div class="flex items-center gap-4 p-3.5 bg-blue-50 rounded-xl border border-blue-100 hover:bg-white hover:shadow-sm transition">
                                 <div class="bg-blue-100 text-blue-600 w-10 h-10 rounded-full flex items-center justify-center shrink-0"><i class="fas fa-flag"></i></div>
-                                <div class="flex-1"><p class="font-bold text-gray-800 text-sm leading-tight">${e.nombre}</p><p class="text-xs font-semibold text-blue-500 mt-1">${new Date(e.creado_en).toLocaleDateString('es-CL')}</p></div>
-                            </div>
-                        `).join('') || '<p class="text-gray-400 text-center py-6 italic font-medium">No hay eventos programados.</p>';
+                                <div class="flex-1">
+                                    <p class="font-bold text-gray-800 text-sm leading-tight">${e.nombre} ${badge}${e.publicado ? '' : ' <span class="text-[0.6rem] text-gray-400">(borrador)</span>'}</p>
+                                    <p class="text-xs font-semibold text-blue-500 mt-1"><span class="font-mono text-gray-400">${e.codigo || ''}</span> · ${new Date(e.fecha_inicio + 'T12:00').toLocaleDateString('es-CL', {day:'2-digit', month:'short'})}${e.lugar ? ' · ' + e.lugar : ''}${conf}</p>
+                                </div>
+                            </div>`;
+                        }).join('') || '<p class="text-gray-400 text-center py-6 italic font-medium">No hay actividades próximas.</p>';
                     }
                 } catch (e) {}
 

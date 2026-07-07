@@ -4,7 +4,7 @@
   .topbar{background:linear-gradient(135deg,#0E2586,#1e3a8a);color:white;padding:16px 24px;display:flex;align-items:center;gap:12px;}
   .topbar i{font-size:1.4rem;color:#FFD100;}
   .topbar h1{font-size:1.1rem;font-weight:700;}
-  .container{max-width:1100px;margin:0 auto;padding:24px;}
+  .container{max-width:none;margin:0 auto;padding:24px 28px;}
   /* Tabs */
   .tabs{display:flex;gap:4px;background:#e2e8f0;border-radius:12px;padding:4px;margin-bottom:20px;}
   .tab-btn{flex:1;padding:10px;border:none;background:transparent;border-radius:9px;font-size:0.85rem;font-weight:600;cursor:pointer;color:#64748b;transition:all 0.15s;}
