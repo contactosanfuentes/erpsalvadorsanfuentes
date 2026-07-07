@@ -149,13 +149,16 @@
                 const cuentasGenerales = [], cuentasUnidades = [], cuentasNegativas = [];
 
                 if (cuentas?.length) {
-                    for (const c of cuentas) {
-                        const { data: movs } = await supabaseClient.from('tesoreria_movimientos').select('monto').eq('cuenta_id', c.id);
-                        const saldo = (movs || []).reduce((acc, m) => acc + (m.monto || 0), 0);
-                        if (c.tipo === 'general') cuentasGenerales.push({ nombre: c.nombre, saldo });
-                        else cuentasUnidades.push({ nombre: c.nombre, saldo });
+                    // Una sola query de movimientos, no N+1
+                    const { data: todosMovs } = await supabaseClient.from('tesoreria_movimientos').select('cuenta_id, monto');
+                    const saldoPorCuenta = {};
+                    (todosMovs || []).forEach(m => { saldoPorCuenta[m.cuenta_id] = (saldoPorCuenta[m.cuenta_id] || 0) + (m.monto || 0); });
+                    cuentas.forEach(c => {
+                        const saldo = saldoPorCuenta[c.id] || 0;
+                        if (c.tipo === 'general') cuentasGenerales.push({ nombre: c.nombre, saldo, id: c.id });
+                        else cuentasUnidades.push({ nombre: c.nombre, saldo, id: c.id });
                         if (saldo < 0) cuentasNegativas.push({ nombre: c.nombre, saldo });
-                    }
+                    });
                 }
 
                 if(document.getElementById('cuentas-generales').innerHTML.includes('expi')) return;
@@ -176,6 +179,57 @@
                 document.getElementById('total-unidades').innerHTML = `<div class="flex justify-between items-center"><span class="uppercase tracking-wide font-bold text-xs text-gray-500">Saldo Consolidado</span> <span class="font-extrabold text-lg text-indigo-600">${currency.format(totalUnidades)}</span></div>`;
 
                 document.getElementById('cuentas-negativas').innerHTML = cuentasNegativas.map(c => `<div class="flex items-center gap-4 p-3 bg-white rounded-xl border border-red-100 shadow-sm"><div class="bg-red-100 text-red-600 w-10 h-10 rounded-full flex items-center justify-center shrink-0"><i class="fas fa-exclamation-triangle"></i></div><span class="font-bold text-gray-800 text-sm">${c.nombre}</span><span class="text-sm font-extrabold text-red-600 ml-auto bg-red-50 px-2 py-1 rounded">${currency.format(c.saldo)}</span></div>`).join('') || '<div class="text-center py-6"><i class="fas fa-shield-check text-4xl text-emerald-400 mb-2 block"></i><p class="text-emerald-700 font-bold text-sm">Finanzas Sanas. No hay deudas.</p></div>';
+
+                // Gráfico de evolución (últimos 6 meses) desde movimientos reales
+                try {
+                    const { data: movsFecha } = await supabaseClient.from('tesoreria_movimientos')
+                        .select('fecha, monto').order('fecha', { ascending: true });
+                    const hoy = new Date();
+                    const meses = [];
+                    for (let i = 5; i >= 0; i--) {
+                        const d = new Date(hoy.getFullYear(), hoy.getMonth() - i, 1);
+                        meses.push({ label: d.toLocaleDateString('es-CL', { month: 'short', year: '2-digit' }), year: d.getFullYear(), month: d.getMonth() });
+                    }
+                    let acumulado = 0;
+                    const ingresosMes = new Array(6).fill(0);
+                    const egresosMes = new Array(6).fill(0);
+                    const saldosMes = new Array(6).fill(0);
+                    (movsFecha || []).forEach(m => {
+                        if (!m.fecha) return;
+                        const f = new Date(m.fecha + 'T12:00:00');
+                        const idx = meses.findIndex(ms => ms.year === f.getFullYear() && ms.month === f.getMonth());
+                        if (idx >= 0) { if (m.monto > 0) ingresosMes[idx] += m.monto; else egresosMes[idx] += Math.abs(m.monto); }
+                    });
+                    // Saldo acumulado proyectado
+                    let acum = (saldoPorCuenta ? Object.values(saldoPorCuenta).reduce((a,b) => a+b, 0) : 0);
+                    for (let i = 5; i >= 0; i--) { acum -= (ingresosMes[i] - egresosMes[i]); saldosMes[i] = acum; }
+                    for (let i = 0; i < 6; i++) { saldosMes[i] += (ingresosMes[i] - egresosMes[i]); }
+
+                    const ctxEv = document.getElementById('evolucionChart')?.getContext('2d');
+                    if (ctxEv) {
+                        if (window.chartEvolucion) window.chartEvolucion.destroy();
+                        window.chartEvolucion = new Chart(ctxEv, {
+                            type: 'bar',
+                            data: {
+                                labels: meses.map(m => m.label),
+                                datasets: [
+                                    { type: 'line', label: 'Saldo acumulado', data: saldosMes, borderColor: '#6366f1', backgroundColor: 'rgba(99,102,241,0.08)', fill: true, tension: 0.3, borderWidth: 2, yAxisID: 'y1', pointBackgroundColor: '#6366f1', order: 1 },
+                                    { label: 'Ingresos', data: ingresosMes, backgroundColor: 'rgba(16,185,129,0.7)', borderRadius: 5, yAxisID: 'y', order: 2 },
+                                    { label: 'Egresos', data: egresosMes, backgroundColor: 'rgba(239,68,68,0.7)', borderRadius: 5, yAxisID: 'y', order: 3 }
+                                ]
+                            },
+                            options: {
+                                responsive: true, maintainAspectRatio: false,
+                                plugins: { legend: { position: 'top', labels: { font: { size: 11, weight: 'bold' } } },
+                                    tooltip: { callbacks: { label: ctx => ` ${ctx.dataset.label}: $${(ctx.raw||0).toLocaleString('es-CL')}` } } },
+                                scales: {
+                                    y: { beginAtZero: true, ticks: { callback: v => '$' + (v/1000).toFixed(0) + 'k', font: { size: 10 } }, grid: { color: 'rgba(0,0,0,0.04)' } },
+                                    y1: { position: 'right', beginAtZero: false, ticks: { callback: v => '$' + (v/1000).toFixed(0) + 'k', font: { size: 10 } }, grid: { display: false } }
+                                }
+                            }
+                        });
+                    }
+                } catch(e) { console.warn('Evolución:', e); }
 
                 const ctx = document.getElementById('fondosChart')?.getContext('2d');
                 if (ctx) {
@@ -198,8 +252,15 @@
                 const total = adultos?.length || 0; const cargos = {};
                 adultos?.forEach(a => { if (a.roles?.length) { a.roles.forEach(r => cargos[r] = (cargos[r] || 0) + 1); } else { cargos['Sin cargo'] = (cargos['Sin cargo'] || 0) + 1; } });
 
-                const { data: progresion } = await supabaseClient.from('progresion_adultos').select('etapa_ciclo'); const ciclos = { captacion: 0, seleccion: 0, induccion: 0, desempeno: 0, renovacion: 0 };
-                progresion?.forEach(p => { if (p.etapa_ciclo) ciclos[p.etapa_ciclo]++; });
+                // Ciclo de vida: derivado desde columnas de adultos_registros (progresion_adultos puede estar vacía)
+                const ciclos = { 'Captación': 0, 'Inducción': 0, 'Desempeño': 0, 'Renovación/Retiro': 0 };
+                (adultos || []).forEach(a => {
+                    const meses = a.fecha_ingreso ? Math.floor((new Date() - new Date(a.fecha_ingreso + 'T12:00:00')) / (1000*3600*24*30)) : null;
+                    if (meses === null) ciclos['Inducción']++;
+                    else if (meses < 6) ciclos['Inducción']++;
+                    else if (meses < 36) ciclos['Desempeño']++;
+                    else ciclos['Renovación/Retiro']++;
+                });
 
                 const { data: comps } = await supabaseClient.from('compromisos_adultos').select('run');
                 const runsConCompromiso = new Set(comps?.map(c => c.run) || []); const firmados = comps?.length || 0; const pendientes = total - firmados; const porcentaje = total ? (firmados / total * 100) : 0;
@@ -224,10 +285,16 @@
                     return `<div class="flex items-center gap-4 p-3 bg-white rounded-xl border border-amber-100 shadow-sm transition hover:shadow-md">${a.foto_url ? `<img src="${a.foto_url}" class="w-10 h-10 rounded-full object-cover border-2 border-amber-200" onerror="this.src='https://via.placeholder.com/40'">` : `<div class="person-avatar bg-amber-500">${getInitials(nombre)}</div>`}<div class="flex-1"><p class="font-bold text-gray-800 text-sm leading-tight">${nombre}</p><p class="text-xs font-semibold text-amber-600 mt-0.5 flex items-center">${cargo} ${logoRama}</p></div></div>`;
                 }).join('') || '<div class="text-center py-6"><i class="fas fa-check-circle text-4xl text-emerald-400 mb-2 block"></i><p class="text-emerald-700 font-bold text-sm">Cumplimiento al 100%</p></div>';
 
-                const ctxCargos = document.getElementById('cargosChart')?.getContext('2d');
+                                const ctxCargos = document.getElementById('cargosChart')?.getContext('2d');
                 if (ctxCargos && Object.keys(cargos).length > 0) {
-                    if (chartCargos) chartCargos.destroy();
-                    chartCargos = new Chart(ctxCargos, { type: 'bar', data: { labels: Object.keys(cargos), datasets: [{ label: 'Voluntarios', data: Object.values(cargos), backgroundColor: '#3B82F6', borderRadius: 4 }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { stepSize: 1, font:{weight:'bold'} } } } } });
+                    if (window.chartCargos) window.chartCargos.destroy();
+                    window.chartCargos = new Chart(ctxCargos, { type: 'bar', data: { labels: Object.keys(cargos), datasets: [{ label: 'Voluntarios', data: Object.values(cargos), backgroundColor: '#3B82F6', borderRadius: 4 }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { stepSize: 1, font:{weight:'bold'} } } } } });
+                }
+                // Gráfico ciclo de vida
+                const ctxCiclo = document.getElementById('cicloChart')?.getContext('2d');
+                if (ctxCiclo && Object.values(ciclos).some(v => v > 0)) {
+                    if (window.chartCiclo) window.chartCiclo.destroy();
+                    window.chartCiclo = new Chart(ctxCiclo, { type: 'doughnut', data: { labels: Object.keys(ciclos), datasets: [{ data: Object.values(ciclos), backgroundColor: ['#6366f1','#f59e0b','#10b981','#94a3b8'], borderWidth: 2, borderColor: '#fff' }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { font: { size: 11 } } }, tooltip: { callbacks: { label: ctx => ` ${ctx.label}: ${ctx.raw} adultos` } } } } });
                 }
             } catch (error) {}
         }
@@ -235,7 +302,7 @@
         // ==================== JÓVENES ====================
         async function renderJovenes() {
             try {
-                const { data: jovenes, error } = await supabaseClient.from('mmbb_registrations').select('id, nombres, apellidos, unidad, fecha_nacimiento, foto_url, email_institucional, adelanto');
+                const { data: jovenes, error } = await supabaseClient.from('mmbb_registrations').select('id, nombres, apellidos, unidad, fecha_nacimiento, foto_url, email_institucional, adelanto').eq('activo', true);
                 if (error && await checkSupabaseError(error)) return;
                 
                 const total = jovenes?.length || 0;

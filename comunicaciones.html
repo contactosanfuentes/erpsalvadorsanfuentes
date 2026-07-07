@@ -28,16 +28,15 @@
 <body>
 <div class="topbar"><i class="fas fa-envelope-open-text"></i><div><h1>Comunicaciones</h1></div></div>
 <div class="layout">
-    <div>
+    <div class="sidebar">
         <div class="st-row">
             <div class="st az"><div class="n" id="stJ">—</div><div class="l">Jóvenes</div></div>
             <div class="st vd"><div class="n" id="stA">—</div><div class="l">Adultos</div></div>
             <div class="st mo"><div class="n" id="stE">—</div><div class="l">Emails</div></div>
-        </div>
-        <div class="st" style="margin-bottom:8px;background:linear-gradient(135deg,#f0fdf4,#dcfce7);border:1px solid #86efac;display:flex;align-items:center;gap:10px;padding:11px 14px">
-            <i class="fab fa-whatsapp" style="color:#25D366;font-size:1.4rem"></i>
-            <div><div class="n" id="stWA" style="color:#166534;font-size:1.1rem">—</div><div class="l">Con WhatsApp</div></div>
-            <button onclick="document.getElementById('waConfigPanel').style.display='block'" style="margin-left:auto;background:none;border:1px solid #86efac;border-radius:6px;padding:3px 8px;font-size:0.72rem;cursor:pointer;color:#166534;font-weight:600" title="Configurar plantilla de WhatsApp Business"><i class="fas fa-cog"></i></button>
+            <div class="st" style="background:linear-gradient(135deg,#f0fdf4,#dcfce7);border:1px solid #86efac;position:relative;">
+                <div class="n" id="stWA" style="color:#166534;">—</div><div class="l" style="color:#166534">WhatsApp</div>
+                <button onclick="document.getElementById('waConfigPanel').style.display='block'" style="position:absolute;top:4px;right:4px;background:none;border:none;cursor:pointer;color:#166634;font-size:0.7rem;" title="Configurar WhatsApp"><i class="fas fa-cog"></i></button>
+            </div>
         </div>
         <div class="card" style="margin-bottom:12px">
             <h2><i class="fas fa-users" style="color:var(--azul-claro)"></i> Destinatarios</h2>
@@ -72,6 +71,7 @@
             <div id="histList"><div style="text-align:center;padding:12px;color:var(--texto-claro);font-size:0.82rem"><i class="fas fa-circle-notch fa-spin"></i> Cargando...</div></div>
         </div>
     </div>
+    </div><!-- /.sidebar -->
     <div class="card">
         <h2><i class="fas fa-pen-to-square" style="color:var(--azul-claro)"></i> Redactar circular</h2>
         <div id="alertR"></div>
