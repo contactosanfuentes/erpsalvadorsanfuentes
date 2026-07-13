@@ -71,7 +71,7 @@ async function cargarCalendario(){
     try{
         const{data:progs}=await sb.from('progresion_jovenes').select('joven_id,camino');
         // Cargar notas del Clan (compartidas)
-        const{data:notasClan}=await sb.from('notas_calendario_clan').select('*').order('fecha');
+        const{data:notasClan}=await sb.from('notas_calendario_clan').select('*').eq('unidad','Clan').order('fecha');
         _calNotasClan={};
         (notasClan||[]).forEach(n=>{
             const k=n.fecha; // "YYYY-MM-DD"
@@ -195,6 +195,7 @@ async function guardarNotaCal(){
     if(modal._tipo==='clan'){
         // Guardar en tabla compartida
         const{error}=await sb.from('notas_calendario_clan').insert({
+            unidad:'Clan',
             fecha:clave,
             nota:texto,
             autor_run:currentJoven.run,
@@ -202,7 +203,7 @@ async function guardarNotaCal(){
         });
         if(error){toast('Error: '+error.message,'err');return;}
         // Recargar notas clan
-        const{data:nc}=await sb.from('notas_calendario_clan').select('*').order('fecha');
+        const{data:nc}=await sb.from('notas_calendario_clan').select('*').eq('unidad','Clan').order('fecha');
         _calNotasClan={};
         (nc||[]).forEach(n=>{if(!_calNotasClan[n.fecha])_calNotasClan[n.fecha]=[];_calNotasClan[n.fecha].push(n);});
     } else {

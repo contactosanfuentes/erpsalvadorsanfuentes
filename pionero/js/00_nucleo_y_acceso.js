@@ -34,7 +34,7 @@ function cerrarSesion(){currentJoven=null;camino=null;mpResponsables={};mpPartic
 document.getElementById('portal-screen').style.display='none';document.getElementById('login-screen').style.display='flex';
 document.getElementById('input-rut').value='';document.getElementById('input-clave').value='';document.getElementById('error-box').style.display='none'}
 
-function mostrarPortal(){setTimeout(()=>{if(typeof renderProgresionPionera==="function")renderProgresionPionera();if(typeof renderRadarPionero==="function")renderRadarPionero()},0);document.getElementById('login-screen').style.display='none';document.getElementById('portal-screen').style.display='block';
+function mostrarPortal(){setTimeout(()=>{if(typeof renderRadarPionero==="function")renderRadarPionero()},0);document.getElementById('login-screen').style.display='none';document.getElementById('portal-screen').style.display='block';
 document.getElementById('portal-foto').src=currentJoven.foto_url||'https://ui-avatars.com/api/?name='+encodeURIComponent(currentJoven.nombres)+'&background=E31837&color=fff&bold=true';
 document.getElementById('portal-nombre').textContent=currentJoven.nombres+' '+currentJoven.apellidos;
 document.getElementById('portal-unidad').textContent=currentJoven.unidad||'Pionero/a';

@@ -1,23 +1,4 @@
 
-// ── Progresión pionera: etapas de la Avanzada con insignias del ERP ──
-const ETAPAS_PIONERO=[
-  {n:'Cruz del Sur', img:'https://i.imgur.com/IStoscc.png', d:'Me integro a la Avanzada y trazo mi primer Sonar'},
-  {n:'Sendero',      img:'https://i.imgur.com/VHZrlFN.png', d:'Asumo responsabilidades en los proyectos de Mi Propia Aventura'},
-  {n:'Cumbre',       img:'https://i.imgur.com/3MeclHS.png', d:'Lidero proyectos sociales y acompaño a mi equipo a la cima'}
-];
-function renderProgresionPionera(){
-  const c=document.getElementById('pio-etapas'); if(!c)return;
-  const actual=(currentJoven?.etapa_actual||currentJoven?.adelanto||'').toLowerCase();
-  const idx=ETAPAS_PIONERO.findIndex(e=>actual.includes(e.n.toLowerCase().split(' ')[0]));
-  c.innerHTML=ETAPAS_PIONERO.map((e,i)=>{
-    const estado=idx<0?'':(i<idx?'lograda':i===idx?'actual':'');
-    return `<div style="display:flex;flex-direction:column;align-items:center;flex:1;opacity:${estado===''&&idx>=0?'0.45':'1'};" title="${e.d}">
-      <img src="${e.img}" style="width:44px;height:44px;object-fit:contain;${estado==='actual'?'filter:drop-shadow(0 0 6px #7C3AED);':''}" onerror="this.style.display='none'">
-      <span style="font-size:10px;font-weight:800;color:${estado==='actual'?'#3949AB':estado==='lograda'?'#16a34a':'#6b7280'};margin-top:4px;text-align:center;">${e.n}</span>
-      ${estado==='actual'?'<span style="font-size:8px;font-weight:800;color:#3949AB;text-transform:uppercase;">● Etapa actual</span>':estado==='lograda'?'<span style="font-size:8px;color:#16a34a;font-weight:800;">✓ Lograda</span>':''}
-    </div>`;
-  }).join('<i class="fas fa-chevron-right" style="color:#A5B4FC;font-size:10px;"></i>');
-}
 // ══════════ MANIFIESTO ══════════
 async function guardarManifiesto(){
     camino.aventura_notas=document.getElementById('portal-manifiesto').value;

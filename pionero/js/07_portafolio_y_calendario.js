@@ -59,8 +59,8 @@ async function cargarCalendario(){
     els.forEach(el=>el.innerHTML='<p class="text-center text-gray-400 py-4 text-xs"><i class="fas fa-spinner fa-spin"></i> Cargando...</p>');
     try{
         const{data:progs}=await sb.from('progresion_jovenes').select('joven_id,camino');
-        // Cargar notas del Clan (compartidas)
-        const{data:notasClan}=await sb.from('notas_calendario_clan').select('*').order('fecha');
+        // Cargar notas de la Avanzada (solo esta unidad)
+        const{data:notasClan}=await sb.from('notas_calendario_clan').select('*').eq('unidad','Avanzada').order('fecha');
         _calNotasClan={};
         (notasClan||[]).forEach(n=>{
             const k=n.fecha; // "YYYY-MM-DD"
@@ -117,8 +117,8 @@ function abrirNotaCal(clave){
                 <button id="btn-tipo-personal" onclick="selTipoNota('personal')" style="border:2px solid #f59e0b;border-radius:10px;padding:8px;font-size:12px;font-weight:700;background:#fefce8;color:#92400e;cursor:pointer">
                     🟡 Personal<div style="font-size:10px;font-weight:400;color:#78716c;margin-top:2px">Solo la veo yo</div>
                 </button>
-                <button id="btn-tipo-clan" onclick="selTipoNota('clan')" style="border:2px solid #e2e8f0;border-radius:10px;padding:8px;font-size:12px;font-weight:700;background:#fef2f2;color:#991b1b;cursor:pointer;opacity:0.5">
-                    🔴 Del Clan<div style="font-size:10px;font-weight:400;color:#78716c;margin-top:2px">La ven todos</div>
+                <button id="btn-tipo-clan" onclick="selTipoNota('clan')" style="border:2px solid #e2e8f0;border-radius:10px;padding:8px;font-size:12px;font-weight:700;background:#EEF2FF;color:#3949AB;cursor:pointer;opacity:0.5">
+                    🟣 De la Avanzada<div style="font-size:10px;font-weight:400;color:#78716c;margin-top:2px">La ven todos</div>
                 </button>
             </div>
             <textarea id="modal-nota-texto" rows="3" placeholder="Escribe una nota para este día..." style="width:100%;border:1.5px solid #e2e8f0;border-radius:10px;padding:10px;font-size:13px;outline:none;resize:vertical;box-sizing:border-box;margin-bottom:14px"></textarea>
@@ -126,7 +126,7 @@ function abrirNotaCal(clave){
             <div id="modal-notas-clan-lista" style="margin-bottom:12px"></div>
             <div style="display:flex;gap:8px">
                 <button id="modal-nota-borrar" style="flex:1;border:1.5px solid #fca5a5;border-radius:8px;padding:9px;font-size:13px;font-weight:600;background:#fef2f2;color:#ef4444;cursor:pointer">🗑 Borrar</button>
-                <button onclick="guardarNotaCal()" style="flex:2;border:none;border-radius:8px;padding:9px;font-size:13px;font-weight:700;background:#E31837;color:white;cursor:pointer">Guardar</button>
+                <button onclick="guardarNotaCal()" style="flex:2;border:none;border-radius:8px;padding:9px;font-size:13px;font-weight:700;background:linear-gradient(135deg,#3949AB,#7C3AED);color:white;cursor:pointer">Guardar</button>
             </div>
         </div>`;
         document.body.appendChild(modal);
@@ -142,9 +142,9 @@ function abrirNotaCal(clave){
     const notasClanDia=(_calNotasClan[clave]||[]);
     if(listaClan){
         if(notasClanDia.length){
-            listaClan.innerHTML='<p style="font-size:10px;font-weight:700;color:#991b1b;text-transform:uppercase;margin-bottom:6px">Notas del Clan este día</p>'+
-                notasClanDia.map(n=>`<div style="background:#fef2f2;border:1px solid #fca5a5;border-radius:8px;padding:8px;margin-bottom:6px;display:flex;justify-content:space-between;align-items:start;gap:8px">
-                    <div><p style="font-size:12px;color:#7f1d1d;margin:0">${esc(n.nota)}</p><p style="font-size:10px;color:#94a3b8;margin:2px 0 0">${esc(n.autor_nombre||'')}</p></div>
+            listaClan.innerHTML='<p style="font-size:10px;font-weight:700;color:#3949AB;text-transform:uppercase;margin-bottom:6px">Notas de la Avanzada este día</p>'+
+                notasClanDia.map(n=>`<div style="background:#EEF2FF;border:1px solid #C7D2FE;border-radius:8px;padding:8px;margin-bottom:6px;display:flex;justify-content:space-between;align-items:start;gap:8px">
+                    <div><p style="font-size:12px;color:#283593;margin:0">${esc(n.nota)}</p><p style="font-size:10px;color:#94a3b8;margin:2px 0 0">${esc(n.autor_nombre||'')}</p></div>
                     <button onclick="borrarNotaClanById(${n.id},'${clave}')" style="border:none;background:none;color:#ef4444;cursor:pointer;font-size:14px;flex-shrink:0">✕</button>
                 </div>`).join('');
         } else {
@@ -164,7 +164,7 @@ function selTipoNota(tipo){
     if(btnP) btnP.style.opacity=tipo==='personal'?'1':'0.5';
     if(btnC) btnC.style.opacity=tipo==='clan'?'1':'0.5';
     if(btnP) btnP.style.borderColor=tipo==='personal'?'#f59e0b':'#e2e8f0';
-    if(btnC) btnC.style.borderColor=tipo==='clan'?'#E31837':'#e2e8f0';
+    if(btnC) btnC.style.borderColor=tipo==='clan'?'#3949AB':'#e2e8f0';
     // Actualizar borrar según tipo
     const notas=(camino?.cal_notas)||{};
     const clave=modal._clave;
@@ -184,6 +184,7 @@ async function guardarNotaCal(){
     if(modal._tipo==='clan'){
         // Guardar en tabla compartida
         const{error}=await sb.from('notas_calendario_clan').insert({
+            unidad:'Avanzada',
             fecha:clave,
             nota:texto,
             autor_run:currentJoven.run,
@@ -191,7 +192,7 @@ async function guardarNotaCal(){
         });
         if(error){toast('Error: '+error.message,'err');return;}
         // Recargar notas clan
-        const{data:nc}=await sb.from('notas_calendario_clan').select('*').order('fecha');
+        const{data:nc}=await sb.from('notas_calendario_clan').select('*').eq('unidad','Avanzada').order('fecha');
         _calNotasClan={};
         (nc||[]).forEach(n=>{if(!_calNotasClan[n.fecha])_calNotasClan[n.fecha]=[];_calNotasClan[n.fecha].push(n);});
     } else {
@@ -210,7 +211,7 @@ async function borrarNotaClanById(id, clave){
     if(_calNotasClan[clave]) _calNotasClan[clave]=_calNotasClan[clave].filter(n=>n.id!==id);
     document.getElementById('modal-nota-cal')?.remove();
     renderCalMensual();
-    toast('Nota del Clan eliminada','ok');
+    toast('Nota de la Avanzada eliminada','ok');
 }
 
 async function borrarNotaCal(clave){
@@ -275,7 +276,7 @@ function renderCalMensual(){
             const et=e.termino?new Date(e.termino.getFullYear(),e.termino.getMonth(),e.termino.getDate()):null;
             return ei&&et&&ei<fecha&&et>fecha;
         });
-        const bg=esHoy?'#fef2f2':tieneNotaClan?'#fef2f2':evDia.length?'#dbeafe':enProg.length?'#dcfce7':'#f8fafc';
+        const bg=esHoy?'#EEF2FF':tieneNotaClan?'#E0E7FF':evDia.length?'#dbeafe':enProg.length?'#dcfce7':'#f8fafc';
         const border=esHoy?'2px solid #E31837':tieneNotaClan?'1.5px solid #E31837':evDia.length?'1.5px solid #93c5fd':enProg.length?'1.5px solid #86efac':'1.5px solid #e2e8f0';
         const numColor=esHoy?'#E31837':evDia.length?'#1e40af':'#64748b';
         // Tooltip con eventos del día

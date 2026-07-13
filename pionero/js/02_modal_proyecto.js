@@ -127,8 +127,8 @@ async function mpSubirEvidencia(){
     const FOLDER_ID='1YRTHTvFHQ6U6CPWMfwVvfEUdNKBfmR9q';
     let subFolder=FOLDER_ID;
     try{
-        // Nivel 1: carpeta "Evidencias - Proyectos" dentro del Clan
-        const sr=await fetch('/.netlify/functions/subir-drive',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({accion:'crear_carpeta',nombre:'Evidencias - Proyectos',folder_id:FOLDER_ID})});
+        // Nivel 1: carpeta "Evidencias - Avanzada" propia de la unidad
+        const sr=await fetch('/.netlify/functions/subir-drive',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({accion:'crear_carpeta',nombre:'Evidencias - Avanzada',folder_id:FOLDER_ID})});
         const sd=JSON.parse(await sr.text());
         if(sd.ok){
             subFolder=sd.id;
