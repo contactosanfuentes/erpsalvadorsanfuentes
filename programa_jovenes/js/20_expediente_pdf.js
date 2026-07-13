@@ -4,7 +4,7 @@
                 'Manada': 'https://i.imgur.com/0bZQNJs.png',
                 'Tropa': 'https://i.imgur.com/2M19fp0.png',
                 'Compañía': 'https://i.imgur.com/eoG0c2D.png',
-                'Avanzada': 'https://i.imgur.com/06YpoWy.png',
+                'Avanzada': 'https://hyixmaxhoxvamoecuars.supabase.co/storage/v1/object/public/logos/avanzada_toki_pillan.png',
                 'Clan': 'https://i.imgur.com/abtMi0i.png'
             };
             return logos[rama] || 'https://i.imgur.com/11u9rUD.png';

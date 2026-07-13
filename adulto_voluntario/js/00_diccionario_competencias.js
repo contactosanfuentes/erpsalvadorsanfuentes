@@ -214,7 +214,7 @@
             'Manada': 'https://i.imgur.com/0bZQNJs.png', 'Lobezno': 'https://i.imgur.com/lSrmFXz.png', 'Saltador': 'https://i.imgur.com/AXcwr5h.png', 'Diestro': 'https://i.imgur.com/VBD3nDy.png', 'Cazador': 'https://i.imgur.com/QrsX3NY.png',
             'Compania': 'https://i.imgur.com/eoG0c2D.png', 'Compañía': 'https://i.imgur.com/eoG0c2D.png', 'Alba': 'https://i.imgur.com/CyEFpPL.png', 'Amanecer': 'https://i.imgur.com/JQqcy0X.png', 'Luz': 'https://i.imgur.com/9ZheqTf.png', 'Resplandor': 'https://i.imgur.com/vkJj0bK.png',
             'Tropa': 'https://i.imgur.com/2M19fp0.png', 'Cernícalo': 'https://i.imgur.com/yJyps57.png', 'Halcón': 'https://i.imgur.com/AAZdzEG.png', 'Águila': 'https://i.imgur.com/j2OYdiD.png', 'Cóndor': 'https://i.imgur.com/GQNxp25.png',
-            'Avanzada': 'https://i.imgur.com/06YpoWy.png', 'Cruz del Sur': 'https://i.imgur.com/IStoscc.png', 'Sendero': 'https://i.imgur.com/VHZrlFN.png', 'Cumbre': 'https://i.imgur.com/3MeclHS.png',
+            'Avanzada': 'https://hyixmaxhoxvamoecuars.supabase.co/storage/v1/object/public/logos/avanzada_toki_pillan.png', 'Cruz del Sur': 'https://i.imgur.com/IStoscc.png', 'Sendero': 'https://i.imgur.com/VHZrlFN.png', 'Cumbre': 'https://i.imgur.com/3MeclHS.png',
             'Clan': 'https://i.imgur.com/abtMi0i.png', 'Fuego': 'https://i.imgur.com/IEr3Kms.png', 'Antorcha': 'https://i.imgur.com/qTTibWH.png'
         };
 
