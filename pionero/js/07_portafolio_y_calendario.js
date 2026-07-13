@@ -12,7 +12,8 @@ async function cargarPortafolio() {
             { nombre: 'Sendero',      img: 'https://i.imgur.com/VHZrlFN.png', color: '#7C3AED' },
             { nombre: 'Cumbre',       img: 'https://i.imgur.com/3MeclHS.png', color: '#10B981' }
         ];
-        const etapa = prog.etapa_actual || null;
+        // En la Avanzada el ERP registra la etapa en mmbb_registrations.adelanto
+        const etapa = prog.etapa_actual || currentJoven?.adelanto || null;
         const idxAct = ETAPAS.findIndex(e => e.nombre === etapa);
         const competencias = (prog.territorios?.competencias_mayores || []);
         const lineaEtapas = ETAPAS.map((e, i) => {
