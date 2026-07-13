@@ -23,7 +23,7 @@ const j=data[0];const rutD=rut.replace(/[^0-9]/g,'');if(clave!==(j.portal_clave|
 // Portal exclusivo de la rama pionera (Avanzada). Caminantes tienen su propio portal.
 if(!String(j.unidad||'').toLowerCase().includes('avanzada')){err.innerHTML='Este portal es para pioneros y pioneras de la <b>Avanzada</b>.<br>Si eres caminante, entra a tu portal: <a href="portal_caminante.html" style="text-decoration:underline;font-weight:700;">Portal Caminante</a>.';err.style.display='block';return}
 currentJoven=j;const{data:pg}=await sb.from('progresion_jovenes').select('*').eq('joven_id',j.id).maybeSingle();
-if(pg){camino=pg.camino||{}}else{camino={};await sb.from('progresion_jovenes').insert({joven_id:j.id,camino})}
+if(pg){camino=pg.camino||{};sonarData=pg.sonar||null}else{camino={};sonarData=null;await sb.from('progresion_jovenes').insert({joven_id:j.id,camino})}
 if(!camino.proyectoPersonal)camino.proyectoPersonal='';if(!camino.adjuntos_manifiesto)camino.adjuntos_manifiesto=[];if(!camino.proyectos_colectivos)camino.proyectos_colectivos=[];
 mostrarPortal()}catch(e){err.textContent='Error: '+e.message;err.style.display='block'}finally{document.getElementById('btn-ingresar').disabled=false}}
 
@@ -34,7 +34,7 @@ function cerrarSesion(){currentJoven=null;camino=null;mpResponsables={};mpPartic
 document.getElementById('portal-screen').style.display='none';document.getElementById('login-screen').style.display='flex';
 document.getElementById('input-rut').value='';document.getElementById('input-clave').value='';document.getElementById('error-box').style.display='none'}
 
-function mostrarPortal(){setTimeout(()=>{if(typeof renderProgresionPionera==="function")renderProgresionPionera()},0);document.getElementById('login-screen').style.display='none';document.getElementById('portal-screen').style.display='block';
+function mostrarPortal(){setTimeout(()=>{if(typeof renderProgresionPionera==="function")renderProgresionPionera();if(typeof renderRadarPionero==="function")renderRadarPionero()},0);document.getElementById('login-screen').style.display='none';document.getElementById('portal-screen').style.display='block';
 document.getElementById('portal-foto').src=currentJoven.foto_url||'https://ui-avatars.com/api/?name='+encodeURIComponent(currentJoven.nombres)+'&background=E31837&color=fff&bold=true';
 document.getElementById('portal-nombre').textContent=currentJoven.nombres+' '+currentJoven.apellidos;
 document.getElementById('portal-unidad').textContent=currentJoven.unidad||'Caminante';
