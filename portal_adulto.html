@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Portal del Adulto Voluntario | Salvador Sanfuentes</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap');
+*{box-sizing:border-box;margin:0;padding:0;font-family:'Poppins',sans-serif}
+:root{--oro:#C8A84C;--oro-osc:#A08434;--azul:#0E2586;--fondo:#f6f7fb}
+body{background:var(--fondo);min-height:100vh}
+/* ── LOGIN ── */
+.login-screen{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px;background:linear-gradient(150deg,#0a1030,#0E2586 55%,#3a4a9c)}
+.login-card{background:white;border-radius:20px;padding:40px;max-width:440px;width:100%;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,0.25)}
+.login-card img.logo{width:88px;height:auto;margin:0 auto 14px;display:block}
+.login-card h1{font-size:1.4rem;font-weight:800;color:var(--azul);margin-bottom:4px}
+.login-card .sub{color:var(--oro-osc);font-weight:800;font-size:0.85rem;letter-spacing:.05em;margin-bottom:6px}
+.login-card p.desc{color:#64748b;font-size:0.85rem;margin-bottom:22px}
+.btn-google{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;padding:12px;border:2px solid #e2e8f0;border-radius:12px;background:#fff;font-weight:700;font-size:0.95rem;color:#334155;cursor:pointer;transition:.2s}
+.btn-google:hover{border-color:var(--oro);box-shadow:0 4px 14px rgba(200,168,76,.25)}
+.btn-google img{width:20px;height:20px}
+.login-nota{margin-top:16px;font-size:0.72rem;color:#94a3b8}
+.error-msg{display:none;background:#fef2f2;border:1px solid #fecaca;color:#b91c1c;border-radius:10px;padding:10px;font-size:0.8rem;margin-bottom:14px}
+/* ── PORTAL ── */
+.portal{display:none}
+.portal-header{display:flex;align-items:center;gap:12px;padding:12px 22px;background:linear-gradient(135deg,#0a1030,var(--azul) 60%,#2d3d8f);color:#fff;position:sticky;top:0;z-index:100;flex-wrap:wrap}
+.portal-header img.foto{width:46px;height:46px;border-radius:50%;border:2.5px solid var(--oro);object-fit:cover;background:#fff}
+.portal-header h2{font-size:1rem;font-weight:800}
+.badge{display:inline-flex;align-items:center;gap:5px;font-size:0.7rem;font-weight:800;background:rgba(200,168,76,.2);border:1px solid rgba(200,168,76,.55);color:#f4e3ae;border-radius:999px;padding:2px 10px}
+.btn-salir{margin-left:auto;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.3);color:#fff;border-radius:10px;padding:6px 12px;font-size:0.75rem;font-weight:700;cursor:pointer}
+.tabs{display:flex;gap:4px;background:#fff;padding:0 14px;box-shadow:0 1px 4px rgba(0,0,0,.06);overflow-x:auto;position:sticky;top:70px;z-index:90}
+.tab{padding:12px 14px;font-size:0.8rem;font-weight:700;color:#64748b;border-bottom:3px solid transparent;cursor:pointer;white-space:nowrap}
+.tab.active{color:var(--azul);border-color:var(--oro)}
+.cont{max-width:860px;margin:0 auto;padding:18px 14px 60px}
+.card{background:#fff;border-radius:16px;padding:18px;margin-bottom:16px;box-shadow:0 2px 10px rgba(0,0,0,.05)}
+.card h3{font-size:0.95rem;font-weight:800;color:var(--azul);margin-bottom:4px}
+.card h3 i{color:var(--oro-osc);margin-right:7px}
+.card .hint{font-size:0.72rem;color:#94a3b8;margin-bottom:12px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media(max-width:640px){.grid2{grid-template-columns:1fr}}
+.fg{display:flex;flex-direction:column;gap:4px}
+.fg label{font-size:0.68rem;font-weight:800;text-transform:uppercase;letter-spacing:.04em;color:#475569}
+.fg input,.fg select,.fg textarea{border:1.5px solid #e2e8f0;border-radius:10px;padding:9px 11px;font-size:0.85rem;outline:none;background:#fff}
+.fg input:focus,.fg select:focus,.fg textarea:focus{border-color:var(--oro)}
+.chips{display:flex;flex-wrap:wrap;gap:7px}
+.chip{font-size:0.74rem;font-weight:700;border:1.5px solid #e2e8f0;border-radius:999px;padding:5px 12px;cursor:pointer;color:#475569;user-select:none}
+.chip.on{background:#fdf6e3;border-color:var(--oro);color:var(--oro-osc)}
+.btn{background:linear-gradient(135deg,var(--oro),var(--oro-osc));color:#fff;border:none;border-radius:12px;padding:11px 20px;font-weight:800;font-size:0.85rem;cursor:pointer;box-shadow:0 4px 12px rgba(200,168,76,.35)}
+.btn-sec{background:#fff;color:var(--azul);border:1.5px solid #c7d2fe;border-radius:12px;padding:10px 16px;font-weight:700;font-size:0.8rem;cursor:pointer}
+.ro-box{background:linear-gradient(135deg,#f8fafc,#eef2ff);border:1px dashed #c7d2fe;border-radius:14px;padding:14px}
+.ro-box .titulo{font-size:0.72rem;font-weight:800;color:var(--azul);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px}
+.ro-item{display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid #eef2f7;font-size:0.8rem}
+.ro-item:last-child{border:none}
+.ro-item .k{color:#64748b;font-weight:600}
+.ro-item .v{font-weight:800;color:#1e293b;text-align:right}
+.pill-si{color:#059669;font-weight:800}.pill-no{color:#b91c1c;font-weight:800}
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#1e293b;color:#fff;border-radius:12px;padding:11px 20px;font-size:0.82rem;font-weight:700;z-index:999;display:none;max-width:92vw}
+.toast.err{background:#b91c1c}
+.doc-row{display:flex;align-items:center;gap:10px;padding:10px;border:1.5px solid #e2e8f0;border-radius:12px;margin-bottom:10px;flex-wrap:wrap}
+.doc-row .nombre{font-size:0.8rem;font-weight:700;color:#334155;flex:1;min-width:180px}
+.doc-row a{font-size:0.72rem;color:var(--azul);font-weight:700}
+canvas.firma{border:2px dashed #cbd5e1;border-radius:12px;width:100%;height:150px;touch-action:none;background:#fff}
+.seccion{display:none}.seccion.active{display:block}
+.spinner{display:none;text-align:center;padding:40px;color:#64748b;font-weight:700}
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div class="login-screen" id="login-screen">
+  <div class="login-card">
+    <img class="logo" src="https://hyixmaxhoxvamoecuars.supabase.co/storage/v1/object/public/logos/grupo.png" alt="Grupo Salvador Sanfuentes" onerror="this.src='https://i.imgur.com/11u9rUD.png'">
+    <h1>Portal del Adulto Voluntario</h1>
+    <p class="sub">Grupo Guías y Scouts Salvador Sanfuentes</p>
+    <p class="desc">Actualiza tus datos de contacto, salud, formación, documentos y tu compromiso anual. Los datos institucionales los gestiona el equipo de grupo en el ERP.</p>
+    <div id="error-box" class="error-msg"></div>
+    <button class="btn-google" onclick="loginGoogle()">
+      <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="G">
+      Continuar con Google
+    </button>
+    <p class="login-nota"><i class="fas fa-lock mr-1"></i> Usa tu cuenta institucional @salvadorsanfuentes.org (la misma del ERP).</p>
+  </div>
+</div>
+
+<!-- PORTAL -->
+<div class="portal" id="portal-screen">
+  <div class="portal-header">
+    <img class="foto" id="hdr-foto" src="" alt="">
+    <div>
+      <h2 id="hdr-nombre"></h2>
+      <span class="badge"><i class="fas fa-hands-helping"></i> <span id="hdr-rol">Adulto Voluntario</span></span>
+    </div>
+    <button class="btn-salir" onclick="cerrarSesionAdulto()"><i class="fas fa-sign-out-alt"></i> Salir</button>
+  </div>
+  <div class="tabs">
+    <div class="tab active" onclick="verSeccion('datos',this)"><i class="fas fa-id-card"></i> Mis Datos</div>
+    <div class="tab" onclick="verSeccion('formacion',this)"><i class="fas fa-graduation-cap"></i> Formación e Intereses</div>
+    <div class="tab" onclick="verSeccion('compromiso',this)"><i class="fas fa-file-signature"></i> Mi Compromiso</div>
+    <div class="tab" onclick="verSeccion('documentos',this)"><i class="fas fa-folder-open"></i> Documentos</div>
+  </div>
+  <div class="cont">
+    <div class="spinner" id="spinner"><i class="fas fa-circle-notch fa-spin"></i> Cargando tu ficha...</div>
+    <div id="sin-ficha" style="display:none" class="card">
+      <h3><i class="fas fa-user-slash"></i> No encontramos tu ficha</h3>
+      <p class="hint">Tu correo <b id="sf-email"></b> no está asociado a ningún registro de adulto voluntario. Completa primero el <a href="https://registroadultos.netlify.app/" target="_blank" rel="noopener" style="color:var(--azul);font-weight:800">Registro de Adultos</a> o pide al equipo de grupo que asocie tu correo institucional en el ERP.</p>
+    </div>
+
+    <div class="seccion active" id="sec-datos"></div>
+    <div class="seccion" id="sec-formacion"></div>
+    <div class="seccion" id="sec-compromiso"></div>
+    <div class="seccion" id="sec-documentos"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="adulto/js/00_auth_y_nucleo.js"></script>
+<script src="adulto/js/01_datos_personales.js"></script>
+<script src="adulto/js/02_formacion_intereses.js"></script>
+<script src="adulto/js/03_compromiso.js"></script>
+<script src="adulto/js/04_documentos.js"></script>
+<script>if('serviceWorker' in navigator){navigator.serviceWorker.register('/sw.js').catch(function(){});}</script>
+</body>
+</html>

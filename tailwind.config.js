@@ -3,7 +3,7 @@ module.exports = {
   content: [
     './dashboard.html', './directorio.html', './tesoreria.html',
     './adulto_voluntario.html', './programa_jovenes.html',
-    './portal_caminante.html', './portal_pionero.html', './portal_apoderados.html',
+    './portal_caminante.html', './portal_pionero.html', './portal_adulto.html', './portal_apoderados.html',
     './dashboard/**/*.js', './directorio/**/*.js', './tesoreria/**/*.js',
     './adulto_voluntario/**/*.js', './programa_jovenes/**/*.js',
     './caminante/**/*.js', './apoderados/**/*.js',
