@@ -96,7 +96,7 @@ async function guardarAdulto(cambios){
     'grupo_sanguineo','alergias','emergencia_nombre','emergencia_parentesco','emergencia_telefono','emergencia_email',
     'cursos','certificaciones','especialidades','en_formacion','ap_nombre','apf_nombre','etapa_ppf',
     'compromiso_formacion','compromiso_unidad','compromiso_asistencia','compromiso_ap','compromiso_ppf','compromiso_evaluacion','compromiso_otros',
-    'cert_antecedentes_url','cert_inhabilidad_url','cert_inhabilidad_relevante_url','carta_recomendacion_url','foto_url','firma_url']);
+    'cert_antecedentes_url','cert_inhabilidad_url','cert_inhabilidad_relevante_url','carta_recomendacion_url','foto_url','firma_url','certificados_formacion']);
   const payload = {};
   for (const k of Object.keys(cambios)) { if (PERMITIDAS.has(k)) payload[k] = cambios[k]; }
   if (!Object.keys(payload).length) return false;
