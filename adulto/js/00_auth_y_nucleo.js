@@ -31,6 +31,27 @@ async function loginPassword(){
   await iniciarPortalAdulto();
 }
 
+function normalizarRun(r){ return String(r||'').replace(/[^0-9kK]/g,'').toLowerCase(); }
+
+async function vincularPorRun(){
+  const msg = $('sf-msg'); msg.style.display = 'block'; msg.style.color = '#64748b'; msg.textContent = 'Buscando tu ficha...';
+  const runBuscado = normalizarRun($('sf-run').value);
+  if (runBuscado.length < 7) { msg.style.color = '#b91c1c'; msg.textContent = 'Escribe tu RUN completo.'; return; }
+  const { data, error } = await sb.from('adultos_registros').select('id, run, email, email_institucional');
+  if (error) { msg.style.color = '#b91c1c'; msg.textContent = 'Error: ' + error.message; return; }
+  const ficha = (data || []).find(r => normalizarRun(r.run) === runBuscado);
+  if (!ficha) { msg.style.color = '#b91c1c'; msg.textContent = 'No encontramos un registro con ese RUN. Verifica el número o completa primero el Registro de Adultos.'; return; }
+  // Protección: si la ficha ya está reclamada por otro correo, no se puede re-vincular desde aquí.
+  if (ficha.email_institucional && ficha.email_institucional.toLowerCase() !== authEmail) {
+    msg.style.color = '#b91c1c'; msg.textContent = 'Esa ficha ya está vinculada a otro correo institucional. Si es tuya, pide al equipo de grupo que lo corrija en el ERP.'; return;
+  }
+  const { error: e2 } = await sb.from('adultos_registros').update({ email_institucional: authEmail }).eq('id', ficha.id);
+  if (e2) { msg.style.color = '#b91c1c'; msg.textContent = 'Error al vincular: ' + e2.message; return; }
+  msg.style.color = '#059669'; msg.textContent = '✓ Ficha vinculada. Cargando tu portal...';
+  $('sin-ficha').style.display = 'none';
+  await iniciarPortalAdulto();
+}
+
 async function cerrarSesionAdulto(){ await sb.auth.signOut(); window.location.reload(); }
 
 async function iniciarPortalAdulto(){
