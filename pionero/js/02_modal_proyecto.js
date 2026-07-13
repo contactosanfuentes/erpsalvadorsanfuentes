@@ -9,7 +9,7 @@ document.getElementById('mp-inicio').value='';document.getElementById('mp-termin
 document.getElementById('mp-toggle-ficha').checked=false;document.getElementById('mp-ficha-ext').style.display='none';
 document.getElementById('mp-justificacion').value='';document.getElementById('mp-beneficiarios').value='';document.getElementById('mp-lugar').value='';
 document.getElementById('mp-arbol-central').value='';document.getElementById('mp-crear-evento').checked=false;
-document.getElementById('mp-title').textContent='Nueva Empresa';
+document.getElementById('mp-title').textContent='Nuevo Proyecto';
 renderMpParticipantes();renderMpEvidencias();renderMpResponsables();
 const errBox2=document.getElementById('mp-evidencia-error');if(errBox2)errBox2.innerHTML='';
 // Init dynamic lists
@@ -27,7 +27,7 @@ document.getElementById('mp-objetivo').value=p.objetivo||'';if(document.getEleme
 const campoVal=['Servicio','Trabajo','Viaje','Naturaleza','Cultura y Artes','Innovación / Técnica'].includes(p.campoAccion)?p.campoAccion:'Otros';
 document.getElementById('mp-campo').value=campoVal;if(campoVal==='Otros'){document.getElementById('mp-campo-otro').style.display='block';document.getElementById('mp-campo-otro').value=p.campoAccion||''}
 document.getElementById('mp-inicio').value=p.inicio||'';document.getElementById('mp-termino').value=p.termino||'';
-document.getElementById('mp-title').textContent='Editar Empresa';
+document.getElementById('mp-title').textContent='Editar Proyecto';
 mpParticipantes=[...(p.participantes||[])];mpResponsables={...(p.responsables||{})};mpEvidencias=[...(p.evidencias||[])];
 renderMpParticipantes();renderMpEvidencias();renderMpResponsables();
 if(p.justificacion||p.beneficiarios||p.lugar||p.objetivosEspecificos||p.planAccion||p.presupuestoEstimado||p.indicadores||p.arbolProblema){
@@ -132,7 +132,7 @@ async function mpSubirEvidencia(){
         const sd=JSON.parse(await sr.text());
         if(sd.ok){
             subFolder=sd.id;
-            // Nivel 2: subcarpeta por nombre dla empresa
+            // Nivel 2: subcarpeta por nombre del proyecto
             const nombreProy=(document.getElementById('mp-nombre')?.value||'Sin nombre').trim().slice(0,60);
             const sr2=await fetch('/.netlify/functions/subir-drive',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({accion:'crear_carpeta',nombre:nombreProy,folder_id:subFolder})});
             const sd2=JSON.parse(await sr2.text());
@@ -179,7 +179,7 @@ async function mpSubirEvidencia(){
         const idx=camino.proyectos_colectivos.findIndex(p=>p.id===Number(editId));
         if(idx!==-1){
             camino.proyectos_colectivos[idx].evidencias=[...mpEvidencias];
-            if(await guardarCamino()){if(errBox)errBox.innerHTML='';toast('✓ Guardado en Drive y en la empresa','ok');}
+            if(await guardarCamino()){if(errBox)errBox.innerHTML='';toast('✓ Guardado en Drive y en el proyecto','ok');}
             else mostrarError('Drive OK, pero falló el guardado en BD. Haz clic en Guardar.');
         }
     }

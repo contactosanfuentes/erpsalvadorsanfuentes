@@ -46,7 +46,7 @@ function renderRadarPionero(){
 
   const svg=`<svg viewBox="0 0 300 290" style="width:100%;max-width:340px;margin:0 auto;display:block;">
     ${grid}${ejes}
-    <polygon points="${valPts}" fill="rgba(194,65,12,0.22)" stroke="#C2410C" stroke-width="2.5" stroke-linejoin="round"/>
+    <polygon points="${valPts}" fill="rgba(194,65,12,0.22)" stroke="#3949AB" stroke-width="2.5" stroke-linejoin="round"/>
     ${dots}${labels}
   </svg>`;
 

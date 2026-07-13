@@ -126,13 +126,30 @@
   .btn-logout{margin-left:0;width:100%;text-align:center;margin-top:8px}
 }
 </style>
+<style>
+/* ══ Identidad Avanzada Toki Pillán: añil institucional + morado (distinta del Clan/rojo) ══ */
+:root{ --avz:#3949AB; --avz-osc:#283593; --avz-morado:#7C3AED; --avz-suave:#EEF2FF; }
+.portal-header{ background:linear-gradient(135deg,#1a1040,#3949AB 55%,#7C3AED)!important; }
+.portal-header h2, .portal-header .badge{ color:#fff!important; }
+.badge{ background:rgba(255,255,255,0.15)!important; border:1px solid rgba(255,255,255,0.3)!important; }
+.btn-primary-portal{ background:linear-gradient(135deg,#3949AB,#7C3AED)!important; }
+.portal-tab.active{ color:#3949AB!important; border-color:#3949AB!important; }
+.portal-tab:hover{ color:#5C6BC0!important; }
+.section-card h3 i{ color:#7C3AED!important; }
+.login-card .btn-primary-portal{ background:linear-gradient(135deg,#3949AB,#7C3AED)!important; }
+textarea:focus, input:focus{ border-color:#7C3AED!important; }
+.bg-red-50{ background:#EEF2FF!important; } .border-red-100,.border-red-200{ border-color:#C7D2FE!important; }
+.text-red-700{ color:#3949AB!important; } .text-red-600{ color:#4F46E5!important; }
+.focus\:border-red-400:focus{ border-color:#7C3AED!important; }
+.bg-red-100:hover,.hover\:bg-red-100:hover{ background:#E0E7FF!important; }
+</style>
 </head>
 <body>
 <div id="toast" class="toast"></div>
 
 <!-- LOGIN -->
 <div class="login-screen" id="login-screen">
-<div class="login-card">
+<div class="login-card"><img src="assets/insignia_toki_pillan.png" alt="Avanzada Toki Pillán" style="width:130px;margin:0 auto 12px;display:block;filter:drop-shadow(0 4px 12px rgba(57,73,171,.45));">
 <div style="display:flex;flex-direction:column;align-items:center;gap:12px;margin-bottom:8px">
   <img src="https://hyixmaxhoxvamoecuars.supabase.co/storage/v1/object/public/logos/clan_kutral_raiguen.png" alt="Clan Kutral Raigüen" style="width:120px;height:120px;object-fit:contain;filter:drop-shadow(0 4px 12px rgba(0,0,0,0.15))">
 </div>
@@ -150,7 +167,7 @@
 <!-- PORTAL -->
 <div class="portal-screen" id="portal-screen">
 <div class="portal-header">
-<img id="portal-foto" src="" alt=""><img src="https://hyixmaxhoxvamoecuars.supabase.co/storage/v1/object/public/logos/clan_kutral_raiguen.png" alt="Clan" style="width:34px;height:34px;object-fit:contain;flex-shrink:0;opacity:0.92"><div><h2 id="portal-nombre"></h2><span class="badge"><i class="fas fa-mountain"></i> <span id="portal-unidad">Pionero/a</span></span></div>
+<img src="assets/insignia_toki_pillan.png" alt="Avanzada Toki Pillán" style="height:52px;width:auto;filter:drop-shadow(0 2px 6px rgba(0,0,0,.35));margin-right:10px;"><img id="portal-foto" src="" alt=""><img src="https://hyixmaxhoxvamoecuars.supabase.co/storage/v1/object/public/logos/clan_kutral_raiguen.png" alt="Clan" style="width:34px;height:34px;object-fit:contain;flex-shrink:0;opacity:0.92"><div><h2 id="portal-nombre"></h2><span class="badge"><i class="fas fa-mountain"></i> <span id="portal-unidad">Pionero/a</span></span></div>
 <div id="portal-notif-btn" onclick="irAMisProyectos()" style="display:none;position:relative;cursor:pointer;margin-right:4px;">
   <div style="background:#ef4444;color:#fff;border-radius:50%;width:32px;height:32px;display:flex;align-items:center;justify-content:center;font-size:13px;">
     <i class="fas fa-bell"></i>
@@ -221,34 +238,19 @@
 
 <!-- Tabs de navegación (solo desktop) -->
 <div class="portal-tabs-bar">
-  <button class="portal-tab active" onclick="activarTab('vida',this)"><i class="fas fa-fire mr-1"></i>Mis Desafíos</button>
-  <button class="portal-tab" onclick="activarTab('proyectos',this)"><i class="fas fa-people-carry mr-1"></i>Nuestras Empresas</button>
+  <button class="portal-tab active" onclick="activarTab('vida',this)"><i class="fas fa-satellite-dish mr-1"></i>El Sonar</button>
+  <button class="portal-tab" onclick="activarTab('proyectos',this)"><i class="fas fa-compass mr-1"></i>Mi Propia Aventura</button>
   <button class="portal-tab" onclick="activarTab('explorar',this)"><i class="fas fa-rocket mr-1"></i>Explorar</button>
   <button class="portal-tab" onclick="activarTab('cal',this)"><i class="fas fa-calendar mr-1"></i>Calendario</button>
 </div>
 
 <div id="tab-vida" class="tab-panel active-panel">
 <div class="section-card">
-<h3><i class="fas fa-fire" style="color:#C2410C;margin-right:8px;"></i> Mis Desafíos Personales</h3>
-<p class="subtitle">La rama pionera vive la aventura del desafío: personal, en equipo y con la Avanzada</p>
+<h3><i class="fas fa-satellite-dish" style="color:#7C3AED;margin-right:8px;"></i> El Sonar — Mi Equilibrio Personal</h3>
+<p class="subtitle">En la Avanzada diseñas libremente tu perfil: ejecutas proyectos sociales ("Mi Propia Aventura") y evalúas tu equilibrio personal con El Sonar</p>
 
-<!-- Tres preguntas del Camino Simbólico AGSCh -->
-<div class="grid grid-cols-1 gap-3 mb-4" style="grid-template-columns:repeat(3,1fr)">
-  <div class="bg-red-50 border border-red-100 rounded-xl p-3">
-    <p class="text-xs font-bold text-red-700 mb-1">¿Qué desafío quiero superar?</p>
-    <textarea id="pv-q1" rows="2" class="w-full bg-transparent border-none outline-none text-xs text-gray-700 resize-none" placeholder="Escribe aquí..."></textarea>
-  </div>
-  <div class="bg-red-50 border border-red-100 rounded-xl p-3">
-    <p class="text-xs font-bold text-red-700 mb-1">¿Qué aporto a mi equipo y a la Avanzada?</p>
-    <textarea id="pv-q2" rows="2" class="w-full bg-transparent border-none outline-none text-xs text-gray-700 resize-none" placeholder="Escribe aquí..."></textarea>
-  </div>
-  <div class="bg-red-50 border border-red-100 rounded-xl p-3">
-    <p class="text-xs font-bold text-red-700 mb-1">¿Cómo me comprometo a lograrlo?</p>
-    <textarea id="pv-q3" rows="2" class="w-full bg-transparent border-none outline-none text-xs text-gray-700 resize-none" placeholder="Escribe aquí..."></textarea>
-  </div>
-</div>
-<p class="text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">Mi desafío personal es</p>
-<textarea id="portal-manifiesto" rows="4" class="w-full border-2 border-gray-200 rounded-xl p-4 text-sm focus:border-red-400 outline-none font-medium" placeholder="Describe tu desafío personal: qué quieres lograr esta etapa, con quién y para cuándo..."></textarea>
+<p class="text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">Mi Propia Aventura — notas personales</p>
+<textarea id="portal-manifiesto" rows="4" class="w-full border-2 border-gray-200 rounded-xl p-4 text-sm focus:border-red-400 outline-none font-medium" placeholder="¿Qué aventura estás diseñando? Ideas de proyectos sociales, aprendizajes del último Sonar, metas de tu etapa..."></textarea>
 <div class="flex gap-2 mt-3 flex-wrap">
 <label class="bg-red-50 text-red-700 border border-red-200 rounded-lg px-3 py-1.5 text-xs font-bold cursor-pointer hover:bg-red-100"><i class="fas fa-image mr-1"></i> Imagen <input type="file" accept="image/*" multiple style="display:none" onchange="subirAdjunto('imagen',this)"></label>
 <label class="bg-purple-50 text-purple-700 border border-purple-200 rounded-lg px-3 py-1.5 text-xs font-bold cursor-pointer hover:bg-purple-100"><i class="fas fa-microphone mr-1"></i> Audio <input type="file" accept="audio/*" style="display:none" onchange="subirAdjunto('audio',this)"></label>
@@ -257,12 +259,12 @@
 <div class="text-right mt-3"><button class="btn-primary-portal" onclick="guardarManifiesto()"><i class="fas fa-save"></i> Guardar</button></div>
 
 <!-- Requisitos para avanzar de etapa -->
-<div class="mt-4 bg-gradient-to-r from-orange-50 to-amber-50 border border-orange-200 rounded-xl p-4">
-  <p class="text-xs font-extrabold text-orange-800 uppercase tracking-wide mb-3"><i class="fas fa-mountain mr-1"></i> Mi Progresión Pionera</p>
+<div class="mt-4 bg-gradient-to-r from-indigo-50 to-purple-50 border border-indigo-200 rounded-xl p-4">
+  <p class="text-xs font-extrabold text-indigo-900 uppercase tracking-wide mb-3"><i class="fas fa-mountain mr-1"></i> Mi Progresión Pionera</p>
   <div id="pio-etapas" class="flex items-center justify-around gap-2"></div>
 </div>
-<div class="mt-4 bg-white border border-orange-200 rounded-xl p-4">
-  <p class="text-xs font-extrabold text-orange-800 uppercase tracking-wide mb-1"><i class="fas fa-satellite-dish mr-1"></i> Mi Radar — Autoevaluación</p>
+<div class="mt-4 bg-white border border-indigo-200 rounded-xl p-4">
+  <p class="text-xs font-extrabold text-indigo-900 uppercase tracking-wide mb-1"><i class="fas fa-satellite-dish mr-1"></i> Mi Radar — Autoevaluación</p>
   <p class="text-[11px] text-gray-400 mb-3">¿Cómo te ves hoy en cada área de crecimiento? Mueve los controles y guarda: es tu foto del momento, no una nota.</p>
   <div id="pio-radar"></div>
 </div>
@@ -295,9 +297,9 @@
 </div><!-- /tab-vida -->
 <div id="tab-proyectos" class="tab-panel">
 <div id="sec-proyectos" class="section-card">
-<h3 id="sec-proyectos"><i class="fas fa-people-carry" style="color:#C2410C;margin-right:8px;"></i> Nuestras Empresas</h3>
+<h3 id="sec-proyectos"><i class="fas fa-compass" style="color:#7C3AED;margin-right:8px;"></i> Mi Propia Aventura — Proyectos de la Avanzada</h3>
 <p class="subtitle">Crea y gestiona proyectos con el mismo formulario del sistema principal.</p>
-<button onclick="abrirModalProyecto()" class="btn-primary-portal mb-4"><i class="fas fa-plus-circle"></i> Idear Nueva Empresa</button>
+<button onclick="abrirModalProyecto()" class="btn-primary-portal mb-4"><i class="fas fa-plus-circle"></i> Formular Proyecto</button>
 <div id="portal-proyectos"></div>
 </div>
 
@@ -347,7 +349,7 @@
 
 <div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-5">
 <div class="md:col-span-2"><label class="font-extrabold text-xs text-gray-700 uppercase tracking-wide block mb-1">Nombre Oficial del Proyecto *</label><input type="text" id="mp-nombre" class="w-full border-2 border-gray-200 rounded-lg p-2.5 focus:border-indigo-400 outline-none font-bold text-gray-800" placeholder="Ej: Operativo Reforestación Cerro Renca"></div>
-<div><label class="font-extrabold text-xs text-gray-700 uppercase tracking-wide block mb-1">Fase de la Empresa</label><select id="mp-fase" class="w-full border-2 border-orange-200 rounded-lg p-2.5 focus:border-orange-400 outline-none font-bold text-orange-800 bg-orange-50"><option>Idear</option><option>Elegir</option><option>Planificar</option><option>Realizar</option><option>Evaluar</option><option>Celebrar</option></select></div>
+<div><label class="font-extrabold text-xs text-gray-700 uppercase tracking-wide block mb-1">Fase del Proyecto</label><select id="mp-fase" class="w-full border-2 border-orange-200 rounded-lg p-2.5 focus:border-orange-400 outline-none font-bold text-orange-800 bg-orange-50"><option>Idear</option><option>Elegir</option><option>Planificar</option><option>Realizar</option><option>Evaluar</option><option>Celebrar</option></select></div>
 <div class="md:col-span-2"><label class="font-extrabold text-xs text-gray-700 uppercase tracking-wide block mb-1">Objetivo General (SMART) *</label><textarea id="mp-objetivo" rows="2" class="w-full border-2 border-gray-200 rounded-lg p-2.5 focus:border-indigo-400 outline-none font-medium text-gray-800" placeholder="Meta específica, medible y alcanzable..."></textarea></div>
 <div><label class="font-extrabold text-xs text-gray-700 uppercase tracking-wide block mb-1">Área / Campo Estratégico *</label>
 <select id="mp-campo" class="w-full border-2 border-gray-200 rounded-lg p-2.5 focus:border-indigo-400 outline-none font-bold text-indigo-800 bg-indigo-50" onchange="document.getElementById('mp-campo-otro').style.display=this.value==='Otros'?'block':'none'">

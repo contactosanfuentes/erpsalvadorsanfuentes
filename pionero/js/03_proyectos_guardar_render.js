@@ -40,8 +40,8 @@ for(const pt of mpParticipantes){try{const{data:m}=await sb.from('mmbb_registrat
 for(const[cargo,resp]of Object.entries(mpResponsables)){if(!resp?.run)continue;try{let d=null;const{data:a}=await sb.from('adultos_registros').select('nombres,apellidos,email,telefono,foto_url').ilike('run',resp.run).maybeSingle();if(a)d=a;else{const{data:j}=await sb.from('mmbb_registrations').select('nombres,apellidos,email_apoderado,apoderado_titular_telefono,foto_url').ilike('run',resp.run).maybeSingle();if(j)d={nombres:j.nombres,apellidos:j.apellidos,email:j.email_apoderado,telefono:j.apoderado_titular_telefono,foto_url:j.foto_url}}await sb.from('adultos').insert({evento_id:ev.id,nombre:d?(d.nombres+' '+d.apellidos):resp.nombre,grupo:'Salvador Sanfuentes',rol:cargo,email:d?.email||'',telefono:d?.telefono||'',foto_url:d?.foto_url||resp.foto||'',confirmado:false,observaciones:cargo+' — Importado'})}catch(e){}}
 for(const item of(proy.presupuestoEstimado||[])){if(item.concepto){const{data:s}=await sb.from('secciones_presupuesto').select('id').order('orden').limit(1);await sb.from('items_presupuesto').insert({evento_id:ev.id,seccion_id:s?.[0]?.id||1,concepto:item.concepto,cantidad:item.cantidad,costo_unitario:item.costoUnitario,costo_final:item.cantidad*item.costoUnitario,observaciones:'Desde proyecto'})}}
 for(const ind of(proy.indicadores||[])){if(ind.descripcion)await sb.from('metas_evento').insert({evento_id:ev.id,descripcion:ind.descripcion,valor_esperado:parseFloat(ind.meta)||0,unidad:'unidad'})}
-toast('Evento creado con todos los datos dla empresa.','ok')}catch(evErr){toast('Proyecto guardado, error al crear evento: '+evErr.message,'err')}}
-cerrarModalProy();cargarYRenderizarProyectos();toast(editId?'Empresa actualizada.':'Empresa creada y sincronizado.')
+toast('Evento creado con todos los datos del proyecto.','ok')}catch(evErr){toast('Proyecto guardado, error al crear evento: '+evErr.message,'err')}}
+cerrarModalProy();cargarYRenderizarProyectos();toast(editId?'Proyecto actualizado.':'Proyecto creado y sincronizado.')
     if(btn){btn.disabled=false;btn.innerHTML='<i class="fas fa-save"></i> Guardar Proyecto';};
 // Enviar emails a participantes y responsables
 try{const cn=currentJoven.nombres+' '+currentJoven.apellidos;
@@ -53,14 +53,14 @@ for(const[cargo,resp]of Object.entries(proy.responsables||{})){if(resp&&resp.run
 async function eliminarProyecto(idx){const p=camino.proyectos_colectivos[idx];if(!p||p.creadorRun!==currentJoven.run){toast('Solo puedes eliminar tus proyectos.','err');return}
 if(!confirm('¿Eliminar "'+p.nombre+'"?'))return;toast('Eliminando...','info');
 try{for(const pt of(p.participantes||[])){try{const{data:pj}=await sb.from('mmbb_registrations').select('id').ilike('run',pt.run).maybeSingle();if(pj){const{data:pp}=await sb.from('progresion_jovenes').select('camino').eq('joven_id',pj.id).maybeSingle();if(pp?.camino?.proyectos_colectivos){pp.camino.proyectos_colectivos=pp.camino.proyectos_colectivos.filter(pr=>pr.id!==p.id);await sb.from('progresion_jovenes').upsert({joven_id:pj.id,camino:pp.camino},{onConflict:'joven_id'})}}}catch(e){}}
-camino.proyectos_colectivos.splice(idx,1);await guardarCamino();cargarYRenderizarProyectos();toast('Empresa eliminada.')}catch(e){toast('Error: '+e.message,'err')}}
+camino.proyectos_colectivos.splice(idx,1);await guardarCamino();cargarYRenderizarProyectos();toast('Proyecto eliminado.')}catch(e){toast('Error: '+e.message,'err')}}
 
 // ══════════ RENDER PROYECTOS ══════════
 
 async function abandonarProyecto(proyId){
-  if(!confirm('¿Seguro que quieres abandonar esta empresa? Ya no aparecerás como responsable ni participante.')) return;
+  if(!confirm('¿Seguro que quieres abandonar este proyecto? Ya no aparecerás como responsable ni participante.')) return;
   try {
-    // Buscar la empresa en toda la BD para localizarlo
+    // Buscar el proyecto en toda la BD para localizarlo
     const {data:todos} = await sb.from('progresion_jovenes').select('joven_id,camino');
     const myRun = currentJoven.run.toLowerCase();
     let found = false;
@@ -82,8 +82,8 @@ async function abandonarProyecto(proyId){
       found = true;
       break;
     }
-    if(found){ toast('Abandonaste la empresa.'); await cargarYRenderizarProyectos(); }
-    else toast('No se encontró la empresa.','err');
+    if(found){ toast('Abandonaste el proyecto.'); await cargarYRenderizarProyectos(); }
+    else toast('No se encontró el proyecto.','err');
   } catch(e){ toast('Error: '+e.message,'err'); }
 }
 async function cargarYRenderizarProyectos(){
@@ -119,25 +119,25 @@ function faseStepperHtml(p, esCreador){
     const done=i<actual, act=i===actual;
     return `<div style="display:flex;flex-direction:column;align-items:center;flex:1;min-width:0;">
       <div style="width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;
-        background:${act?'#C2410C':done?'#16a34a':'#e5e7eb'};color:${act||done?'#fff':'#9ca3af'};border:2px solid ${act?'#9a3412':done?'#15803d':'#d1d5db'};">${done?'✓':i+1}</div>
-      <span style="font-size:8.5px;font-weight:${act?'800':'600'};color:${act?'#C2410C':done?'#16a34a':'#9ca3af'};margin-top:2px;text-align:center;">${f}</span>
+        background:${act?'#3949AB':done?'#16a34a':'#e5e7eb'};color:${act||done?'#fff':'#9ca3af'};border:2px solid ${act?'#283593':done?'#15803d':'#d1d5db'};">${done?'✓':i+1}</div>
+      <span style="font-size:8.5px;font-weight:${act?'800':'600'};color:${act?'#3949AB':done?'#16a34a':'#9ca3af'};margin-top:2px;text-align:center;">${f}</span>
     </div>`;
   }).join('<div style="flex:0 0 8px;height:2px;background:#e5e7eb;margin-top:11px;"></div>');
   const btn = esCreador && actual < fases.length-1
-    ? `<button onclick="avanzarFaseEmpresa(${p.id})" style="margin-top:6px;background:#fff7ed;border:1.5px solid #fdba74;color:#C2410C;border-radius:8px;padding:4px 10px;font-size:10px;font-weight:800;cursor:pointer;">Avanzar a ${fases[actual+1]} →</button>`
-    : (actual === fases.length-1 && esCreador ? '<span style="margin-top:6px;font-size:10px;font-weight:800;color:#16a34a;">🎉 Empresa celebrada</span>' : '');
-  return `<div style="background:#fffbf5;border:1px solid #fed7aa;border-radius:12px;padding:10px;margin:8px 0;">
-    <p style="font-size:9px;font-weight:800;color:#9a3412;text-transform:uppercase;letter-spacing:.05em;margin:0 0 6px;">Fase de la Empresa</p>
+    ? `<button onclick="avanzarFaseEmpresa(${p.id})" style="margin-top:6px;background:#EEF2FF;border:1.5px solid #A5B4FC;color:#3949AB;border-radius:8px;padding:4px 10px;font-size:10px;font-weight:800;cursor:pointer;">Avanzar a ${fases[actual+1]} →</button>`
+    : (actual === fases.length-1 && esCreador ? '<span style="margin-top:6px;font-size:10px;font-weight:800;color:#16a34a;">🎉 Proyecto celebrado 🎉</span>' : '');
+  return `<div style="background:#F5F7FF;border:1px solid #C7D2FE;border-radius:12px;padding:10px;margin:8px 0;">
+    <p style="font-size:9px;font-weight:800;color:#283593;text-transform:uppercase;letter-spacing:.05em;margin:0 0 6px;">Ciclo del Proyecto</p>
     <div style="display:flex;align-items:flex-start;">${pasos}</div>${btn}</div>`;
 }
 async function avanzarFaseEmpresa(pid){
   const fases=['Idear','Elegir','Planificar','Realizar','Evaluar','Celebrar'];
   const p=(camino.proyectos_colectivos||[]).find(x=>x.id===pid);
-  if(!p||p.creadorRun!==currentJoven.run){toast('Solo quien creó la empresa puede avanzar la fase.','err');return}
+  if(!p||p.creadorRun!==currentJoven.run){toast('Solo quien creó el proyecto puede avanzar la fase.','err');return}
   const i=Math.max(0,fases.indexOf(p.fase||'Idear'));
   if(i>=fases.length-1)return;
   p.fase=fases[i+1];
-  if(await guardarCamino()){toast(`📍 Empresa en fase: ${p.fase}`);renderProyectos()}
+  if(await guardarCamino()){toast(`📍 Proyecto en fase: ${p.fase}`);renderProyectos()}
 }
 
 function renderProyectos(extra=[]){const c=document.getElementById('portal-proyectos');const propios=camino.proyectos_colectivos||[];
@@ -147,7 +147,7 @@ const externos=extra.filter(p=>!seen.has(p.id));
 const proys=[...propios,...externos];
 if(!proys.length){c.innerHTML='<p class="text-center text-gray-400 py-8"><i class="fas fa-inbox text-3xl block mb-3 opacity-30"></i>No tienes proyectos aún. Si te asignaron a uno, aparecerá aquí. También puedes crear uno con el botón de arriba.</p>';return}
 c.innerHTML=proys.map((p,i)=>{const sc={'Finalizado':'#10b981','En curso':'#3b82f6','Planificación':'#f59e0b','Evaluación':'#8b5cf6'};const color=sc[p.estado]||'#f59e0b';const esMio=p.creadorRun===currentJoven.run;
-return `<div class="proyecto-card-portal" style="border-left:3px solid ${esMio?'#10b981':'#94a3b8'}"><div class="proyecto-header-portal" onclick="const b=document.getElementById('pb-${i}'),ic=document.getElementById('pi-${i}');b.classList.toggle('open');ic.classList.toggle('rotate-180')"><h4 class="font-bold text-sm flex-1">${esc(p.nombre)}</h4>${esMio?`<span class="bg-green-50 text-green-700 px-2 py-0.5 rounded text-xs font-bold">MI EMPRESA</span><span class="${p.privado ? 'bg-amber-50 text-amber-600' : 'bg-blue-50 text-blue-600'} px-2 py-0.5 rounded text-xs font-bold ml-1"><i class="fas ${p.privado ? 'fa-lock' : 'fa-globe'}"></i></span>`:(()=>{const myRun=currentJoven.run;const esResp=p.responsables&&Object.values(p.responsables).some(r=>r&&r.run&&r.run.toLowerCase()===myRun.toLowerCase());return esResp?'<span class="bg-blue-100 text-blue-700 px-2 py-0.5 rounded text-xs font-bold">🎖 RESPONSABLE</span>':'<span class="bg-gray-100 text-gray-500 px-2 py-0.5 rounded text-xs font-bold">👥 PARTICIPANTE</span>';})()}<span style="background:${color}20;color:${color}" class="px-2 py-0.5 rounded text-xs font-bold">${esc(p.estado||'Planificación')}</span><i class="fas fa-chevron-down text-gray-400 text-xs transition-transform" id="pi-${i}"></i></div>
+return `<div class="proyecto-card-portal" style="border-left:3px solid ${esMio?'#10b981':'#94a3b8'}"><div class="proyecto-header-portal" onclick="const b=document.getElementById('pb-${i}'),ic=document.getElementById('pi-${i}');b.classList.toggle('open');ic.classList.toggle('rotate-180')"><h4 class="font-bold text-sm flex-1">${esc(p.nombre)}</h4>${esMio?`<span class="bg-green-50 text-green-700 px-2 py-0.5 rounded text-xs font-bold">MI PROYECTO</span><span class="${p.privado ? 'bg-amber-50 text-amber-600' : 'bg-blue-50 text-blue-600'} px-2 py-0.5 rounded text-xs font-bold ml-1"><i class="fas ${p.privado ? 'fa-lock' : 'fa-globe'}"></i></span>`:(()=>{const myRun=currentJoven.run;const esResp=p.responsables&&Object.values(p.responsables).some(r=>r&&r.run&&r.run.toLowerCase()===myRun.toLowerCase());return esResp?'<span class="bg-blue-100 text-blue-700 px-2 py-0.5 rounded text-xs font-bold">🎖 RESPONSABLE</span>':'<span class="bg-gray-100 text-gray-500 px-2 py-0.5 rounded text-xs font-bold">👥 PARTICIPANTE</span>';})()}<span style="background:${color}20;color:${color}" class="px-2 py-0.5 rounded text-xs font-bold">${esc(p.estado||'Planificación')}</span><i class="fas fa-chevron-down text-gray-400 text-xs transition-transform" id="pi-${i}"></i></div>
 <div class="proyecto-body-portal" id="pb-${i}">${faseStepperHtml(p, esMio)}${esMio?`
 <p class="text-xs text-gray-500 mb-2"><strong>Objetivo:</strong> ${esc(p.objetivo||'')}</p>
 <p class="text-xs text-gray-500 mb-2"><strong>Campo:</strong> ${esc(p.campoAccion||'')} | <strong>Fechas:</strong> ${p.inicio||'?'} → ${p.termino||'?'}</p>
@@ -187,7 +187,7 @@ ${(p.arbolProblema.consecuencias||[]).length?`<p class="text-[0.6rem] font-bold 
 ${(p.arbolProblema.causas||[]).length?`<p class="text-[0.6rem] font-bold text-green-700 uppercase mb-1">Causas</p><div class="flex flex-wrap gap-1">${(p.arbolProblema.causas||[]).map(c=>`<span class="bg-green-100 text-green-900 text-xs px-2 py-0.5 rounded-full border border-green-300">${esc(c)}</span>`).join('')}</div>`:''}
 </div>`:''}
 <div class="mt-3 pt-3 border-t border-gray-100 flex items-center justify-between">
-  <p class="text-xs text-gray-400"><i class="fas fa-info-circle mr-1"></i> Solo lectura — no puedes editar esta empresa.</p>
+  <p class="text-xs text-gray-400"><i class="fas fa-info-circle mr-1"></i> Solo lectura — no puedes editar este proyecto.</p>
   <button onclick="abandonarProyecto(${p.id})" class="bg-red-50 hover:bg-red-500 hover:text-white text-red-600 border border-red-200 rounded-lg px-3 py-1.5 font-bold text-xs cursor-pointer transition"><i class="fas fa-door-open mr-1"></i> Abandonar proyecto</button>
 </div>
 `}
