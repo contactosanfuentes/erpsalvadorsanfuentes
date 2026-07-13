@@ -80,7 +80,11 @@ canvas.firma{border:2px dashed #cbd5e1;border-radius:12px;width:100%;height:150p
       <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="G">
       Continuar con Google
     </button>
-    <p class="login-nota"><i class="fas fa-lock mr-1"></i> Usa tu cuenta institucional @salvadorsanfuentes.org (la misma del ERP).</p>
+    <div style="display:flex;align-items:center;gap:10px;margin:16px 0 12px"><div style="flex:1;height:1px;background:#e2e8f0"></div><span style="font-size:0.7rem;color:#94a3b8;font-weight:700">o con tu contraseña del ERP</span><div style="flex:1;height:1px;background:#e2e8f0"></div></div>
+    <div class="fg" style="text-align:left;margin-bottom:8px"><label style="font-size:0.68rem;font-weight:800;text-transform:uppercase;color:#475569">Correo</label><input id="lg-email" type="email" placeholder="tu@salvadorsanfuentes.org" style="width:100%;border:1.5px solid #e2e8f0;border-radius:10px;padding:9px 11px;font-size:0.85rem;outline:none"></div>
+    <div class="fg" style="text-align:left;margin-bottom:12px"><label style="font-size:0.68rem;font-weight:800;text-transform:uppercase;color:#475569">Contraseña</label><input id="lg-pass" type="password" placeholder="La misma del ERP" style="width:100%;border:1.5px solid #e2e8f0;border-radius:10px;padding:9px 11px;font-size:0.85rem;outline:none" onkeydown="if(event.key==='Enter')loginPassword()"></div>
+    <button class="btn" style="width:100%" onclick="loginPassword()"><i class="fas fa-sign-in-alt"></i> Entrar</button>
+    <p class="login-nota"><i class="fas fa-lock mr-1"></i> Usa tu cuenta institucional @salvadorsanfuentes.org (la misma del ERP). El acceso con contraseña funciona siempre; el de Google requiere que esta dirección esté autorizada en Supabase.</p>
   </div>
 </div>
 

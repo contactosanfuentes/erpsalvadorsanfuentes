@@ -23,6 +23,14 @@ async function loginGoogle(){
   if (error) { $('error-box').textContent = 'Error: ' + error.message; $('error-box').style.display = 'block'; }
 }
 
+async function loginPassword(){
+  const email = $('lg-email').value.trim(), password = $('lg-pass').value;
+  if (!email || !password) { $('error-box').textContent = 'Escribe tu correo y contraseña.'; $('error-box').style.display = 'block'; return; }
+  const { error } = await sb.auth.signInWithPassword({ email, password });
+  if (error) { $('error-box').textContent = 'Correo o contraseña incorrectos.'; $('error-box').style.display = 'block'; return; }
+  await iniciarPortalAdulto();
+}
+
 async function cerrarSesionAdulto(){ await sb.auth.signOut(); window.location.reload(); }
 
 async function iniciarPortalAdulto(){
