@@ -20,6 +20,8 @@ err.style.display='none';if(!rut||!clave){err.textContent='Ingresa tu RUT y clav
 document.getElementById('btn-ingresar').disabled=true;
 try{const{data,error}=await sb.from('mmbb_registrations').select('*').ilike('run',rut).limit(1);if(error)throw error;if(!data||!data.length){err.textContent='RUT no encontrado.';err.style.display='block';return}
 const j=data[0];const rutD=rut.replace(/[^0-9]/g,'');if(clave!==(j.portal_clave||rutD.slice(-4))){err.textContent='Clave incorrecta.';err.style.display='block';return}
+// Portal exclusivo del Clan (caminantes). Pioneros/as tienen su propio portal.
+if(!String(j.unidad||'').toLowerCase().includes('clan')&&!String(j.unidad||'').toLowerCase().includes('caminante')){err.innerHTML='Este portal es para caminantes del <b>Clan</b>.<br>Si eres pionero/a de la Avanzada, entra a tu portal: <a href="portal_pionero.html" style="text-decoration:underline;font-weight:700;">Portal Pionero</a>.';err.style.display='block';return}
 currentJoven=j;const{data:pg}=await sb.from('progresion_jovenes').select('*').eq('joven_id',j.id).maybeSingle();
 if(pg){camino=pg.camino||{}}else{camino={};await sb.from('progresion_jovenes').insert({joven_id:j.id,camino})}
 if(!camino.proyectoPersonal)camino.proyectoPersonal='';if(!camino.adjuntos_manifiesto)camino.adjuntos_manifiesto=[];if(!camino.proyectos_colectivos)camino.proyectos_colectivos=[];

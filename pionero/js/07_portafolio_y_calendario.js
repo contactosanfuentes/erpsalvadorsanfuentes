@@ -8,14 +8,12 @@ async function cargarPortafolio() {
             .eq('joven_id', currentJoven.id).maybeSingle();
         if (!prog) { cont.innerHTML = '<p class="text-center text-gray-400 py-4">Sin registro de progresión aún.</p>'; return; }
         const ETAPAS = [
-            { nombre: 'Bienvenida', img: 'https://i.imgur.com/dYr6dIU.png', color: '#F59E0B' },
-            { nombre: 'Fuego',      img: 'https://i.imgur.com/IEr3Kms.png', color: '#EF4444' },
-            { nombre: 'Antorcha',   img: 'https://i.imgur.com/qTTibWH.png', color: '#8B5CF6' }
+            { nombre: 'Cruz del Sur', img: 'https://i.imgur.com/IStoscc.png', color: '#3949AB' },
+            { nombre: 'Sendero',      img: 'https://i.imgur.com/VHZrlFN.png', color: '#7C3AED' },
+            { nombre: 'Cumbre',       img: 'https://i.imgur.com/3MeclHS.png', color: '#10B981' }
         ];
-        const IMG_COMPROMISO = 'https://i.imgur.com/eX1hXDn.png?1';
         const etapa = prog.etapa_actual || null;
         const idxAct = ETAPAS.findIndex(e => e.nombre === etapa);
-        const compromiso = currentJoven.compromiso_caminante || false;
         const competencias = (prog.territorios?.competencias_mayores || []);
         const lineaEtapas = ETAPAS.map((e, i) => {
             const activa = i === idxAct, pasada = i < idxAct;
@@ -43,24 +41,15 @@ async function cargarPortafolio() {
         const secEtapas = `<div style="margin-bottom:16px">
             <p style="font-size:11px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:10px">① Etapas de Progresión</p>
             <div style="display:flex;align-items:flex-start">${lineaEtapas}</div>
-            ${!etapa?'<p style="font-size:11px;color:#94a3b8;text-align:center;margin-top:6px">Etapa aún no asignada por tu guiadora</p>':''}
+            ${!etapa?'<p style="font-size:11px;color:#94a3b8;text-align:center;margin-top:6px">Etapa aún no asignada por tu equipo de dirigentes</p>':''}
         </div>`;
         // ② Competencias
         const secComp = `<div style="margin-bottom:16px;padding-top:14px;border-top:1px solid #f1f5f9">
             <p style="font-size:11px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:8px">② Competencias Acreditadas</p>
             ${compCards}
         </div>`;
-        // ③ Compromiso
-        const secCompromiso = `<div style="padding-top:14px;border-top:1px solid #f1f5f9">
-            <p style="font-size:11px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:10px">③ Compromiso</p>
-            <div style="display:flex;align-items:center;gap:12px">
-                <img src="${IMG_COMPROMISO}" style="width:44px;height:44px;object-fit:contain;${compromiso?'filter:drop-shadow(0 0 6px #10B981)':'opacity:0.2;filter:grayscale(1)'}">
-                <div>
-                    <p style="font-weight:700;font-size:13px;${compromiso?'color:#15803d':'color:#94a3b8'}">${compromiso?'✓ Compromiso realizado':'Aún sin compromiso'}</p>
-                    <p style="font-size:11px;color:#94a3b8">Compromiso anual del Caminante</p>
-                </div>
-            </div>
-        </div>`;
+        // (El Compromiso anual es estrategia del Clan; no aplica en la Avanzada)
+        const secCompromiso = '';
         cont.innerHTML = secEtapas + secComp + secCompromiso;
     } catch(e) { cont.innerHTML = '<p class="text-red-500 text-sm text-center">Error: '+e.message+'</p>'; }
 }

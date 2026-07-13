@@ -24,7 +24,7 @@ const j=data[0];const rutD=rut.replace(/[^0-9]/g,'');if(clave!==(j.portal_clave|
 if(!String(j.unidad||'').toLowerCase().includes('avanzada')){err.innerHTML='Este portal es para pioneros y pioneras de la <b>Avanzada</b>.<br>Si eres caminante, entra a tu portal: <a href="portal_caminante.html" style="text-decoration:underline;font-weight:700;">Portal Caminante</a>.';err.style.display='block';return}
 currentJoven=j;const{data:pg}=await sb.from('progresion_jovenes').select('*').eq('joven_id',j.id).maybeSingle();
 if(pg){camino=pg.camino||{};sonarData=pg.sonar||null}else{camino={};sonarData=null;await sb.from('progresion_jovenes').insert({joven_id:j.id,camino})}
-if(!camino.proyectoPersonal)camino.proyectoPersonal='';if(!camino.adjuntos_manifiesto)camino.adjuntos_manifiesto=[];if(!camino.proyectos_colectivos)camino.proyectos_colectivos=[];
+if(!camino.aventura_notas)camino.aventura_notas='';if(!camino.adjuntos_aventura)camino.adjuntos_aventura=[];if(!camino.proyectos_colectivos)camino.proyectos_colectivos=[];
 mostrarPortal()}catch(e){err.textContent='Error: '+e.message;err.style.display='block'}finally{document.getElementById('btn-ingresar').disabled=false}}
 
 async function guardarCamino(){try{const{error}=await sb.from('progresion_jovenes').upsert({joven_id:currentJoven.id,camino},{onConflict:'joven_id'});if(error)throw error;return true}catch(e){toast('Error: '+e.message,'err');return false}}
@@ -37,8 +37,8 @@ document.getElementById('input-rut').value='';document.getElementById('input-cla
 function mostrarPortal(){setTimeout(()=>{if(typeof renderProgresionPionera==="function")renderProgresionPionera();if(typeof renderRadarPionero==="function")renderRadarPionero()},0);document.getElementById('login-screen').style.display='none';document.getElementById('portal-screen').style.display='block';
 document.getElementById('portal-foto').src=currentJoven.foto_url||'https://ui-avatars.com/api/?name='+encodeURIComponent(currentJoven.nombres)+'&background=E31837&color=fff&bold=true';
 document.getElementById('portal-nombre').textContent=currentJoven.nombres+' '+currentJoven.apellidos;
-document.getElementById('portal-unidad').textContent=currentJoven.unidad||'Caminante';
-document.getElementById('portal-manifiesto').value=camino.proyectoPersonal||'';pvCargarCampoExtra();
+document.getElementById('portal-unidad').textContent=currentJoven.unidad||'Pionero/a';
+document.getElementById('portal-manifiesto').value=camino.aventura_notas||'';pvCargarCampoExtra();
 [
         ()=>renderAdjuntos(),
         ()=>renderProyectos(),
