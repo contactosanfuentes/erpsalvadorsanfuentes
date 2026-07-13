@@ -25,3 +25,26 @@ if(pg){camino=pg.camino||{}}else{camino={};await sb.from('progresion_jovenes').i
 if(!camino.proyectoPersonal)camino.proyectoPersonal='';if(!camino.adjuntos_manifiesto)camino.adjuntos_manifiesto=[];if(!camino.proyectos_colectivos)camino.proyectos_colectivos=[];
 mostrarPortal()}catch(e){err.textContent='Error: '+e.message;err.style.display='block'}finally{document.getElementById('btn-ingresar').disabled=false}}
 
+async function guardarCamino(){try{const{error}=await sb.from('progresion_jovenes').upsert({joven_id:currentJoven.id,camino},{onConflict:'joven_id'});if(error)throw error;return true}catch(e){toast('Error: '+e.message,'err');return false}}
+
+// Fix: el botón "Cerrar Sesión" del header llamaba a esta función pero no existía en la versión desplegada.
+function cerrarSesion(){currentJoven=null;camino=null;mpResponsables={};mpParticipantes=[];mpEvidencias=[];
+document.getElementById('portal-screen').style.display='none';document.getElementById('login-screen').style.display='flex';
+document.getElementById('input-rut').value='';document.getElementById('input-clave').value='';document.getElementById('error-box').style.display='none'}
+
+function mostrarPortal(){document.getElementById('login-screen').style.display='none';document.getElementById('portal-screen').style.display='block';
+document.getElementById('portal-foto').src=currentJoven.foto_url||'https://ui-avatars.com/api/?name='+encodeURIComponent(currentJoven.nombres)+'&background=E31837&color=fff&bold=true';
+document.getElementById('portal-nombre').textContent=currentJoven.nombres+' '+currentJoven.apellidos;
+document.getElementById('portal-unidad').textContent=currentJoven.unidad||'Caminante';
+document.getElementById('portal-manifiesto').value=camino.proyectoPersonal||'';pvCargarCampoExtra();
+[
+        ()=>renderAdjuntos(),
+        ()=>renderProyectos(),
+        ()=>contarSolicitudes(),
+        ()=>actualizarStats(),
+        ()=>cargarPortafolio(),
+        ()=>cargarProyectosVigentes(),
+        ()=>cargarCalendario(),
+        ()=>{if(window.innerWidth>=1024)activarTab("vida",document.querySelector(".portal-tab"))}
+    ].forEach(fn=>{try{fn();}catch(e){console.warn('Portal fn error:',e.message);}})}
+

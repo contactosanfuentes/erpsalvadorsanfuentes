@@ -15,7 +15,7 @@
         async function sheetsFn(accion, params) {
             const r = await fetch(SHEETS_FN, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY },
+                headers: { 'Content-Type': 'application/json', 'apikey': SUPABASE_ANON_KEY, 'Authorization': 'Bearer ' + SUPABASE_ANON_KEY },
                 body: JSON.stringify({ accion, ...params })
             });
             const d = await r.json();

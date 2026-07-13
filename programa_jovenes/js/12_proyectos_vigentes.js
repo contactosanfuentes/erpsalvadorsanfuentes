@@ -75,8 +75,7 @@
                     html += '<div class="flex items-center gap-2 bg-white border border-amber-100 rounded-lg p-2 mb-1.5 shadow-sm">';
                     html += '<img src="' + eh(s.foto || 'https://ui-avatars.com/api/?name=' + encodeURIComponent(s.nombre) + '&size=28&background=fed7aa&color=9a3412') + '" style="width:28px;height:28px;border-radius:50%;object-fit:cover;border:1.5px solid #f59e0b;">';
                     html += '<div class="flex-1 min-w-0"><p class="text-xs font-bold text-gray-800 truncate">' + eh(s.nombre) + '</p><p class="text-gray-400" style="font-size:0.6rem;">' + eh(s.rama || '') + ' · ' + eh(s.fecha || '') + (s.mensaje ? ' · &ldquo;' + eh(s.mensaje) + '&rdquo;' : '') + '</p></div>';
-                    html += '<button onclick="aprobarSolicitudDesdeVigentes(' + p.creadorId + ', ' + p.id + ', &quot;' + eh(s.run) + '&quot;)" class="bg-green-500 hover:bg-green-600 text-white border-none rounded-md px-2.5 py-1 text-xs font-bold cursor-pointer transition shadow-sm" title="Aprobar e incorporar"><i class="fas fa-check mr-1"></i>Aprobar</button>';
-                    html += '<button onclick="rechazarSolicitudDesdeVigentes(' + p.creadorId + ', ' + p.id + ', &quot;' + eh(s.run) + '&quot;)" class="bg-gray-300 hover:bg-red-500 hover:text-white text-gray-600 border-none rounded-md px-2.5 py-1 text-xs font-bold cursor-pointer transition shadow-sm" title="Rechazar"><i class="fas fa-times"></i></button>';
+                    html += '<span class="text-amber-700 bg-amber-100 border border-amber-200 rounded-md px-2 py-1 font-bold shrink-0" style="font-size:0.6rem;" title="Solo el creador del proyecto puede aprobar o rechazar, desde su Portal Caminante"><i class="fas fa-mobile-alt mr-1"></i>Se gestiona en el Portal Caminante</span>';
                     html += '</div>';
                 });
                 html += '</div>';
@@ -280,14 +279,6 @@ html += '</div>'; // detalle
             }
         }
 
-        async function aprobarSolicitudDesdeVigentes(creadorId, proyectoId, solicitanteRun) {
-            await aprobarSolicitud(creadorId, proyectoId, solicitanteRun);
-            filtrarProyectosVigentes(filtroRamaVigente);
-        }
-
-        async function rechazarSolicitudDesdeVigentes(creadorId, proyectoId, solicitanteRun) {
-            await rechazarSolicitud(creadorId, proyectoId, solicitanteRun);
-            filtrarProyectosVigentes(filtroRamaVigente);
-        }
+        // Wrappers de aprobación eliminados: gestión exclusiva del Portal Caminante.
 
         // ── Funciones auxiliares Ficha de Proyecto Extendida ──

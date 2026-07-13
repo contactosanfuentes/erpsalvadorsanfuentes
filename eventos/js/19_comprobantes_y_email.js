@@ -116,12 +116,12 @@
                 <body>
                     <div class="print-page">
                         <div class="header-print">
-                            <img src="https://hyixmaxhoxvamoecuars.supabase.co/storage/v1/object/public/payment-receipts/insignias/11u9rUD.png" alt="Logo">
+                            <img src="https://i.imgur.com/11u9rUD.png" alt="Logo">
                             <div style="text-align:center;">
                                 <h2 style="margin:0; color:#0E2586;">${evtTitulo}</h2>
                                 <h3 style="margin:5px 0 0; color:#333;">COMPROBANTE Y PASAPORTE</h3>
                             </div>
-                            <img src="https://hyixmaxhoxvamoecuars.supabase.co/storage/v1/object/public/payment-receipts/insignias/DcxzvpX.png" alt="Logo">
+                            <img src="https://i.imgur.com/DcxzvpX.png" alt="Logo">
                         </div>
                         <div class="box">
                             <h2 style="margin-top:0;">COMPROBANTE DE INSCRIPCIÓN</h2>
@@ -275,7 +275,7 @@
                 <body>
                 <div class="container">
                     <div class="header">
-                        <img src="https://hyixmaxhoxvamoecuars.supabase.co/storage/v1/object/public/payment-receipts/insignias/11u9rUD.png">
+                        <img src="https://i.imgur.com/11u9rUD.png">
                         <h2 style="margin:10px 0 0;">${eventoActual?.nombre || 'Evento Scout'}</h2>
                         <p style="margin:5px 0 0; opacity:0.9;">Acreditación de Staff</p>
                     </div>
@@ -291,7 +291,7 @@
                         <p style="color:#64748b; font-size:12px; text-align:center; margin-top:20px;">Generado automáticamente por el Sistema ERP Scout</p>
                     </div>
                     <div class="footer">
-                        <img src="https://hyixmaxhoxvamoecuars.supabase.co/storage/v1/object/public/payment-receipts/insignias/11u9rUD.png" style="height:40px;filter:brightness(0) invert(1);">
+                        <img src="https://i.imgur.com/11u9rUD.png" style="height:40px;filter:brightness(0) invert(1);">
                         <p style="margin:5px 0 0;">Este es un correo automático, por favor no responder.</p>
                     </div>
                 </div>
@@ -340,7 +340,7 @@
         return `<!DOCTYPE html><html><body style="margin:0;padding:24px;background:#f4f7f9;font-family:Arial,Helvetica,sans-serif">
             <div style="max-width:560px;margin:auto;background:white;border-radius:16px;overflow:hidden;box-shadow:0 4px 22px rgba(0,0,0,0.1)">
                 <div style="background:linear-gradient(135deg,#0E2586,#1a36a8);padding:28px 24px;text-align:center;color:white">
-                    <img src="https://hyixmaxhoxvamoecuars.supabase.co/storage/v1/object/public/payment-receipts/insignias/11u9rUD.png" style="width:80px;height:auto;margin-bottom:10px;filter:brightness(0) invert(1)" alt="Logo">
+                    <img src="https://i.imgur.com/11u9rUD.png" style="width:80px;height:auto;margin-bottom:10px;filter:brightness(0) invert(1)" alt="Logo">
                     <h2 style="margin:0;font-size:1.25rem;font-weight:700">Grupo Guías y Scouts</h2>
                     <p style="margin:3px 0 0;font-size:0.92rem;opacity:0.92;font-weight:600">Salvador Sanfuentes</p>
                 </div>

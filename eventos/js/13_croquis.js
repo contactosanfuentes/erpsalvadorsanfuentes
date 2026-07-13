@@ -184,9 +184,9 @@
             .dot { width:12px; height:12px; border-radius:50%; display:inline-block; }
         </style></head><body>
         <div class="hdr">
-            <img src="https://hyixmaxhoxvamoecuars.supabase.co/storage/v1/object/public/payment-receipts/insignias/11u9rUD.png">
+            <img src="https://i.imgur.com/11u9rUD.png">
             <div style="text-align:center;flex:1"><h2>${evtTitulo}</h2><h3>Croquis Logístico y de Juego</h3></div>
-            <img src="https://hyixmaxhoxvamoecuars.supabase.co/storage/v1/object/public/payment-receipts/insignias/DcxzvpX.png">
+            <img src="https://i.imgur.com/DcxzvpX.png">
         </div>
         <div class="mapa"><img src="${dataUrl}"></div>
         <div class="leyenda">

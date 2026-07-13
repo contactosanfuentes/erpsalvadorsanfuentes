@@ -49,7 +49,7 @@
 
                 <!-- HEADER con logo del grupo -->
                 <div style="background:linear-gradient(135deg,#0E2586,#1a36a8);padding:28px 24px;text-align:center;color:white">
-                    <img src="https://hyixmaxhoxvamoecuars.supabase.co/storage/v1/object/public/payment-receipts/insignias/11u9rUD.png" style="width:80px;height:auto;margin-bottom:10px;filter:brightness(0) invert(1)" alt="Logo Grupo Scout">
+                    <img src="https://i.imgur.com/11u9rUD.png" style="width:80px;height:auto;margin-bottom:10px;filter:brightness(0) invert(1)" alt="Logo Grupo Scout">
                     <h2 style="margin:0;font-size:1.25rem;font-weight:700">Grupo Guías y Scouts</h2>
                     <p style="margin:3px 0 0;font-size:0.92rem;opacity:0.92;font-weight:600">Salvador Sanfuentes</p>
                 </div>

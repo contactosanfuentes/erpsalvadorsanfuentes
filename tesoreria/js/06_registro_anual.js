@@ -140,6 +140,8 @@
             } catch (error) { showToast('Error al agregar persona: ' + error.message, 'error'); }
         }
 
+        // Fix: el botón Cerrar de #modalConfigCuotas llamaba a esta función inexistente.
+        function cerrarModalConfigCuotas() { document.getElementById('modalConfigCuotas').classList.add('hidden'); }
         function abrirModalConfigCuotas() {
             const montoNuevo = parseFloat(prompt('Monto para nuevos ingresos:'));
             if (isNaN(montoNuevo)) return;

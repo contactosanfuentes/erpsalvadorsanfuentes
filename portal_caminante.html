@@ -7,7 +7,125 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<link rel="stylesheet" href="caminante/css/caminante.css">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}body{font-family:'DM Sans',sans-serif;background:#f1f5f9;color:#1e293b;min-height:100vh}
+.login-screen{display:flex;align-items:center;justify-content:center;min-height:100vh;padding:20px;background:linear-gradient(135deg,#0f172a,#1e293b)}
+.login-card{background:white;border-radius:20px;padding:40px;max-width:420px;width:100%;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,0.15)}
+.login-card img{height:60px;margin-bottom:16px}
+.login-card h1{font-size:1.5rem;font-weight:800;margin-bottom:4px;color:#E31837}
+.login-card p{color:#64748b;font-size:0.85rem;margin-bottom:24px}
+.form-group{text-align:left;margin-bottom:16px}
+.form-group label{display:block;font-size:0.75rem;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px}
+.form-group input{width:100%;border:2px solid #e2e8f0;border-radius:10px;padding:12px 16px;font-size:0.95rem;font-weight:600;outline:none;transition:border-color 0.2s}
+.form-group input:focus{border-color:#E31837}
+.btn-login{width:100%;background:#E31837;color:white;border:none;border-radius:10px;padding:14px;font-size:1rem;font-weight:700;cursor:pointer}
+.btn-login:disabled{opacity:0.5;cursor:not-allowed}
+.error-msg{background:#fef2f2;border:1px solid #fecaca;color:#dc2626;padding:10px;border-radius:8px;font-size:0.82rem;font-weight:600;margin-bottom:16px;display:none}
+.portal-screen{display:none;padding:0;background:#f1f5f9;min-height:100vh}
+/* HEADER / TOPBAR */
+.portal-header{display:flex;align-items:center;gap:14px;padding:12px 24px;background:white;margin-bottom:0;box-shadow:0 1px 6px rgba(0,0,0,0.08);flex-wrap:wrap;position:sticky;top:0;z-index:200}
+.portal-header img{width:44px;height:44px;border-radius:50%;border:2.5px solid #E31837;object-fit:cover;flex-shrink:0}
+.portal-header h2{font-size:1rem;font-weight:800}
+.badge{background:#fef2f2;color:#E31837;padding:3px 10px;border-radius:6px;font-size:0.72rem;font-weight:700}
+.btn-logout{margin-left:auto;background:#f1f5f9;border:1px solid #e2e8f0;color:#64748b;padding:7px 14px;border-radius:8px;cursor:pointer;font-weight:600;font-size:0.78rem;white-space:nowrap}
+/* CARDS */
+.section-card{background:white;border-radius:14px;padding:22px;margin-bottom:16px;box-shadow:0 1px 4px rgba(0,0,0,0.07)}
+.section-card h3{font-size:0.95rem;font-weight:800;margin-bottom:4px}
+.section-card .subtitle{font-size:0.76rem;color:#64748b;margin-bottom:14px}
+.btn-primary-portal{background:#E31837;color:white;border:none;border-radius:10px;padding:9px 22px;font-weight:700;cursor:pointer;font-size:0.86rem}
+/* TOAST */
+.toast{position:fixed;top:20px;right:20px;padding:12px 20px;border-radius:10px;font-weight:700;font-size:0.85rem;z-index:9999;display:none;box-shadow:0 4px 20px rgba(0,0,0,0.15);color:white}
+.toast.ok{background:#10b981}.toast.err{background:#ef4444}.toast.info{background:#3b82f6}
+/* MODALES */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:9000;display:none;align-items:center;justify-content:center;padding:16px}
+.modal-overlay.active{display:flex}
+.modal-box{background:white;border-radius:16px;max-height:90vh;overflow-y:auto;width:100%;box-shadow:0 25px 50px rgba(0,0,0,0.2)}
+.search-results{max-height:150px;overflow-y:auto;border:1px solid #e2e8f0;border-radius:8px;background:white}
+.search-results div:hover{background:#f1f5f9}
+/* PROYECTO CARDS */
+.proyecto-card-portal{background:white;border:1px solid #e2e8f0;border-radius:12px;margin-bottom:12px;overflow:hidden}
+.proyecto-header-portal{padding:12px 14px;display:flex;justify-content:space-between;align-items:center;cursor:pointer;gap:8px;flex-wrap:wrap}
+.proyecto-header-portal:hover{background:#f8fafc}
+.proyecto-body-portal{padding:0 14px 14px;display:none}
+.proyecto-body-portal.open{display:block}
+.pv-card{border:1px solid #e2e8f0;border-radius:12px;padding:12px 14px;margin-bottom:10px;background:#f8fafc}
+/* ── LAYOUT MOBILE (single column) ── */
+.portal-layout{display:block;padding:16px;max-width:900px;margin:0 auto}
+.portal-sidebar{margin-bottom:0}
+/* ── LAYOUT DESKTOP ── */
+@media(min-width:1024px){
+  .portal-layout{
+    display:grid;
+    grid-template-columns:320px 1fr;
+    grid-template-rows:1fr;
+    gap:0;
+    padding:0;
+    max-width:100%;
+    height:calc(100vh - 68px);
+  }
+  .portal-sidebar{
+    background:white;
+    border-right:1px solid #e2e8f0;
+    padding:20px 18px;
+    overflow-y:auto;
+    height:100%;
+  }
+  .portal-sidebar::-webkit-scrollbar{width:4px}
+  .portal-sidebar::-webkit-scrollbar-thumb{background:#e2e8f0;border-radius:4px}
+  .portal-main{
+    padding:24px 28px;
+    overflow-y:auto;
+    height:100%;
+    background:#f1f5f9;
+  }
+  .portal-main::-webkit-scrollbar{width:6px}
+  .portal-main::-webkit-scrollbar-thumb{background:#e2e8f0;border-radius:4px}
+  .section-card{margin-bottom:18px}
+  /* Sidebar cards sin margen ni sombra */
+  .portal-sidebar .section-card,.portal-sidebar .bg-white{box-shadow:none;border:1px solid #f1f5f9;padding:16px}
+  /* Explorar proyectos: 2 col en desktop */
+  #portal-proyectos-vigentes{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+}
+/* ── TABS (solo desktop) ── */
+.portal-tabs-bar{display:none}
+.portal-tab{background:none;border:none;padding:9px 18px;font-size:13px;font-weight:600;color:#94a3b8;cursor:pointer;border-radius:8px;transition:all .2s;white-space:nowrap}
+.portal-tab.active{color:#E31837;background:#fef2f2;font-weight:700}
+.portal-tab:hover:not(.active){color:#475569;background:#f8fafc}
+/* Mobile: todos los panels visibles en columna */
+.tab-panel{display:block}
+/* ── NAVEGACIÓN SIDEBAR ── */
+.portal-nav-sidebar{display:none}
+.portal-nav-link{display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:8px;font-size:12px;font-weight:600;color:#475569;text-decoration:none;cursor:pointer;transition:background .15s}
+.portal-nav-link:hover{background:#f1f5f9;color:#E31837}
+/* ── STATS SIDEBAR ── */
+.portal-stats-sidebar{display:none}
+/* ── DESKTOP ── */
+@media(min-width:1024px){
+  /* Tabs */
+  .portal-tabs-bar{display:flex;background:white;border-radius:12px;padding:5px;margin-bottom:18px;gap:2px;box-shadow:0 1px 4px rgba(0,0,0,0.07);border:1px solid #f1f5f9}
+  /* Panels: ocultar en desktop salvo el activo */
+  .tab-panel{display:none !important}
+  .tab-panel.active-panel{display:block !important}
+  /* Sidebar extras */
+  .portal-nav-sidebar{display:block}
+  .portal-stats-sidebar{display:block}
+}
+/* Calendario sidebar: solo en desktop */
+.portal-cal-sidebar{display:none}
+/* Calendario main: siempre visible (el tab lo controla) */
+.portal-cal-main{display:block}
+@media(min-width:1024px){
+  .portal-cal-sidebar{display:block}
+  /* .portal-cal-main se oculta solo porque tab-cal está hidden;
+     cuando tab-cal es active-panel, el bloque es visible */
+}
+/* Mobile adjustments */
+@media(max-width:600px){
+  .login-card{padding:28px 20px}
+  .portal-header{gap:10px;padding:10px 16px}
+  .btn-logout{margin-left:0;width:100%;text-align:center;margin-top:8px}
+}
+</style>
 </head>
 <body>
 <div id="toast" class="toast"></div>
@@ -15,8 +133,11 @@
 <!-- LOGIN -->
 <div class="login-screen" id="login-screen">
 <div class="login-card">
-<img src="https://hyixmaxhoxvamoecuars.supabase.co/storage/v1/object/public/payment-receipts/insignias/11u9rUD.png" alt="Logo">
+<div style="display:flex;flex-direction:column;align-items:center;gap:12px;margin-bottom:8px">
+  <img src="https://hyixmaxhoxvamoecuars.supabase.co/storage/v1/object/public/logos/clan_kutral_raiguen.png" alt="Clan Kutral Raigüen" style="width:120px;height:120px;object-fit:contain;filter:drop-shadow(0 4px 12px rgba(0,0,0,0.15))">
+</div>
 <h1>Portal del Caminante</h1>
+<p style="font-size:0.85rem;color:#E31837;font-weight:700;letter-spacing:0.05em;margin:-8px 0 4px">Clan Kutral Raigüen</p>
 <p>Accede con tu RUT para gestionar tu Proyecto de Vida y proyectos de intervención.</p>
 <div id="error-box" class="error-msg"></div>
 <div class="form-group"><label>RUT</label><input type="text" id="input-rut" placeholder="Ej: 22865919-3" maxlength="15" autofocus></div>
@@ -29,21 +150,84 @@
 <!-- PORTAL -->
 <div class="portal-screen" id="portal-screen">
 <div class="portal-header">
-<img id="portal-foto" src="" alt=""><div><h2 id="portal-nombre"></h2><span class="badge"><i class="fas fa-fire"></i> <span id="portal-unidad">Caminante</span></span></div>
+<img id="portal-foto" src="" alt=""><img src="https://hyixmaxhoxvamoecuars.supabase.co/storage/v1/object/public/logos/clan_kutral_raiguen.png" alt="Clan" style="width:34px;height:34px;object-fit:contain;flex-shrink:0;opacity:0.92"><div><h2 id="portal-nombre"></h2><span class="badge"><i class="fas fa-fire"></i> <span id="portal-unidad">Caminante</span></span></div>
+<div id="portal-notif-btn" onclick="irAMisProyectos()" style="display:none;position:relative;cursor:pointer;margin-right:4px;">
+  <div style="background:#ef4444;color:#fff;border-radius:50%;width:32px;height:32px;display:flex;align-items:center;justify-content:center;font-size:13px;">
+    <i class="fas fa-bell"></i>
+  </div>
+  <span id="portal-notif-count" style="position:absolute;top:-4px;right:-4px;background:#fbbf24;color:#1e293b;border-radius:50%;width:16px;height:16px;font-size:9px;font-weight:900;display:flex;align-items:center;justify-content:center;"></span>
+</div>
 <button class="btn-logout" onclick="cerrarSesion()"><i class="fas fa-sign-out-alt"></i> Cerrar Sesión</button>
 </div>
 
-<!-- MANIFIESTO -->
+<!-- LAYOUT: sidebar + main -->
+<div class="portal-layout">
 
-<!-- PORTAFOLIO PERSONAL -->
-<div class="bg-white rounded-2xl shadow-sm p-6 mb-6">
-  <h2 class="text-lg font-bold text-gray-800 mb-1 flex items-center gap-2">
-    <span class="text-xl">🧭</span> Mi Progresión Personal
-  </h2>
-  <p class="text-sm text-gray-400 mb-4">Tu progresión en el Clan — etapas, competencias y compromiso</p>
-  <div id="portal-portafolio"><p class="text-center text-gray-400 py-4"><i class="fas fa-spinner fa-spin"></i> Cargando...</p></div>
+<!-- ═══ SIDEBAR ═══ -->
+<div class="portal-sidebar">
+
+<!-- Mi Progresión Personal -->
+<div class="section-card mb-4">
+  <h3 class="flex items-center gap-2 text-sm">🧭 Mi Progresión Personal</h3>
+  <p class="text-xs text-gray-400 mt-1 mb-3">Etapas, competencias y compromiso</p>
+  <div id="portal-portafolio"><p class="text-center text-gray-400 py-4 text-xs"><i class="fas fa-spinner fa-spin"></i> Cargando...</p></div>
 </div>
 
+<!-- Stats rápidas -->
+<div class="section-card mb-4 portal-stats-sidebar">
+  <p class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Resumen</p>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+    <div style="background:#fef2f2;border-radius:10px;padding:10px;text-align:center">
+      <div id="stat-proyectos" style="font-size:22px;font-weight:900;color:#E31837">—</div>
+      <div style="font-size:10px;color:#94a3b8;font-weight:600">Proyectos</div>
+    </div>
+    <div style="background:#f0fdf4;border-radius:10px;padding:10px;text-align:center">
+      <div id="stat-evidencias" style="font-size:22px;font-weight:900;color:#10b981">—</div>
+      <div style="font-size:10px;color:#94a3b8;font-weight:600">Evidencias</div>
+    </div>
+    <div style="background:#fefce8;border-radius:10px;padding:10px;text-align:center">
+      <div id="stat-solicitudes" style="font-size:22px;font-weight:900;color:#f59e0b">—</div>
+      <div style="font-size:10px;color:#94a3b8;font-weight:600">Solicitudes</div>
+    </div>
+    <div style="background:#eff6ff;border-radius:10px;padding:10px;text-align:center">
+      <div id="stat-compas" style="font-size:22px;font-weight:900;color:#3b82f6">—</div>
+      <div style="font-size:10px;color:#94a3b8;font-weight:600">Compañeros</div>
+    </div>
+  </div>
+</div>
+
+<!-- Navegación anclada (solo desktop) -->
+<div class="section-card portal-nav-sidebar mb-4">
+  <p class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Ir a</p>
+  <nav style="display:flex;flex-direction:column;gap:4px">
+    <a href="#sec-vida" onclick="scrollMain('sec-vida')" class="portal-nav-link"><i class="fas fa-compass" style="color:#E31837;width:16px"></i> Proyecto de Vida</a>
+    <a href="#sec-proyectos" onclick="scrollMain('sec-proyectos')" class="portal-nav-link"><i class="fas fa-project-diagram" style="color:#8b5cf6;width:16px"></i> Mis Proyectos</a>
+    <a href="#sec-explorar" onclick="scrollMain('sec-explorar')" class="portal-nav-link"><i class="fas fa-rocket" style="color:#3b82f6;width:16px"></i> Explorar</a>
+    <a href="#sec-calendario" onclick="scrollMain('sec-cal')" class="portal-nav-link"><i class="fas fa-calendar" style="color:#f59e0b;width:16px"></i> Calendario</a>
+  </nav>
+</div>
+
+<!-- Calendario (sidebar en desktop) -->
+<div class="section-card portal-cal-sidebar">
+  <h3 class="flex items-center gap-2 text-sm">📅 Calendario</h3>
+  <p class="text-xs text-gray-400 mt-1 mb-3">Fechas de proyectos vigentes</p>
+  <div id="portal-calendario-sidebar"></div>
+</div>
+
+</div><!-- /sidebar -->
+
+<!-- ═══ MAIN ═══ -->
+<div class="portal-main">
+
+<!-- Tabs de navegación (solo desktop) -->
+<div class="portal-tabs-bar">
+  <button class="portal-tab active" onclick="activarTab('vida',this)"><i class="fas fa-compass mr-1"></i>Proyecto de Vida</button>
+  <button class="portal-tab" onclick="activarTab('proyectos',this)"><i class="fas fa-project-diagram mr-1"></i>Mis Proyectos</button>
+  <button class="portal-tab" onclick="activarTab('explorar',this)"><i class="fas fa-rocket mr-1"></i>Explorar</button>
+  <button class="portal-tab" onclick="activarTab('cal',this)"><i class="fas fa-calendar mr-1"></i>Calendario</button>
+</div>
+
+<div id="tab-vida" class="tab-panel active-panel">
 <div class="section-card">
 <h3><i class="fas fa-compass" style="color:#E31837;margin-right:8px;"></i> Tengo un Proyecto para mi Vida</h3>
 <p class="subtitle">Tu visión de largo plazo, misión y vocación personal</p>
@@ -99,29 +283,48 @@
 
 </div>
 
-<!-- MIS PROYECTOS -->
-<div class="section-card">
-<h3><i class="fas fa-project-diagram" style="color:#E31837;margin-right:8px;"></i> Mis Proyectos</h3>
+</div><!-- /tab-vida -->
+<div id="tab-proyectos" class="tab-panel">
+<div id="sec-proyectos" class="section-card">
+<h3 id="sec-proyectos"><i class="fas fa-project-diagram" style="color:#E31837;margin-right:8px;"></i> Mis Proyectos</h3>
 <p class="subtitle">Crea y gestiona proyectos con el mismo formulario del sistema principal.</p>
 <button onclick="abrirModalProyecto()" class="btn-primary-portal mb-4"><i class="fas fa-plus-circle"></i> Crear Nuevo Proyecto</button>
 <div id="portal-proyectos"></div>
 </div>
 
-<!-- EXPLORAR PROYECTOS -->
-<div class="section-card">
+</div><!-- /tab-proyectos -->
+<div id="tab-explorar" class="tab-panel">
+<div id="sec-explorar" class="section-card">
 <h3><i class="fas fa-rocket" style="color:#8b5cf6;margin-right:8px;"></i> Explorar Proyectos Vigentes</h3>
 <p class="subtitle">Proyectos activos de Avanzada y Clan.</p>
+<!-- Buscador/filtro -->
+<div style="margin-bottom:14px;display:flex;gap:8px;align-items:center">
+  <div style="position:relative;flex:1">
+    <i class="fas fa-search" style="position:absolute;left:10px;top:50%;transform:translateY(-50%);color:#94a3b8;font-size:13px"></i>
+    <input type="text" id="explorar-search" placeholder="Buscar por nombre, campo de acción..." oninput="filtrarExplorar()"
+      style="width:100%;border:1.5px solid #e2e8f0;border-radius:10px;padding:8px 12px 8px 32px;font-size:13px;outline:none">
+  </div>
+  <select id="explorar-rama" onchange="filtrarExplorar()"
+    style="border:1.5px solid #e2e8f0;border-radius:10px;padding:8px 12px;font-size:13px;outline:none;background:white;color:#475569;font-weight:600">
+    <option value="">Todas las ramas</option>
+    <option value="Clan">Clan</option>
+    <option value="Avanzada">Avanzada</option>
+  </select>
+</div>
 <div id="portal-proyectos-vigentes"></div>
 </div>
-<!-- CALENDARIO DE PROYECTOS -->
-<div class="bg-white rounded-2xl shadow-sm p-6 mb-6">
-  <h2 class="text-lg font-bold text-gray-800 mb-1 flex items-center gap-2">
-    <span class="text-xl">📅</span> Calendario de Proyectos
-  </h2>
-  <p class="text-sm text-gray-400 mb-4">Fechas de inicio y término de los proyectos vigentes</p>
+</div><!-- /tab-explorar -->
+<div id="tab-cal" class="tab-panel">
+<div id="sec-cal" class="section-card portal-cal-main">
+  <h3 class="flex items-center gap-2">📅 Calendario de Proyectos</h3>
+  <p class="subtitle">Fechas de inicio y término de los proyectos vigentes</p>
   <div id="portal-calendario"></div>
 </div>
-</div>
+
+</div><!-- /tab-cal -->
+</div><!-- /portal-main -->
+</div><!-- /portal-layout -->
+</div><!-- /portal-screen -->
 
 <!-- MODAL PROYECTO (réplica exacta del sistema interno) -->
 <div id="modal-proyecto-portal" class="modal-overlay">
@@ -179,14 +382,7 @@
 
 <!-- FICHA EXTENDIDA -->
 <div class="bg-amber-50 border border-amber-200 rounded-xl p-5 mb-5">
-<div class="bg-slate-50 border border-slate-200 rounded-xl p-3 mb-3">
-                <label class="flex items-center gap-3 cursor-pointer">
-                    <input type="checkbox" id="mp-toggle-publico" checked class="w-5 h-5 accent-green-600 cursor-pointer" onchange="document.getElementById('mp-vis-desc').textContent=this.checked?'Visible para otros caminantes en la sección Explorar Proyectos.':'Solo visible para ti y para los dirigentes en el ERP.'">
-                    <span class="font-extrabold text-slate-700 text-sm"><i class="fas fa-globe mr-1 text-green-600"></i> Proyecto público</span>
-                </label>
-                <p id="mp-vis-desc" class="text-xs text-slate-500 mt-1 ml-8">Visible para otros caminantes en la sección Explorar Proyectos.</p>
-            </div>
-            <label class="flex items-center gap-3 cursor-pointer"><input type="checkbox" id="mp-toggle-ficha" onchange="document.getElementById('mp-ficha-ext').style.display=this.checked?'block':'none'" class="w-5 h-5 accent-amber-600 cursor-pointer"><span class="font-extrabold text-amber-900 uppercase tracking-wide text-sm"><i class="fas fa-clipboard-list mr-1"></i> Activar Ficha Extendida (Caminantes)</span></label>
+<label class="flex items-center gap-3 cursor-pointer"><input type="checkbox" id="mp-toggle-ficha" onchange="document.getElementById('mp-ficha-ext').style.display=this.checked?'block':'none'" class="w-5 h-5 accent-amber-600 cursor-pointer"><span class="font-extrabold text-amber-900 uppercase tracking-wide text-sm"><i class="fas fa-clipboard-list mr-1"></i> Activar Ficha Extendida (Caminantes)</span></label>
 <div id="mp-ficha-ext" style="display:none;" class="mt-5">
 
 <!-- 1. Identificación -->
@@ -271,13 +467,54 @@
 </div>
 </div></div></div>
 
-    <script src="caminante/js/00_nucleo_y_acceso.js"></script>
-    <script src="caminante/js/01_camino_y_manifiesto.js"></script>
-    <script src="caminante/js/02_modal_proyecto.js"></script>
-    <script src="caminante/js/03_responsables_y_participantes.js"></script>
-    <script src="caminante/js/04_evidencias_y_drive.js"></script>
-    <script src="caminante/js/05_proyectos.js"></script>
-    <script src="caminante/js/06_calendario_y_portafolio.js"></script>
+<script src="caminante/js/00_nucleo_y_acceso.js"></script>
+<script src="caminante/js/01_camino_y_manifiesto.js"></script>
+<script src="caminante/js/02_modal_proyecto.js"></script>
+<script src="caminante/js/03_proyectos_guardar_render.js"></script>
+<script src="caminante/js/04_explorar_vigentes.js"></script>
+<script src="caminante/js/05_tabs_y_navegacion.js"></script>
+<script src="caminante/js/06_solicitudes_y_stats.js"></script>
+<script src="caminante/js/07_portafolio_y_calendario.js"></script>
+
+<!-- MODAL ACEPTAR SOLICITUD -->
+<div id="modal-aceptar-sol" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:9999;align-items:center;justify-content:center;padding:16px;">
+  <div style="background:#fff;border-radius:16px;padding:24px;width:100%;max-width:380px;box-shadow:0 20px 60px rgba(0,0,0,0.3);">
+    <h3 style="font-size:15px;font-weight:800;color:#1e293b;margin-bottom:4px;">✅ Aceptar solicitud</h3>
+    <p id="modal-aceptar-nombre" style="font-size:13px;color:#64748b;margin-bottom:16px;"></p>
+    <label style="font-size:11px;font-weight:700;color:#475569;text-transform:uppercase;letter-spacing:.05em;display:block;margin-bottom:6px;">Rol en el proyecto</label>
+    <select id="modal-aceptar-rol" style="width:100%;border:1.5px solid #e2e8f0;border-radius:8px;padding:10px;font-size:13px;outline:none;margin-bottom:16px;">
+      <option value="participante">👥 Solo Participante</option>
+      <option value="Coordinador General">🎯 Coordinador General</option>
+      <option value="Finanzas / Tesorería">💰 Finanzas / Tesorería</option>
+      <option value="Logística y Equipos">📦 Logística y Equipos</option>
+      <option value="Comunicaciones y RRPP">📢 Comunicaciones y RRPP</option>
+      <option value="Programa y Actividades">🎭 Programa y Actividades</option>
+      <option value="Gestión de Riesgos">⚠️ Gestión de Riesgos</option>
+      <option value="Salud y Primeros Auxilios">🏥 Salud y Primeros Auxilios</option>
+      <option value="Operaciones">⚙️ Operaciones</option>
+    </select>
+    <div style="display:flex;gap:10px;">
+      <button onclick="document.getElementById('modal-aceptar-sol').style.display='none'" style="flex:1;border:1.5px solid #e2e8f0;border-radius:8px;padding:10px;font-size:13px;font-weight:600;background:#f8fafc;cursor:pointer;">Cancelar</button>
+      <button onclick="confirmarAceptar()" style="flex:1;border:none;border-radius:8px;padding:10px;font-size:13px;font-weight:700;background:#10b981;color:#fff;cursor:pointer;">✅ Confirmar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL RECHAZAR SOLICITUD -->
+<div id="modal-rechazar-sol" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:9999;align-items:center;justify-content:center;padding:16px;">
+  <div style="background:#fff;border-radius:16px;padding:24px;width:100%;max-width:380px;box-shadow:0 20px 60px rgba(0,0,0,0.3);">
+    <h3 style="font-size:15px;font-weight:800;color:#1e293b;margin-bottom:4px;">❌ Rechazar solicitud</h3>
+    <p id="modal-rechazar-nombre" style="font-size:13px;color:#64748b;margin-bottom:12px;"></p>
+    <label style="font-size:11px;font-weight:700;color:#475569;text-transform:uppercase;letter-spacing:.05em;display:block;margin-bottom:6px;">Razón del rechazo (se enviará por correo)</label>
+    <textarea id="modal-rechazar-razon" rows="3" placeholder="Ej: El proyecto ya tiene su equipo completo..." style="width:100%;border:1.5px solid #e2e8f0;border-radius:8px;padding:10px;font-size:13px;outline:none;resize:none;box-sizing:border-box;margin-bottom:16px;"></textarea>
+    <div style="display:flex;gap:10px;">
+      <button onclick="document.getElementById('modal-rechazar-sol').style.display='none'" style="flex:1;border:1.5px solid #e2e8f0;border-radius:8px;padding:10px;font-size:13px;font-weight:600;background:#f8fafc;cursor:pointer;">Cancelar</button>
+      <button onclick="confirmarRechazar()" style="flex:1;border:none;border-radius:8px;padding:10px;font-size:13px;font-weight:700;background:#ef4444;color:#fff;cursor:pointer;">❌ Rechazar</button>
+    </div>
+  </div>
+</div>
+
+<script>if('serviceWorker' in navigator){navigator.serviceWorker.register('/sw.js').catch(function(){});}</script>
 <script src="google-api-helper.js"></script>
 <script src="google-ui.js"></script>
 </body>

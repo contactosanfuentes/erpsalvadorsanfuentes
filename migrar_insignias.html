@@ -74,6 +74,44 @@
     ];
     const log = (m, c) => { const d = document.getElementById('log'); d.innerHTML += `<div class="${c||''}">${m}</div>`; d.scrollTop = d.scrollHeight; };
 
+    // Cadena de obtención: fetch directo (si imgur envía CORS) → proxy wsrv.nl → <img> con
+    // crossorigin + canvas. Si todo falla, se ofrece subida manual para esa imagen.
+    async function obtenerBlob(url) {
+        // 1) fetch directo
+        try { const r = await fetch(url, { mode: 'cors' }); if (r.ok) { const b = await r.blob(); if (b.type.startsWith('image')) return b; } } catch (e) {}
+        // 2) proxy wsrv.nl
+        try { const r = await fetch('https://wsrv.nl/?url=' + encodeURIComponent(url)); if (r.ok) { const b = await r.blob(); if (b.type.startsWith('image')) return b; } } catch (e) {}
+        // 3) <img crossorigin> + canvas (funciona si imgur permite CORS en <img> aunque bloquee fetch)
+        try {
+            const blob = await new Promise((res, rej) => {
+                const img = new Image(); img.crossOrigin = 'anonymous';
+                img.onload = () => { try { const c = document.createElement('canvas'); c.width = img.naturalWidth; c.height = img.naturalHeight; c.getContext('2d').drawImage(img, 0, 0); c.toBlob(b => b ? res(b) : rej(new Error('canvas vacío')), 'image/png'); } catch (e) { rej(e); } };
+                img.onerror = () => rej(new Error('img no cargó'));
+                img.src = url + (url.includes('?') ? '&' : '?') + 'cors=1';
+                setTimeout(() => rej(new Error('timeout')), 15000);
+            });
+            if (blob) return blob;
+        } catch (e) {}
+        return null;
+    }
+
+    async function subirBlob(nombre, blob) {
+        const { error } = await db.storage.from('payment-receipts').upload('insignias/' + nombre, blob, { contentType: blob.type || 'image/png', upsert: true });
+        if (error) throw error;
+    }
+
+    // Subida manual para las que fallen: abre la imagen en una pestaña (clic derecho → guardar) y súbela aquí.
+    function ofrecerSubidaManual(url, nombre) {
+        const id = 'man-' + nombre.replace(/[^a-zA-Z0-9]/g, '');
+        log(`&nbsp;&nbsp;↳ <a href="${url}" target="_blank" rel="noopener">abrir ${nombre} en pestaña nueva</a> (clic derecho → Guardar imagen) y luego <label style="color:#2563eb;cursor:pointer;text-decoration:underline;">selecciónala aquí<input type="file" accept="image/*" style="display:none;" onchange="subirManual(this,'${nombre}','${id}')"></label> <span id="${id}"></span>`, 'skip');
+    }
+    async function subirManual(input, nombre, id) {
+        const f = input.files[0]; if (!f) return;
+        const s = document.getElementById(id); s.textContent = '⏳ subiendo...';
+        try { await subirBlob(nombre, f); s.textContent = '✓ subida'; s.className = 'ok'; }
+        catch (e) { s.textContent = '✗ ' + e.message; s.className = 'err'; }
+    }
+
     async function migrar() {
         document.getElementById('btn').disabled = true;
         const { data: sess } = await db.auth.getSession();
@@ -85,19 +123,16 @@
                 // ¿Ya migrada?
                 const head = await fetch(`${SUPABASE_URL}/storage/v1/object/public/payment-receipts/insignias/${nombre}`, { method: 'HEAD' });
                 if (head.ok) { skip++; log(`↷ ${nombre} ya migrada`, 'skip'); continue; }
-                const resp = await fetch(url, { mode: 'cors' });
-                if (!resp.ok) throw new Error('HTTP ' + resp.status);
-                const blob = await resp.blob();
-                if (!blob.type.startsWith('image')) throw new Error('no es imagen (' + blob.type + ')');
-                const { error } = await db.storage.from('payment-receipts').upload('insignias/' + nombre, blob, { contentType: blob.type, upsert: true });
-                if (error) throw error;
+                const blob = await obtenerBlob(url);
+                if (!blob) { fail++; log(`✗ ${nombre}: no se pudo obtener automáticamente`, 'err'); ofrecerSubidaManual(url, nombre); continue; }
+                await subirBlob(nombre, blob);
                 ok++; log(`✓ ${nombre} (${Math.round(blob.size/1024)} KB)`, 'ok');
             } catch (e) {
                 fail++; log(`✗ ${nombre}: ${e.message}`, 'err');
             }
         }
         log(`<br><strong>Resultado: ${ok} subidas · ${skip} ya existían · ${fail} fallidas.</strong>`);
-        if (fail) log('Las fallidas: reintenta más tarde (imgur limita por ráfagas) o consigue esas imágenes de otra fuente y súbelas manualmente al bucket con el mismo nombre.', 'skip');
+        if (fail) log('Para las fallidas usa los enlaces de arriba: abre cada imagen, guárdala y súbela con el selector — queda con el nombre correcto automáticamente.', 'skip');
         else log('🎉 Migración completa. El sistema ya no depende de imgur.', 'ok');
         document.getElementById('btn').disabled = false;
         document.getElementById('btn').textContent = 'Reintentar fallidas';

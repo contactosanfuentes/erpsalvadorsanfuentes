@@ -21,7 +21,7 @@
                             <div class="badge-rama text-gray-800">
                                 ${logoRama ? `<img src="${logoRama}" alt="Logo ${joven.rama}">` : ''}
                                 Rama ${joven.rama} | <span class="opacity-70">${joven.unidad}</span>
-                                ${joven.rama === 'Clan' ? `<span style="margin-left:10px;display:inline-flex;align-items:center;gap:5px;cursor:pointer;" onclick="toggleCompromisoCaminante(${joven.id})" title="${joven.compromiso_caminante ? 'Compromiso realizado ✓ (clic para desmarcar)' : 'Sin Compromiso aún (clic para marcar)'}"><img src="https://hyixmaxhoxvamoecuars.supabase.co/storage/v1/object/public/payment-receipts/insignias/eX1hXDn.png?1" style="width:22px;height:22px;object-fit:contain;${joven.compromiso_caminante ? '' : 'filter:grayscale(1);opacity:0.35;'}"><span style="font-size:0.7rem;font-weight:700;${joven.compromiso_caminante ? 'color:#10B981;' : 'color:#94a3b8;'}">${joven.compromiso_caminante ? 'Compromiso ✓' : 'Sin Compromiso'}</span></span>` : ''}
+                                ${joven.rama === 'Clan' ? `<span style="margin-left:10px;display:inline-flex;align-items:center;gap:5px;cursor:pointer;" onclick="toggleCompromisoCaminante(${joven.id})" title="${joven.compromiso_caminante ? 'Compromiso realizado ✓ (clic para desmarcar)' : 'Sin Compromiso aún (clic para marcar)'}"><img src="https://i.imgur.com/eX1hXDn.png?1" style="width:22px;height:22px;object-fit:contain;${joven.compromiso_caminante ? '' : 'filter:grayscale(1);opacity:0.35;'}"><span style="font-size:0.7rem;font-weight:700;${joven.compromiso_caminante ? 'color:#10B981;' : 'color:#94a3b8;'}">${joven.compromiso_caminante ? 'Compromiso ✓' : 'Sin Compromiso'}</span></span>` : ''}
                             </div>
                             <div class="profile-info-grid">
                                 <p><i class="fas fa-birthday-cake text-amber-300"></i> Edad: ${joven.edad} años</p>
@@ -321,7 +321,7 @@
                                     <!-- Compromiso Caminante -->
                                     <div class="mb-5 p-4 rounded-xl border ${joven.compromiso_caminante ? 'bg-green-50 border-green-200' : 'bg-gray-50 border-gray-200'}">
                                         <div class="flex items-center gap-3 mb-3">
-                                            <img src="https://hyixmaxhoxvamoecuars.supabase.co/storage/v1/object/public/payment-receipts/insignias/eX1hXDn.png" style="width:36px;height:36px;object-fit:contain;${joven.compromiso_caminante ? '' : 'filter:grayscale(1);opacity:0.4'}">
+                                            <img src="https://i.imgur.com/eX1hXDn.png" style="width:36px;height:36px;object-fit:contain;${joven.compromiso_caminante ? '' : 'filter:grayscale(1);opacity:0.4'}">
                                             <div>
                                                 <p class="font-extrabold text-sm ${joven.compromiso_caminante ? 'text-green-800' : 'text-gray-500'}">Compromiso del Caminante</p>
                                                 <p class="text-xs ${joven.compromiso_caminante ? 'text-green-600' : 'text-gray-400'}">El momento formal en que asume el estilo de vida scout</p>

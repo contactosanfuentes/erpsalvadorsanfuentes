@@ -1,12 +1,3 @@
-async function guardarCamino(){try{const{error}=await sb.from('progresion_jovenes').upsert({joven_id:currentJoven.id,camino},{onConflict:'joven_id'});if(error)throw error;return true}catch(e){toast('Error: '+e.message,'err');return false}}
-
-function mostrarPortal(){document.getElementById('login-screen').style.display='none';document.getElementById('portal-screen').style.display='block';
-document.getElementById('portal-foto').src=currentJoven.foto_url||'https://ui-avatars.com/api/?name='+encodeURIComponent(currentJoven.nombres)+'&background=E31837&color=fff&bold=true';
-document.getElementById('portal-nombre').textContent=currentJoven.nombres+' '+currentJoven.apellidos;
-document.getElementById('portal-unidad').textContent=currentJoven.unidad||'Caminante';
-document.getElementById('portal-manifiesto').value=camino.proyectoPersonal||'';pvCargarCampoExtra();
-renderAdjuntos();renderProyectos();cargarPortafolio();cargarProyectosVigentes();cargarCalendario()}
-
 // ══════════ MANIFIESTO ══════════
 async function guardarManifiesto(){
     camino.proyectoPersonal=document.getElementById('portal-manifiesto').value;
@@ -50,4 +41,3 @@ function pvMostrarRequisitos(){
 function renderAdjuntos(){const c=document.getElementById('portal-adjuntos');c.innerHTML='';(camino.adjuntos_manifiesto||[]).forEach(a=>{if(a.tipo==='imagen')c.innerHTML+=`<a href="${esc(a.url)}" target="_blank"><img src="${esc(a.url)}" style="width:50px;height:50px;object-fit:cover;border-radius:8px;border:2px solid #fca5a5;"></a>`;else c.innerHTML+=`<a href="${esc(a.url)}" target="_blank" class="bg-purple-50 text-purple-700 px-3 py-1.5 rounded-lg text-xs font-bold border border-purple-200"><i class="fas fa-play mr-1"></i>${esc(a.nombre||'Audio')}</a>`})}
 async function subirAdjunto(tipo,input){const files=input.files;if(!files.length)return;toast('Subiendo...','info');try{for(const f of files){if(f.size>10*1024*1024){toast(f.name+' >10MB','err');continue}const ext=f.name.split('.').pop().toLowerCase();const path=`manifiesto/${currentJoven.id}_${Date.now()}.${ext}`;const{error}=await sb.storage.from('fotos').upload(path,f,{upsert:true});if(error)throw error;const{data}=sb.storage.from('fotos').getPublicUrl(path);camino.adjuntos_manifiesto.push({tipo,url:data.publicUrl,nombre:f.name})}await guardarCamino();renderAdjuntos();toast('Adjunto guardado.')}catch(e){toast('Error: '+e.message,'err')}input.value=''}
 
-// ══════════ MODAL PROYECTO ══════════

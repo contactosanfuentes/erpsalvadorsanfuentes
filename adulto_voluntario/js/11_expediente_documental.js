@@ -36,12 +36,12 @@
                 <tr><td>Certificado Inhabilidad Maltrato Relevante</td><td>${a.cert_inhabilidad_relevante_url ? `<a href="${a.cert_inhabilidad_relevante_url}" target="_blank">Ver documento</a>` : 'No adjuntado'}</td></tr>
             `;
 
-            let badgeImgUrl = 'https://hyixmaxhoxvamoecuars.supabase.co/storage/v1/object/public/payment-receipts/insignias/75Pkg1G.png';
-            if (a.nivel_formacion === 'Básico') badgeImgUrl = 'https://hyixmaxhoxvamoecuars.supabase.co/storage/v1/object/public/payment-receipts/insignias/Doq2Vak.png';
-            else if (a.nivel_formacion === 'Medio') badgeImgUrl = 'https://hyixmaxhoxvamoecuars.supabase.co/storage/v1/object/public/payment-receipts/insignias/z0zOKwF.png';
-            else if (a.nivel_formacion === 'Avanzado') badgeImgUrl = 'https://hyixmaxhoxvamoecuars.supabase.co/storage/v1/object/public/payment-receipts/insignias/kZhPHVF.jpeg';
-            else if (a.nivel_formacion === 'IM3') badgeImgUrl = 'https://hyixmaxhoxvamoecuars.supabase.co/storage/v1/object/public/payment-receipts/insignias/IjZ6pzf.jpeg';
-            else if (a.nivel_formacion === 'IM4') badgeImgUrl = 'https://hyixmaxhoxvamoecuars.supabase.co/storage/v1/object/public/payment-receipts/insignias/AOwrUX8.jpeg';
+            let badgeImgUrl = 'https://i.imgur.com/75Pkg1G.png';
+            if (a.nivel_formacion === 'Básico') badgeImgUrl = 'https://i.imgur.com/Doq2Vak.png';
+            else if (a.nivel_formacion === 'Medio') badgeImgUrl = 'https://i.imgur.com/z0zOKwF.png';
+            else if (a.nivel_formacion === 'Avanzado') badgeImgUrl = 'https://i.imgur.com/kZhPHVF.jpeg';
+            else if (a.nivel_formacion === 'IM3') badgeImgUrl = 'https://i.imgur.com/IjZ6pzf.jpeg';
+            else if (a.nivel_formacion === 'IM4') badgeImgUrl = 'https://i.imgur.com/AOwrUX8.jpeg';
 
             const certs = a.certificados_formacion || {};
             const certsFormacionHtml = `
@@ -81,7 +81,7 @@
             </head>
             <body>
                 <div class="doc-header">
-                    <img src="https://hyixmaxhoxvamoecuars.supabase.co/storage/v1/object/public/payment-receipts/insignias/11u9rUD.png" alt="Logo Grupo Salvador Sanfuentes" onerror="this.src='https://via.placeholder.com/100x100/1e3a8a/ffffff?text=Logo+Grupo'">
+                    <img src="https://i.imgur.com/11u9rUD.png" alt="Logo Grupo Salvador Sanfuentes" onerror="this.src='https://via.placeholder.com/100x100/1e3a8a/ffffff?text=Logo+Grupo'">
                     <h1>Expediente Institucional</h1>
                     <p style="margin: 5px 0 0 0; color: #64748b; font-size: 12pt; font-weight: 600;">Grupo Guía y Scouts Salvador Sanfuentes</p>
                 </div>
@@ -390,7 +390,7 @@
     <table width="560" cellpadding="0" cellspacing="0" style="background:white;border-radius:16px;overflow:hidden;box-shadow:0 4px 20px rgba(0,0,0,0.08);">
       <!-- Header -->
       <tr><td style="background:linear-gradient(135deg,#0E2586,#1a36a8);padding:28px 32px;text-align:center;">
-        <img src="https://hyixmaxhoxvamoecuars.supabase.co/storage/v1/object/public/payment-receipts/insignias/11u9rUD.png" alt="Logo" style="height:52px;margin-bottom:12px;"><br>
+        <img src="https://i.imgur.com/11u9rUD.png" alt="Logo" style="height:52px;margin-bottom:12px;"><br>
         <span style="color:rgba(255,255,255,0.8);font-size:0.78rem;letter-spacing:1px;text-transform:uppercase;">Grupo Guía y Scouts Salvador Sanfuentes</span>
       </td></tr>
       <!-- Cuerpo -->

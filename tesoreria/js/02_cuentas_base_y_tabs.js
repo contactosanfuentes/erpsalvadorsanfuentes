@@ -1,4 +1,4 @@
-        async function crearCuentasBase() {
+        async function crearCuentasBase(recargar = true) {
             try {
                 const { data: existentes } = await supabaseClient.from('tesoreria_cuentas').select('nombre');
                 const nombresExistentes = new Set(existentes.map(c => c.nombre));
@@ -6,7 +6,7 @@
                 if (cuentasNuevas.length === 0) { showToast('Todas las cuentas base ya existen', 'info'); return; }
                 await supabaseClient.from('tesoreria_cuentas').insert(cuentasNuevas);
                 showToast(`Se crearon ${cuentasNuevas.length} cuentas base`, 'success');
-                await cargarDatos();
+                if (recargar) await cargarDatos(); // evita recursión infinita cuando llama cargarDatos()
             } catch (error) { showToast('Error al crear cuentas base: ' + error.message, 'error'); }
         }
 
@@ -38,7 +38,7 @@
             try {
                 const { data: cuentas } = await supabaseClient.from('tesoreria_cuentas').select('*').order('orden', { ascending: true, nullsFirst: false }).order('nombre');
                 accounts = cuentas || [];
-                if (accounts.length === 0) { await crearCuentasBase(); const { data: nuevas } = await supabaseClient.from('tesoreria_cuentas').select('*').order('orden'); accounts = nuevas || []; }
+                if (accounts.length === 0) { await crearCuentasBase(false); const { data: nuevas } = await supabaseClient.from('tesoreria_cuentas').select('*').order('orden'); accounts = nuevas || []; }
                 for (let acc of accounts) {
                     const { data: movs } = await supabaseClient.from('tesoreria_movimientos').select('*').eq('cuenta_id', acc.id).order('fecha', { ascending: false });
                     acc.movimientos = movs || [];
