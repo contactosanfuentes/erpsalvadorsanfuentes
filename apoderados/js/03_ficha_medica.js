@@ -267,15 +267,16 @@
 
         const btn = document.getElementById('fm-btn-guardar');
         btn.disabled = true; btn.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i> Guardando...';
-        const { error } = await db.from('fichas_medicas').insert({
+        const { data: fichaNueva, error } = await db.from('fichas_medicas').insert({
             mmbb_id: mmbbId,
             datos,
             firma_nombre: firmaNombre,
             firma_telefono: document.getElementById('fm-firma-tel').value.trim() || null,
             firma_imagen: document.getElementById('fm-firma').toDataURL('image/png'),
             firma_user_agent: navigator.userAgent.slice(0, 250)
-        });
+        }).select().single();
         if (error) {
+        if (!error && fichaNueva && window.DriveHelper) { _archivarFichaDrive(fichaNueva).catch(e => console.warn('[FM] Drive:', e.message)); }
             btn.disabled = false; btn.innerHTML = '<i class="fas fa-file-medical"></i> Guardar ficha médica';
             return fallo('Error al guardar: ' + error.message);
         }
@@ -285,9 +286,27 @@
     };
 
     // ── PDF (recorre el mismo esquema) ──
+    async function _archivarFichaDrive(f) {
+        const doc = await _construirDocFicha(f);
+        if (!doc) return;
+        const nombreJoven = ((f.datos && (f.datos.nombre_completo || '')) || f.firma_nombre || ('FM' + f.id)).replace(/[^a-zA-Z0-9 ]/g, '').trim().replace(/\s+/g, '_');
+        const nombreArchivo = `FichaMedica_${nombreJoven}_FM${f.id}.pdf`;
+        const b64 = doc.output('datauristring').split(',')[1];
+        await window.DriveHelper.subir({
+            supabaseClient: db, nombre: nombreArchivo, base64: b64, mimeType: 'application/pdf',
+            claveCarpeta: 'admin_documentos', nombrePersona: 'Fichas Médicas'
+        });
+        console.log('[FM] Archivada en Drive:', nombreArchivo);
+    }
+
     FM.descargarPDF = async function(fichaId) {
         const { data: f, error } = await db.from('fichas_medicas').select('*').eq('id', fichaId).single();
         if (error || !f) return alert('No se pudo recuperar la ficha.');
+        const doc = await _construirDocFicha(f);
+        if (doc) doc.save(`FichaMedica_FM${f.id}.pdf`);
+    };
+
+    async function _construirDocFicha(f) {
         if (!window.jspdf) {
             await new Promise((res, rej) => {
                 const s = document.createElement('script');
@@ -340,8 +359,8 @@
         linea(`Fecha de llenado: ${new Date(f.created_at).toLocaleString('es-CL')} · Folio FM-${String(f.id).padStart(5, '0')}`, { size: 7.5, gap: 1 });
         linea('Entregue esta ficha a la persona Responsable de la Unidad y hágale saber cualquier precaución o necesidad específica. Este documento debe conservarse por un período mínimo de 6 meses después de finalizado el evento o salida.', { size: 7, gap: 0 });
 
-        doc.save(`FichaMedica_FM${f.id}.pdf`);
-    };
+        return doc;
+}
 
     window.FichaMedica = FM;
 })();

@@ -313,7 +313,7 @@
         }
         document.getElementById('aut-modal').remove();
         await AUT.cargar(j);   // refrescar estado
-        try { await _generarPDF(data, ev); } catch(e) { console.error('[AUT] PDF:', e); }
+        try { await _generarPDF(data, ev, true); } catch(e) { console.error('[AUT] PDF:', e); }
         alert('✅ Autorización firmada correctamente. Se descargó una copia en PDF.');
     };
 
@@ -335,7 +335,7 @@
         await _generarPDF(aut, ev || {});
     };
 
-    async function _generarPDF(aut, ev) {
+    async function _generarPDF(aut, ev, archivarEnDrive) {
         await _cargarJsPDF();
         const { jsPDF } = window.jspdf;
         const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
@@ -398,6 +398,18 @@
 
         const nombreArchivo = `Autorizacion_${(aut.participante_nombre || '').replace(/[^a-zA-Z0-9]/g, '_')}_AUT${aut.id}.pdf`;
         doc.save(nombreArchivo);
+        // Archivo institucional: al FIRMAR, copia al Drive (carpeta del evento en admin_eventos)
+        if (archivarEnDrive && window.DriveHelper) {
+            try {
+                const b64 = doc.output('datauristring').split(',')[1];
+                await window.DriveHelper.subir({
+                    supabaseClient: db, nombre: nombreArchivo, base64: b64, mimeType: 'application/pdf',
+                    claveCarpeta: 'admin_eventos',
+                    nombrePersona: `Autorizaciones - ${(ev && ev.nombre) ? ev.nombre : 'Generales'}`
+                });
+                console.log('[AUT] Archivada en Drive:', nombreArchivo);
+            } catch(e) { console.warn('[AUT] No se pudo archivar en Drive:', e.message); }
+        }
     }
 
     window.Autorizaciones = AUT;
