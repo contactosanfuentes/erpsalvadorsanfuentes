@@ -30,6 +30,31 @@ function renderDocumentos(){
   </div>` + renderCertsFormacion();
 }
 
+
+// ══ Subida a Google Drive: carpeta base de adultos + subcarpeta de expediente personal ══
+function nombreExpediente(){
+  return `${adulto.primer_nombre||adulto.nombres||''} ${adulto.apellido_paterno||adulto.apellidos||''}`.trim() || ('Adulto ' + adulto.id);
+}
+async function subirArchivoExpediente(file, etiqueta){
+  const base64 = await new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(r.result.split(',')[1]); r.onerror = rej; r.readAsDataURL(file); });
+  const ext = (file.name.split('.').pop() || 'pdf').toLowerCase();
+  const limpio = t => String(t||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-zA-Z0-9]/g,'_');
+  const nombreArchivo = `${limpio(etiqueta)}_${limpio(nombreExpediente())}_${new Date().toISOString().slice(0,10)}.${ext}`;
+  // 1º Drive: carpeta 'adultos' → subcarpeta con el nombre del adulto (su expediente)
+  try {
+    const r = await window.DriveHelper.subir({ supabaseClient: sb, nombre: nombreArchivo, base64, mimeType: file.type || 'application/pdf', claveCarpeta: 'adultos', nombrePersona: nombreExpediente() });
+    if (r && r.ok && r.link) return { url: r.link, destino: 'drive' };
+    throw new Error((r && r.error) || 'sin enlace');
+  } catch (e) {
+    // 2º respaldo: storage de Supabase (p. ej. si el sitio no tiene credenciales de Drive configuradas)
+    console.warn('Drive no disponible, usando respaldo en storage:', e.message);
+    const ruta = `portal/${adulto.id}/${nombreArchivo}`;
+    const { error } = await sb.storage.from('adult-docs').upload(ruta, file, { contentType: file.type || 'application/octet-stream' });
+    if (error) throw new Error('Drive y respaldo fallaron: ' + error.message);
+    return { url: sb.storage.from('adult-docs').getPublicUrl(ruta).data.publicUrl, destino: 'storage' };
+  }
+}
+
 async function guardarDocUrl(campo){
   const url = $('doc-url-' + campo).value.trim();
   if (!url) { toast('Pega una URL o usa el botón de subir archivo.', 'err'); return; }
@@ -42,18 +67,17 @@ async function subirDocumento(input, campo, bucket){
   const f = input.files[0]; if (!f) return;
   if (f.size > 10 * 1024 * 1024) { toast('El archivo supera 10 MB.', 'err'); return; }
   const est = $('doc-est-' + campo); est.textContent = '⏳ Subiendo...'; est.style.color = '#64748b';
-  const ext = (f.name.split('.').pop() || 'pdf').toLowerCase();
-  const ruta = `portal/${adulto.id}/${campo}_${Date.now()}.${ext}`;
-  const { error } = await sb.storage.from(bucket).upload(ruta, f, { contentType: f.type || 'application/octet-stream' });
-  if (error) { est.textContent = '✗ Error'; est.style.color = '#b91c1c'; toast('Error al subir: ' + error.message, 'err'); return; }
-  const url = sb.storage.from(bucket).getPublicUrl(ruta).data.publicUrl;
-  const ok = await guardarAdulto({ [campo]: url });
-  if (ok) {
-    est.textContent = '✓ Cargado'; est.style.color = '#059669';
-    toast('📄 Documento actualizado.');
-    if (campo === 'foto_url') { $('hdr-foto').src = url; $('hdr-foto').style.display = ''; }
-    renderDocumentos();
-  }
+  try {
+    const etiqueta = (DOCS.find(d => d.k === campo) || {}).n || campo;
+    const { url, destino } = await subirArchivoExpediente(f, etiqueta);
+    const ok = await guardarAdulto({ [campo]: url });
+    if (ok) {
+      est.textContent = '✓ Cargado'; est.style.color = '#059669';
+      toast(destino === 'drive' ? '📁 Guardado en tu expediente de Drive.' : '📄 Guardado (respaldo en storage: Drive no disponible en este sitio).');
+      if (campo === 'foto_url') { $('hdr-foto').src = url; $('hdr-foto').style.display = ''; }
+      renderDocumentos();
+    }
+  } catch (e) { est.textContent = '✗ Error'; est.style.color = '#b91c1c'; toast('Error al subir: ' + e.message, 'err'); }
 }
 
 // ══ Certificados de cursos de formación (mismo JSON que muestra el ERP en tu perfil) ══
@@ -99,10 +123,10 @@ async function subirCertFormacion(input, key){
   const f = input.files[0]; if (!f) return;
   if (f.size > 10 * 1024 * 1024) { toast('El archivo supera 10 MB.', 'err'); return; }
   const est = $('cf-est-' + key); est.textContent = '⏳ Subiendo...'; est.style.color = '#64748b';
-  const ext = (f.name.split('.').pop() || 'pdf').toLowerCase();
-  const ruta = `portal/${adulto.id}/formacion_${key}_${Date.now()}.${ext}`;
-  const { error } = await sb.storage.from('adult-docs').upload(ruta, f, { contentType: f.type || 'application/octet-stream' });
-  if (error) { est.textContent = '✗ Error'; est.style.color = '#b91c1c'; toast('Error al subir: ' + error.message, 'err'); return; }
-  const url = sb.storage.from('adult-docs').getPublicUrl(ruta).data.publicUrl;
-  await guardarCertFormacion(key, url);
+  try {
+    const etiqueta = (CERTS_FORMACION.find(c => c.k === key) || {}).n || ('Cert_' + key);
+    const { url, destino } = await subirArchivoExpediente(f, etiqueta);
+    await guardarCertFormacion(key, url);
+    if (destino !== 'drive') toast('📄 Guardado con respaldo en storage (Drive no disponible en este sitio).');
+  } catch (e) { est.textContent = '✗ Error'; est.style.color = '#b91c1c'; toast('Error al subir: ' + e.message, 'err'); }
 }
