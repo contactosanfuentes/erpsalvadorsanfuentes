@@ -27,13 +27,19 @@
         const cont = document.getElementById(`aut-cont-${j.id}`);
         if (!cont) return;
         try {
-            const [evsRes, autsRes, partRes] = await Promise.all([
+            const [evsRes, evsPasadosRes, autsRes, partRes] = await Promise.all([
                 db.from('eventos')
                   .select('id,nombre,fecha_inicio,fecha_fin,lugar,tipo')
                   .eq('publicado', true)
                   .or(`fecha_fin.gte.${hoyISO()},fecha_inicio.gte.${hoyISO()}`)
                   .order('fecha_inicio', { ascending: true })
                   .limit(12),
+                db.from('eventos')
+                  .select('id,nombre,fecha_inicio,fecha_fin,lugar,tipo')
+                  .eq('publicado', true)
+                  .lt('fecha_inicio', hoyISO())
+                  .order('fecha_inicio', { ascending: false })
+                  .limit(6),
                 db.from('autorizaciones_apoderados')
                   .select('id,evento_id,tipo,firma_timestamp,autoriza_tratamiento')
                   .eq('mmbb_id', j.id),
@@ -42,12 +48,25 @@
                   .eq('mmbb_id', j.id)
             ]);
             const eventos = evsRes.data || [];
+            const pasados = (evsPasadosRes.data || []).filter(p => !eventos.some(e => e.id === p.id));
             const auts = autsRes.data || [];
             const parts = partRes.data || [];
             _cache[j.id] = { j, eventos, auts, parts };
 
+            const histHTML = pasados.length ? `
+                <div style="margin-top:16px">
+                    <p style="font-size:0.72rem;font-weight:800;text-transform:uppercase;letter-spacing:.04em;color:#64748b;margin:0 0 8px"><i class="fas fa-history"></i> Actividades pasadas</p>
+                    ${pasados.map(ev => {
+                        const aut = auts.find(a => a.evento_id === ev.id);
+                        return `<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:9px 12px;margin-bottom:6px">
+                            <div><p style="font-size:0.8rem;font-weight:700;color:#334155;margin:0">${esc(ev.nombre)}</p><p style="font-size:0.68rem;color:#94a3b8;margin:0">${fmtFecha(ev.fecha_inicio)}${ev.lugar ? ' · ' + esc(ev.lugar) : ''}</p></div>
+                            ${aut ? '<span style="font-size:0.68rem;font-weight:800;color:#059669;white-space:nowrap"><i class="fas fa-check-circle"></i> Autorizada</span>' : '<span style="font-size:0.68rem;font-weight:700;color:#94a3b8;white-space:nowrap">Sin autorización</span>'}
+                        </div>`;
+                    }).join('')}
+                </div>` : '';
+
             if (!eventos.length) {
-                cont.innerHTML = '<div class="esm"><i class="fas fa-calendar-times"></i>No hay actividades próximas publicadas.</div>';
+                cont.innerHTML = `<div class="esm"><i class="fas fa-calendar-times"></i>No hay actividades próximas publicadas.<br><span style="font-size:0.72rem;color:#94a3b8">Las actividades aparecen aquí cuando el equipo de grupo las <b>publica con fecha</b> en el módulo de Eventos del ERP.</span></div>` + histHTML;
                 return;
             }
             cont.innerHTML = eventos.map(ev => {
@@ -101,7 +120,7 @@
                     </div>
                     ${acciones}
                 </div>`;
-            }).join('') + `<p style="font-size:0.7rem;color:#94a3b8;margin-top:10px"><i class="fas fa-info-circle"></i> En las actividades <strong>internas</strong> primero confirmas si participará y luego firmas la autorización oficial AGSCh. Las actividades <strong>abiertas</strong> reciben inscripciones de delegaciones por el portal público; aquí solo se firma la autorización. Los documentos se conservan un mínimo de 6 meses.</p>`;
+            }).join('') + `<p style="font-size:0.7rem;color:#94a3b8;margin-top:10px"><i class="fas fa-info-circle"></i> En las actividades <strong>internas</strong> primero confirmas si participará y luego firmas la autorización oficial AGSCh. Las actividades <strong>abiertas</strong> reciben inscripciones de delegaciones por el portal público; aquí solo se firma la autorización. Los documentos se conservan un mínimo de 6 meses.</p>` + histHTML;
 
             // ── Estado de cuota (async, no bloquea): internos si participa, externos si autorizó ──
             for (const ev of eventos) {

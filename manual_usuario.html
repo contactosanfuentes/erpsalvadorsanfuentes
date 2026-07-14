@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Manual de Usuario | Sistema Salvador Sanfuentes</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700;800;900&display=swap');
+*{box-sizing:border-box;margin:0;padding:0;font-family:'Poppins',sans-serif}
+body{background:#f4f6fb;color:#1e293b;line-height:1.65}
+.hero{background:linear-gradient(150deg,#0a1030,#0E2586 60%,#1d5c8f);color:#fff;padding:44px 20px 36px;text-align:center}
+.hero img{width:74px;height:auto;margin-bottom:10px}
+.hero h1{font-size:1.6rem;font-weight:900;letter-spacing:.02em}
+.hero p{color:#c7d2fe;font-size:0.85rem;max-width:640px;margin:6px auto 0}
+.wrap{max-width:860px;margin:0 auto;padding:22px 16px 80px}
+.indice{background:#fff;border-radius:16px;padding:18px;box-shadow:0 2px 10px rgba(0,0,0,.05);margin-bottom:20px}
+.indice a{display:flex;align-items:center;gap:10px;padding:9px 6px;color:#0E2586;font-weight:700;font-size:0.85rem;text-decoration:none;border-bottom:1px solid #f1f5f9}
+.indice a:last-child{border:none}
+.indice a i{width:22px;text-align:center}
+section{background:#fff;border-radius:16px;padding:22px;box-shadow:0 2px 10px rgba(0,0,0,.05);margin-bottom:18px;scroll-margin-top:16px}
+h2{font-size:1.15rem;font-weight:900;margin-bottom:4px;display:flex;align-items:center;gap:10px}
+h2 .tag{font-size:0.62rem;font-weight:800;border-radius:999px;padding:3px 10px;text-transform:uppercase;letter-spacing:.05em}
+h3{font-size:0.92rem;font-weight:800;color:#0E2586;margin:18px 0 6px}
+p,li{font-size:0.86rem;color:#334155}
+ul,ol{padding-left:22px;margin:6px 0}
+li{margin-bottom:5px}
+.paso{display:flex;gap:12px;margin:10px 0;align-items:flex-start}
+.paso .n{flex-shrink:0;width:26px;height:26px;border-radius:50%;background:#0E2586;color:#fff;font-weight:800;font-size:0.8rem;display:flex;align-items:center;justify-content:center;margin-top:2px}
+.nota{background:#fffbeb;border:1px solid #fde68a;border-radius:12px;padding:12px 14px;font-size:0.8rem;color:#92400e;margin:12px 0}
+.nota i{margin-right:6px}
+.ok{background:#f0fdf4;border-color:#bbf7d0;color:#166534}
+.info{background:#eff6ff;border-color:#bfdbfe;color:#1e40af}
+.url{display:inline-block;background:#f1f5f9;border:1px solid #e2e8f0;border-radius:8px;padding:3px 10px;font-size:0.78rem;font-weight:700;color:#0E2586;text-decoration:none;margin:2px 0}
+table{width:100%;border-collapse:collapse;margin:10px 0;font-size:0.8rem}
+th{background:#0E2586;color:#fff;text-align:left;padding:8px 10px;font-size:0.72rem;text-transform:uppercase;letter-spacing:.03em}
+td{padding:8px 10px;border-bottom:1px solid #eef2f7;vertical-align:top}
+tr:nth-child(even) td{background:#f8fafc}
+.c-cam{color:#C62828}.c-pio{color:#3949AB}.c-adu{color:#A08434}.c-apo{color:#00A859}.c-erp{color:#0E2586}
+footer{text-align:center;font-size:0.72rem;color:#94a3b8;padding:20px}
+@media print{.hero{background:#0E2586}.indice{display:none}}
+</style>
+</head>
+<body>
+<div class="hero">
+  <img src="https://hyixmaxhoxvamoecuars.supabase.co/storage/v1/object/public/logos/grupo.png" alt="Grupo Salvador Sanfuentes" onerror="this.style.display='none'">
+  <h1>Manual de Usuario</h1>
+  <p>Sistema de Gestión del Grupo Guías y Scouts Salvador Sanfuentes — Portales para jóvenes, familias, adultos voluntarios y equipo de grupo.</p>
+</div>
+<div class="wrap">
+
+<div class="indice">
+  <a href="#general"><i class="fas fa-compass c-erp"></i> Visión general y accesos</a>
+  <a href="#apoderados"><i class="fas fa-people-roof c-apo"></i> Portal de Apoderados</a>
+  <a href="#caminante"><i class="fas fa-fire c-cam"></i> Portal Caminante (Clan)</a>
+  <a href="#pionero"><i class="fas fa-mountain c-pio"></i> Portal Pionero (Avanzada)</a>
+  <a href="#adulto"><i class="fas fa-hands-helping c-adu"></i> Portal del Adulto Voluntario</a>
+  <a href="#dirigentes"><i class="fas fa-user-shield c-erp"></i> Para dirigentes: ERP y buenas prácticas</a>
+  <a href="#faq"><i class="fas fa-circle-question c-erp"></i> Problemas frecuentes</a>
+</div>
+
+<section id="general">
+  <h2><i class="fas fa-compass c-erp"></i> Visión general</h2>
+  <p>El sistema tiene un <b>ERP central</b> (para el equipo de grupo) y <b>cuatro portales</b> de autoservicio. Todos comparten la misma base de datos: lo que registras en un portal se ve de inmediato en el ERP, y viceversa. Los documentos importantes se archivan automáticamente en el <b>Google Drive del grupo</b>, organizados por carpetas.</p>
+  <table>
+    <tr><th>Portal</th><th>Para quién</th><th>Acceso</th></tr>
+    <tr><td><b class="c-apo">Apoderados</b></td><td>Madres, padres y apoderados</td><td>Google (correo personal) + vinculación con RUN y fecha de nacimiento del joven</td></tr>
+    <tr><td><b class="c-cam">Caminante</b></td><td>Jóvenes del Clan</td><td>RUT + clave (últimos 4 dígitos del RUT del apoderado)</td></tr>
+    <tr><td><b class="c-pio">Pionero</b></td><td>Jóvenes de la Avanzada</td><td>RUT + clave (igual que caminante)</td></tr>
+    <tr><td><b class="c-adu">Adulto Voluntario</b></td><td>Dirigentes y colaboradores</td><td>Google institucional o correo + contraseña del ERP; vinculación con RUN</td></tr>
+    <tr><td><b class="c-erp">ERP (S.L.P.S.)</b></td><td>Equipo de grupo</td><td>Google institucional @salvadorsanfuentes.org</td></tr>
+  </table>
+  <p>Todos los portales están enlazados desde el menú <b>“Portales”</b> del sitio <a class="url" href="https://salvadorsanfuentes.org" target="_blank">salvadorsanfuentes.org</a>.</p>
+</section>
+
+<section id="apoderados">
+  <h2><i class="fas fa-people-roof c-apo"></i> Portal de Apoderados <span class="tag" style="background:#dcfce7;color:#166534">Familias</span></h2>
+  <p>Aquí las familias autorizan actividades, completan la ficha médica anual y consultan la situación de sus pupilos.</p>
+  <h3>Primer ingreso (solo una vez)</h3>
+  <div class="paso"><div class="n">1</div><p>Entra al portal y pulsa <b>Continuar con Google</b> usando tu correo personal (Gmail u otro con cuenta Google).</p></div>
+  <div class="paso"><div class="n">2</div><p>Si tu correo ya figura como apoderado, verás a tus pupilos de inmediato. Si no, aparecerá el bloque <b>“Vincular pupilo”</b>: escribe el <b>RUN del joven</b> y su <b>fecha de nacimiento</b>.</p></div>
+  <div class="paso"><div class="n">3</div><p>El sistema verifica ambos datos y asocia tu correo como apoderado. Puedes repetirlo para vincular más de un pupilo.</p></div>
+  <div class="nota"><i class="fas fa-shield-halved"></i>Cada joven tiene 3 cupos de apoderado (titular y 2 suplentes). La vinculación ocupa el primer cupo libre y <b>nunca reemplaza</b> el correo de otro apoderado.</div>
+  <h3>Qué hay en la tarjeta de cada pupilo</h3>
+  <ul>
+    <li><b>General:</b> datos del joven y la sección editable <b>Contactos de apoderados</b> — mantén al día nombres, parentescos y teléfonos: son los datos de emergencia del grupo.</li>
+    <li><b>Progresión:</b> avance en el método scout de su rama (solo lectura).</li>
+    <li><b>Eventos y Pagos:</b> historial de asistencia y estado de cuotas (solo lectura).</li>
+    <li><b>Actividades:</b> las actividades <b>publicadas</b> por el grupo. En cada una confirmas la participación y <b>firmas la autorización oficial AGSCh</b> con el dedo. El PDF se descarga y queda archivado en el Drive del grupo. Abajo verás el historial de actividades pasadas.</li>
+    <li><b>Ficha Médica:</b> complétala y fírmala una vez al año o cuando cambien los datos de salud. También queda archivada automáticamente.</li>
+  </ul>
+  <div class="nota info"><i class="fas fa-circle-info"></i>¿No aparecen actividades? Solo se muestran las que el equipo de grupo ha <b>publicado con fecha</b>. Si esperas ver una actividad, consulta a la dirigencia de la unidad.</div>
+</section>
+
+<section id="caminante">
+  <h2><i class="fas fa-fire c-cam"></i> Portal Caminante <span class="tag" style="background:#fee2e2;color:#991b1b">Clan</span></h2>
+  <p>Exclusivo para integrantes del <b>Clan</b>. Ingresa con tu RUT; la clave son los últimos 4 dígitos del RUT de tu apoderado.</p>
+  <ul>
+    <li><b>Camino Simbólico:</b> tu Proyecto de Vida — responde las preguntas de reflexión y registra tu Compromiso.</li>
+    <li><b>Proyectos:</b> crea proyectos colectivos, define fases, invita responsables y sube evidencias (van al Drive del grupo). Puedes explorar proyectos de la Avanzada y pedir unirte; el creador aprueba o rechaza desde su portal.</li>
+    <li><b>Portafolio:</b> tu etapa de progresión (Bienvenida → Fuego → Antorcha), competencias e insignias.</li>
+    <li><b>Calendario:</b> fechas de proyectos (compartidas con la Avanzada) y notas del Clan.</li>
+  </ul>
+</section>
+
+<section id="pionero">
+  <h2><i class="fas fa-mountain c-pio"></i> Portal Pionero <span class="tag" style="background:#e0e7ff;color:#3730a3">Avanzada</span></h2>
+  <p>Exclusivo para la <b>Avanzada Toki Pillán</b>. Mismo acceso que el caminante (RUT + clave).</p>
+  <ul>
+    <li><b>El Sonar:</b> tu radar personal de crecimiento en las 6 áreas — edítalo y guárdalo; es el mismo dato que ve tu dirigente en el ERP.</li>
+    <li><b>Mi Propia Aventura:</b> tus notas personales y adjuntos del camino pionero.</li>
+    <li><b>Proyectos:</b> igual que en el Clan — crear, coordinar fases, evidencias al Drive, y exploración cruzada con proyectos del Clan.</li>
+    <li><b>Portafolio:</b> etapas Cruz del Sur → Sendero → Cumbre con sus requisitos propios.</li>
+    <li><b>Calendario:</b> fechas de proyectos (compartidas) y notas de la Avanzada.</li>
+  </ul>
+</section>
+
+<section id="adulto">
+  <h2><i class="fas fa-hands-helping c-adu"></i> Portal del Adulto Voluntario <span class="tag" style="background:#fef3c7;color:#92400e">Dirigentes</span></h2>
+  <h3>Ingreso</h3>
+  <div class="paso"><div class="n">1</div><p>Usa <b>Google</b> con tu cuenta @salvadorsanfuentes.org, o tu <b>correo + contraseña del ERP</b>.</p></div>
+  <div class="paso"><div class="n">2</div><p>Si tu ficha no aparece, vincúlala una sola vez escribiendo tu <b>RUN</b> (sirve con o sin puntos y guion).</p></div>
+  <h3>Qué puedes editar tú</h3>
+  <ul>
+    <li><b>Mis Datos:</b> contacto, profesión, disponibilidad, salud completa (previsión, seguro, grupo sanguíneo, alergias) y contacto de emergencia.</li>
+    <li><b>Formación e Intereses:</b> cursos y talleres realizados, especialidades, certificaciones vigentes y tu estado de acompañamiento (AP, APF, etapa del PPF).</li>
+    <li><b>Mi Compromiso:</b> redacta tus metas anuales y fírmalas; queda en tu ficha y en el historial, con copia en tu expediente de Drive.</li>
+    <li><b>Documentos:</b> sube o pega la URL de tus certificados (antecedentes, inhabilidades, carta, foto) y de tus <b>certificados de cursos de formación</b> — se reflejan al instante en tu perfil del ERP. Todo archivo sube a <b>tu carpeta de expediente</b> en el Drive del grupo.</li>
+  </ul>
+  <h3>Qué se gestiona solo en el ERP</h3>
+  <p>RUN, roles y unidad asignada, nivel de formación AGSCh (Insignia de Madera), fase del ciclo de vida, cuota y ficha médica. El portal te los muestra en la tarjeta gris de solo lectura; si algo está mal, avisa a tu responsable de grupo.</p>
+</section>
+
+<section id="dirigentes">
+  <h2><i class="fas fa-user-shield c-erp"></i> Para dirigentes: ERP y buenas prácticas</h2>
+  <h3>Publicar actividades (para que las familias autoricen)</h3>
+  <div class="paso"><div class="n">1</div><p>En el ERP, módulo <b>Eventos / Campamentos</b>, crea la actividad con <b>fecha de inicio</b> (y fin si dura más de un día), lugar y tipo (interna/abierta).</p></div>
+  <div class="paso"><div class="n">2</div><p>Márcala como <b>publicada</b>. Solo entonces aparece en la pestaña Actividades del Portal de Apoderados para confirmar participación y firmar.</p></div>
+  <div class="paso"><div class="n">3</div><p>Las autorizaciones firmadas llegan solas al Drive: <b>admin_eventos / Autorizaciones - [nombre del evento]</b>. Las fichas médicas, a <b>admin_documentos / Fichas Médicas</b>.</p></div>
+  <h3>Organización del Drive</h3>
+  <table>
+    <tr><th>Qué</th><th>Dónde queda</th></tr>
+    <tr><td>Documentos y certificados de adultos</td><td>adultos / [carpeta de cada voluntario]</td></tr>
+    <tr><td>Autorizaciones firmadas</td><td>admin_eventos / Autorizaciones - [evento]</td></tr>
+    <tr><td>Fichas médicas firmadas</td><td>admin_documentos / Fichas Médicas</td></tr>
+    <tr><td>Evidencias de proyectos juveniles</td><td>Carpetas de rama (Clan / Avanzada)</td></tr>
+    <tr><td>Comprobantes de tesorería y eventos</td><td>admin_tesoreria / admin_eventos</td></tr>
+  </table>
+  <h3>Cuentas y accesos</h3>
+  <ul>
+    <li>Los jóvenes no necesitan cuenta: entran con RUT + clave familiar.</li>
+    <li>Un apoderado nuevo se auto-vincula (RUN + fecha de nacimiento del joven); nunca es necesario crearle nada.</li>
+    <li>Si un correo quedó mal vinculado (apoderado o adulto), se corrige editando el registro en el ERP.</li>
+  </ul>
+</section>
+
+<section id="faq">
+  <h2><i class="fas fa-circle-question c-erp"></i> Problemas frecuentes</h2>
+  <table>
+    <tr><th>Síntoma</th><th>Causa y solución</th></tr>
+    <tr><td>“Veo una versión vieja del portal”</td><td>Caché del navegador. Haz recarga forzada (Ctrl+Shift+R) o borra datos del sitio en el móvil.</td></tr>
+    <tr><td>“RUT no encontrado” en portales juveniles</td><td>El joven debe estar registrado y activo en el ERP con su RUT correcto. Verifica con la dirigencia.</td></tr>
+    <tr><td>“Este portal es para…” al entrar</td><td>Cada portal juvenil es exclusivo de su rama: el Clan usa el Caminante y la Avanzada el Pionero. El mensaje incluye el enlace correcto.</td></tr>
+    <tr><td>“No encontramos tu ficha” (adultos)</td><td>Vincúlala con tu RUN en esa misma pantalla. Si dice que ya está vinculada a otro correo, pide la corrección al equipo de grupo.</td></tr>
+    <tr><td>No aparecen actividades para autorizar</td><td>Solo se listan actividades <b>publicadas con fecha</b> desde el ERP. Pide a la dirigencia que publique el evento.</td></tr>
+    <tr><td>El botón de Google no vuelve al portal</td><td>La dirección debe estar autorizada en la configuración de Supabase (tarea del administrador). Mientras tanto, los adultos pueden entrar con contraseña.</td></tr>
+    <tr><td>“Guardado con respaldo en storage”</td><td>Drive no respondió en ese momento; el documento no se perdió. Reintenta más tarde o avisa al administrador.</td></tr>
+  </table>
+</section>
+
+<footer>Grupo Guías y Scouts Salvador Sanfuentes · Manual del sistema · Actualizado julio 2026</footer>
+</div>
+</body>
+</html>

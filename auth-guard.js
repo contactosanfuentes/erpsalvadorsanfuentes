@@ -3,7 +3,7 @@
     const SUPA_URL = 'https://hyixmaxhoxvamoecuars.supabase.co';
     const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imh5aXhtYXhob3h2YW1vZWN1YXJzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI3OTg1NDMsImV4cCI6MjA4ODM3NDU0M30.ZLeJIWdip2f00h4TqkZH7eqMX4wpwphaqkJpAa0N0X4';
 
-    const publicas = ['login.html','inscripcion_publica.html','portal_apoderados.html','portal_caminante.html','portal_pionero.html','portal_adulto.html','ver_perfil.html','privacidad.html'];
+    const publicas = ['login.html','inscripcion_publica.html','portal_apoderados.html','portal_caminante.html','portal_pionero.html','portal_adulto.html','manual_usuario.html','ver_perfil.html','privacidad.html'];
     const pagina = window.location.pathname.split('/').pop() || 'index.html';
     if (publicas.includes(pagina)) return;
 
