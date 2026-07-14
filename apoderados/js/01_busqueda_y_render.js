@@ -1,3 +1,11 @@
+    window.renderResultados = async function(jovenesRaw) {
+        const res = document.getElementById('res');
+        const jovenes = (jovenesRaw || []).map(j => ({...j}));
+        res.innerHTML = '';
+        for (const j of jovenes) res.innerHTML += await renderJoven(j);
+        if (typeof window._postRender === 'function') window._postRender(jovenes);
+    };
+
     window.buscar = async function() {
         const q = document.getElementById('q').value.trim();
         if (!q || q.length < 2) return;
@@ -29,11 +37,7 @@
             return;
         }
 
-        // Mapear a objetos planos para evitar DataCloneError
-        const jovenes = jovenesRaw.map(j => ({...j}));
-
-        res.innerHTML = '';
-        for (const j of jovenes) res.innerHTML += await renderJoven(j);
+        await window.renderResultados(jovenesRaw);
 
         // Activar listeners de tabs
         document.querySelectorAll('.tab-int').forEach(tab => {
