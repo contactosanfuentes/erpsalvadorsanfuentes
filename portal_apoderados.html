@@ -19,28 +19,28 @@
   <div style="background:white;border-radius:20px;padding:38px;max-width:430px;width:100%;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,0.25)">
     <img src="https://i.imgur.com/11u9rUD.png" alt="Logo" style="width:80px;height:auto;margin:0 auto 12px;display:block">
     <h1 style="font-size:1.35rem;font-weight:800;color:#123a63;margin-bottom:4px">Portal de Apoderados</h1>
-    <p style="color:#64748b;font-size:0.85rem;margin-bottom:20px">Ingresa con tu correo personal para ver la información, autorizaciones y fichas de tus pupilos.</p>
+    <p style="color:#64748b;font-size:0.85rem;margin-bottom:20px">Ingresa con tu correo personal para ver la información, autorizaciones y fichas de tus hijos, hijas o representados.</p>
     <div id="apo-login-error" style="display:none;background:#fef2f2;border:1px solid #fecaca;color:#b91c1c;border-radius:10px;padding:10px;font-size:0.8rem;margin-bottom:14px"></div>
     <button onclick="loginGoogleApoderado()" style="display:flex;align-items:center;justify-content:center;gap:10px;width:100%;padding:12px;border:2px solid #e2e8f0;border-radius:12px;background:#fff;font-weight:700;font-size:0.95rem;color:#334155;cursor:pointer">
       <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="G" style="width:20px;height:20px"> Continuar con Google
     </button>
-    <p style="margin-top:14px;font-size:0.72rem;color:#94a3b8"><i class="fas fa-lock"></i> La primera vez vincularás a tu pupilo/a con su RUN y fecha de nacimiento.</p>
+    <p style="margin-top:14px;font-size:0.72rem;color:#94a3b8"><i class="fas fa-lock"></i> La primera vez vincularás a tu hijo/a o representado/a con su RUN y fecha de nacimiento.</p>
   </div>
 </div>
 <div id="apo-portal" style="display:none">
 <div class="header"><div class="hi"><div class="lc"><img src="https://i.imgur.com/11u9rUD.png" alt="Logo"></div><h1>Portal de Apoderados</h1><p>Grupo Guías y Scouts Salvador Sanfuentes</p></div></div>
 <div class="wrapper">
     <div class="sc">
-        <h2 id="apo-intro"><i class="fas fa-users" style="color:var(--azul-claro)"></i> Tus pupilos vinculados</h2>
-        <p style="font-size:0.77rem;color:var(--texto-claro);margin-top:4px;display:flex;align-items:center;gap:5px;flex-wrap:wrap"><i class="fas fa-shield-alt"></i> Sesión: <b id="apo-email-sesion"></b> · Solo ves a los jóvenes vinculados a tu correo. <button onclick="reclamarOtroPupilo()" style="border:none;background:none;color:var(--azul-claro);font-weight:700;cursor:pointer;font-size:0.77rem;text-decoration:underline">Vincular otro pupilo</button> · <button onclick="cerrarSesionApoderado()" style="border:none;background:none;color:#b91c1c;font-weight:700;cursor:pointer;font-size:0.77rem;text-decoration:underline">Cerrar sesión</button></p>
+        <h2 id="apo-intro"><i class="fas fa-users" style="color:var(--azul-claro)"></i> Tus hijos, hijas o representados vinculados</h2>
+        <p style="font-size:0.77rem;color:var(--texto-claro);margin-top:4px;display:flex;align-items:center;gap:5px;flex-wrap:wrap"><i class="fas fa-shield-alt"></i> Sesión: <b id="apo-email-sesion"></b> · Solo ves a los jóvenes vinculados a tu correo. <button onclick="reclamarOtroHijo/a o representado()" style="border:none;background:none;color:var(--azul-claro);font-weight:700;cursor:pointer;font-size:0.77rem;text-decoration:underline">Vincular otro hijo/a o representado</button> · <button onclick="cerrarSesionApoderado()" style="border:none;background:none;color:#b91c1c;font-weight:700;cursor:pointer;font-size:0.77rem;text-decoration:underline">Cerrar sesión</button></p>
     </div>
     <div class="sc" id="apo-reclamo" style="display:none">
-        <h2><i class="fas fa-link" style="color:var(--azul-claro)"></i> Vincular a tu pupilo/a</h2>
+        <h2><i class="fas fa-link" style="color:var(--azul-claro)"></i> Vincular a tu hijo/a o representado/a</h2>
         <p style="font-size:0.8rem;color:var(--texto-claro);margin:6px 0 10px">Tu correo aún no está registrado como apoderado. Vincúlate con el <b>RUN</b> y la <b>fecha de nacimiento</b> del joven (solo esta primera vez).</p>
         <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:end">
             <div style="flex:1;min-width:160px"><label style="font-size:0.68rem;font-weight:800;text-transform:uppercase;color:#475569">RUN del joven</label><input id="apo-run" placeholder="Ej: 12345678-9" style="width:100%;border:1.5px solid #e2e8f0;border-radius:10px;padding:9px 11px;font-size:0.85rem;outline:none"></div>
             <div style="min-width:160px"><label style="font-size:0.68rem;font-weight:800;text-transform:uppercase;color:#475569">Fecha de nacimiento</label><input id="apo-fnac" type="date" style="width:100%;border:1.5px solid #e2e8f0;border-radius:10px;padding:8px 11px;font-size:0.85rem;outline:none"></div>
-            <button class="btn btn-p" onclick="reclamarPupilo()"><i class="fas fa-link"></i> Vincular</button>
+            <button class="btn btn-p" onclick="reclamarHijo/a o representado()"><i class="fas fa-link"></i> Vincular</button>
         </div>
         <p id="apo-reclamo-msg" style="display:none;font-size:0.78rem;margin-top:8px"></p>
     </div>

@@ -2,7 +2,7 @@
 // Misma lógica de reclamación que el Portal del Adulto Voluntario, adaptada a apoderados:
 // 1) Sesión con Google (correo personal, sin restricción de dominio).
 // 2) Se muestran SOLO los jóvenes cuyo registro tiene ese correo como apoderado (titular o suplentes).
-// 3) Si el correo no está vinculado a ningún joven: reclamación con RUN + fecha de nacimiento
+// 3) Si el correo no está vinculado a ningún hijo/a o representado: reclamación con RUN + fecha de nacimiento
 //    del joven; el correo se escribe en el primer cupo de apoderado libre. Nunca pisa cupos ocupados.
 (function(){
     const $ = id => document.getElementById(id);
@@ -32,14 +32,14 @@
 
     async function cargarMisPupilos(){
         const res = $('res');
-        res.innerHTML = '<div class="esm" style="background:white;border-radius:10px;padding:30px"><i class="fas fa-circle-notch fa-spin"></i>Cargando a tus pupilos...</div>';
+        res.innerHTML = '<div class="esm" style="background:white;border-radius:10px;padding:30px"><i class="fas fa-circle-notch fa-spin"></i>Cargando a tus hijos, hijas o representados...</div>';
         const e = authEmail.replace(/[%_]/g, '');
         const { data, error } = await db.from('mmbb_registrations').select('*')
             .or(`apoderado_titular_email.ilike.${e},apoderado_suplente1_email.ilike.${e},apoderado_suplente2_email.ilike.${e}`);
         if (error) { res.innerHTML = `<div class="errb"><i class="fas fa-exclamation-circle"></i>Error: ${error.message}</div>`; return; }
         if (!data || !data.length) { res.innerHTML = ''; $('apo-reclamo').style.display = 'block'; return; }
         $('apo-reclamo').style.display = 'none';
-        $('apo-intro').innerHTML = `<i class="fas fa-users"></i> Tus pupilos vinculados (${data.length}):`;
+        $('apo-intro').innerHTML = `<i class="fas fa-users"></i> Tus hijos, hijas o representados vinculados (${data.length}):`;
         await window.renderResultados(data);
     }
 
