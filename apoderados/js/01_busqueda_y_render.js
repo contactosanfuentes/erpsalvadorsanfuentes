@@ -4,6 +4,12 @@
         res.innerHTML = '';
         for (const j of jovenes) res.innerHTML += await renderJoven(j);
         if (typeof window._postRender === 'function') window._postRender(jovenes);
+        // Activar navegación de pestañas y cargar secciones interactivas (autorizaciones y ficha médica)
+        document.querySelectorAll('.tab-int').forEach(tab => { tab.onclick = () => cambiarTab(tab); });
+        for (const j of jovenes) {
+            window.Autorizaciones?.cargar(j);
+            window.FichaMedica?.cargar(j);
+        }
     };
 
     window.buscar = async function() {
@@ -39,16 +45,6 @@
 
         await window.renderResultados(jovenesRaw);
 
-        // Activar listeners de tabs
-        document.querySelectorAll('.tab-int').forEach(tab => {
-            tab.onclick = () => cambiarTab(tab);
-        });
-
-        // Cargar autorizaciones y ficha médica de cada participante (asíncrono, no bloquea)
-        for (const j of jovenes) {
-            window.Autorizaciones?.cargar(j);
-            window.FichaMedica?.cargar(j);
-        }
     };
 
     function cambiarTab(tab) {
