@@ -19,11 +19,23 @@ function renderDocumentos(){
           ${d.ayuda?`<br><a href="${d.ayuda}" target="_blank" rel="noopener" style="font-weight:600">obtener aquí</a>`:''}</span>
         <span id="doc-est-${d.k}" style="font-size:0.72rem;font-weight:800;color:${adulto[d.k]?'#059669':'#b91c1c'}">${adulto[d.k]?'✓ Cargado':'Pendiente'}</span>
         ${adulto[d.k]?`<a href="${adulto[d.k]}" target="_blank" rel="noopener">ver actual</a>`:''}
-        <label class="btn-sec" style="cursor:pointer;margin-left:auto"><i class="fas fa-upload"></i> ${adulto[d.k]?'Renovar':'Subir'}
-          <input type="file" accept="${d.img?'image/*':'.pdf,image/*'}" style="display:none" onchange="subirDocumento(this,'${d.k}','${d.b}')">
-        </label>
+        <div style="display:flex;gap:6px;flex:1;min-width:230px;align-items:center;margin-left:auto">
+          <input id="doc-url-${d.k}" placeholder="o pega la URL (Drive, etc.)" style="flex:1;border:1.5px solid #e2e8f0;border-radius:10px;padding:7px 10px;font-size:0.75rem;outline:none">
+          <button class="btn-sec" onclick="guardarDocUrl('${d.k}')" title="Guardar URL"><i class="fas fa-link"></i></button>
+          <label class="btn-sec" style="cursor:pointer" title="Subir archivo"><i class="fas fa-upload"></i> ${adulto[d.k]?'Renovar':'Subir'}
+            <input type="file" accept="${d.img?'image/*':'.pdf,image/*'}" style="display:none" onchange="subirDocumento(this,'${d.k}','${d.b}')">
+          </label>
+        </div>
       </div>`).join('')}
   </div>` + renderCertsFormacion();
+}
+
+async function guardarDocUrl(campo){
+  const url = $('doc-url-' + campo).value.trim();
+  if (!url) { toast('Pega una URL o usa el botón de subir archivo.', 'err'); return; }
+  if (!/^https?:\/\//i.test(url)) { toast('La URL debe comenzar con http(s)://', 'err'); return; }
+  const ok = await guardarAdulto({ [campo]: url });
+  if (ok) { toast('📄 Documento registrado.'); if (campo === 'foto_url') { $('hdr-foto').src = url; $('hdr-foto').style.display = ''; } renderDocumentos(); }
 }
 
 async function subirDocumento(input, campo, bucket){
