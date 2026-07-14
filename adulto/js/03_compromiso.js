@@ -59,6 +59,12 @@ async function guardarCompromiso(){
     if (!eUp) firmaUrl = sb.storage.from('adult-signatures').getPublicUrl(ruta).data.publicUrl;
   } catch(e) {}
   if (firmaUrl) cambios.firma_url = firmaUrl;
+  // Copia de la firma al expediente Drive del adulto (regla: todo documento del sistema, organizado en Drive)
+  try {
+    const blob2 = await new Promise(res => $('firma-canvas').toBlob(res, 'image/png'));
+    const b64 = await new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(r.result.split(',')[1]); r.onerror = rej; r.readAsDataURL(blob2); });
+    await window.DriveHelper.subir({ supabaseClient: sb, nombre: `Compromiso_firmado_${new Date().toISOString().slice(0,10)}.png`, base64: b64, mimeType: 'image/png', claveCarpeta: 'adultos', nombrePersona: `${adulto.primer_nombre||adulto.nombres||''} ${adulto.apellido_paterno||adulto.apellidos||''}`.trim() });
+  } catch (e) { console.warn('Firma: copia a Drive no disponible:', e.message); }
   const ok = await guardarAdulto(cambios);
   if (!ok) return;
   const { error } = await sb.from('compromisos_adultos').insert({
