@@ -4,6 +4,30 @@
         res.innerHTML = '';
         for (const j of jovenes) res.innerHTML += await renderJoven(j);
         if (typeof window._postRender === 'function') window._postRender(jovenes);
+        // Con más de 1 hijo/a o representado: tarjetas colapsadas mostrando solo el encabezado
+        if (jovenes.length > 1) {
+            document.querySelectorAll('.jcard').forEach(card => {
+                const header = card.querySelector('.jh-card');
+                if (!header || card.querySelector('.jcard-body')) return;
+                const body = document.createElement('div');
+                body.className = 'jcard-body';
+                while (header.nextSibling) body.appendChild(header.nextSibling);
+                card.appendChild(body);
+                body.style.display = 'none';
+                header.style.cursor = 'pointer';
+                header.title = 'Toca para ver el detalle';
+                const chev = document.createElement('i');
+                chev.className = 'fas fa-chevron-down jcard-chevron';
+                chev.style.cssText = 'align-self:center;color:#94a3b8;transition:transform .25s;font-size:1rem;padding:6px';
+                header.appendChild(chev);
+                header.addEventListener('click', () => {
+                    const abierto = body.style.display !== 'none';
+                    body.style.display = abierto ? 'none' : 'block';
+                    chev.style.transform = abierto ? '' : 'rotate(180deg)';
+                });
+            });
+        }
+
         // Activar navegación de pestañas y cargar secciones interactivas (autorizaciones y ficha médica)
         document.querySelectorAll('.tab-int').forEach(tab => { tab.onclick = () => cambiarTab(tab); });
         for (const j of jovenes) {
