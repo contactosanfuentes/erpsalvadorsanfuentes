@@ -169,7 +169,9 @@
 
         const rama = ramaDe(j.unidad);
         const etapasRama = rama ? ETAPAS_RAMA[rama] : null;
-        const etapaActual = prog?.etapa_actual || null;
+        // El ERP registra la etapa en progresion_jovenes.etapa_actual o, para ramas como la Avanzada,
+        // en mmbb_registrations.adelanto — se consideran ambas fuentes.
+        const etapaActual = prog?.etapa_actual || j.adelanto || null;
         const idxActual = (etapasRama && etapaActual) ? etapasRama.indexOf(etapaActual) : -1;
 
         if (etapasRama) {

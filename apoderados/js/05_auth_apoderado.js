@@ -73,7 +73,7 @@
         await cargarMisPupilos();
     };
 
-    window.reclamarOtroPupilo = function(){ $('apo-reclamo').style.display = 'block'; $('apo-reclamo').scrollIntoView({ behavior: 'smooth' }); };
+    window.reclamarOtroVinculo = window.reclamarOtroPupilo = function(){ $('apo-reclamo').style.display = 'block'; $('apo-reclamo').scrollIntoView({ behavior: 'smooth' }); };
 
     window.addEventListener('DOMContentLoaded', iniciar);
 })();
